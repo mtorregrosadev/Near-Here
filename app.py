@@ -8,14 +8,15 @@ def main(page: Page):
     page.window_width = 600
     page.window_height = 800
     page.horizontal_alignment = "center"
+    #page.vertical_alignment ="end"
     page.theme_mode = "light"
-    #page.expand=True
-    #page.adaptive = True
+
     page.fonts = {
            "Outfit": "fonts/Outfit.ttf",
     }
     page.theme = Theme(font_family="Outfit")
     page.update()
+
     def animate_left(e):
         if contenidor2.visible == False:
             contenidor2.offset = transform.Offset(0,0)
@@ -29,7 +30,7 @@ def main(page: Page):
             contenidor2.scale = 1
             contenidor.scale= 0
             page.update()
-            
+        
         elif contenidor.visible == False:
             contenidor.offset = transform.Offset(0,0)
             contenidor2.offset = transform.Offset(-4,0) #Aquest el que fa es moure de lloc l'element
@@ -73,15 +74,12 @@ def main(page: Page):
     def animate_center(e):
         contenidor.offset = transform.Offset(0,0) #Aquest el que fa es moure de lloc l'element
         contenidor.update()
-    
-
-        
+           
     contenidor = Container(
         bgcolor="#86A3B8", 
         offset=(0,0),
         border_radius=40, 
         expand_loose=True,
-        #image_src="https://flet.dev/img/docs/getting-started/animations/animate-position.gif",
         animate_offset=animation.Animation(500),
         scale=1,
         animate_scale=animation.Animation(450, "easeOutSine")
@@ -89,7 +87,6 @@ def main(page: Page):
     contenidor2 = Container(
         bgcolor="#AAD7D9",
         border_radius=40,
-        #image_src="https://flet.dev/img/docs/getting-started/animations/animate-position.gif",
         animate_offset=animation.Animation(500),
         scale=0,
         animate_scale=animation.Animation(450, "easeOutSine"), 
@@ -100,11 +97,8 @@ def main(page: Page):
         pass
     
     divider = Divider(height=30, thickness=0.1)
-#Definirem aqui tots els components com a variables per a tal d'accedir-hi en qualsevol moment en el programa
-
-
     
-
+#Definirem aqui tots els components com a variables per a tal d'accedir-hi en qualsevol moment en el programa
     Tags_amunt =Row( #Totes les etiquetes juntes 
                 spacing=10,
                 alignment= "center",
@@ -145,7 +139,7 @@ def main(page: Page):
             )
     contenidors = ResponsiveRow( #Aqui van tots els contenidors junts 
             offset=(0,0),
-            expand=True,
+            expand = 18,
             expand_loose=True,
             height=560,
             width=500,
@@ -155,18 +149,18 @@ def main(page: Page):
             ]
         )
     botons = ResponsiveRow( #Aqui van tots els botons junts 
-            expand_loose=True,
-            alignment="center",
-            expand=0,
+            vertical_alignment="end",
             controls=[
             ElevatedButton("Seguent", on_click=animate_left, bgcolor="#d9acaa", col=4), 
             ElevatedButton("Més info", on_click=animate_center,bgcolor="#FBF9F1",col=4),
             ElevatedButton("Guarda!", on_click=animate_right, bgcolor="#aad9c4",col=4), 
     ]) 
-    
+    bt = Container(botons, bgcolor="red", expand=6)
+
     def changetab(e):
         index = e.control.selected_index
         if index == 1:
+            print("Seleccionat llocs!")
             contenidors.visible == True
             Tags_amunt.visible == True
             botons.visible == True
@@ -177,7 +171,7 @@ def main(page: Page):
             page.update()
 
         elif index == 0:
-            print("ho pillo")
+            print("Favorits seleccionat")
 
             while index == 0: #Animacions icones
                 time.sleep(1)
@@ -185,12 +179,10 @@ def main(page: Page):
                 page.update()
 
         elif index == 2:
-            print("ho eee")
+            print("Configuració seleccionada")
             time.sleep(0.01)
             selected_configuracio.rotate.angle += (2*pi)
             page.update()
-    
-    
     
     selected_favorits =Icon(name=icons.FAVORITE_ROUNDED, color="#E78895", animate_size=200)
     selected_llocs =Icon(name=icons.LOCATION_PIN, color=colors.BLACK, animate_offset=140, offset=transform.Offset(0,0)) 
@@ -210,13 +202,11 @@ def main(page: Page):
             NavigationDestination(label="Configuració", icon="SETTINGS_OUTLINED", selected_icon_content=selected_configuracio),
         ]
     )
-
     
     page.add(
         SafeArea(content=Tags_amunt, top=True),
         contenidors,
-        divider,
-        SafeArea(content=botons, bottom=True)
+        bt
     )
 
 flet.app(target=main,assets_dir="assets")
