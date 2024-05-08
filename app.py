@@ -2,6 +2,7 @@ import flet
 from flet import Page, ElevatedButton, Dismissible,DismissDirection, SafeArea,Theme, animation, Container, transform, Icon, icons, colors, alignment, icons, Row, Text, ResponsiveRow, Chip, NavigationDestination, NavigationBar 
 import time
 from math import pi
+import asyncio
 
 def main(page: Page):
     page.title = "Near here..."
@@ -16,22 +17,17 @@ def main(page: Page):
     page.theme = Theme(font_family="Lato")
     page.update()
 
-    def animate_movement(e):
-        if e.direction == DismissDirection.END_TO_START: #De dreta a esquerra 
-            print("dreta")
-        else: #De esquerra a dreta
-            print("esquerra")
 
-    def animate_left(e):
+    async def animate_left(e):
         if contenidor2.visible == False:
             contenidor2.offset = transform.Offset(0,0)
             contenidor.offset = transform.Offset(-4,0) #Aquest el que fa es moure de lloc l'element
             page.update()
-            time.sleep(0.3)
+            await asyncio.sleep(0.3)
             contenidor.visible = False
             contenidor2.visible = True
             page.update()
-            time.sleep(0.2)
+            await asyncio.sleep(0.2)
             contenidor2.scale = 1
             contenidor.scale= 0
             page.update()
@@ -40,25 +36,25 @@ def main(page: Page):
             contenidor.offset = transform.Offset(0,0)
             contenidor2.offset = transform.Offset(-4,0) #Aquest el que fa es moure de lloc l'element
             page.update()
-            time.sleep(0.3)
+            await asyncio.sleep(0.3)
             contenidor2.visible = False
             contenidor.visible = True
             page.update()
-            time.sleep(0.2)
+            await asyncio.sleep(0.2)
             contenidor.scale = 1
             contenidor2.scale= 0
             page.update()
     
-    def animate_right(e):
+    async def animate_right(e):
         if contenidor2.visible == False:
             contenidor2.offset = transform.Offset(0,0)
             contenidor.offset = transform.Offset(4,0) #Aquest el que fa es moure de lloc l'element
             page.update()
-            time.sleep(0.3)
+            await asyncio.sleep(0.3)
             contenidor.visible = False
             contenidor2.visible = True
             page.update()
-            time.sleep(0.2)
+            await asyncio.sleep(0.2)
             contenidor2.scale = 1
             contenidor.scale= 0
             page.update()
@@ -67,16 +63,16 @@ def main(page: Page):
             contenidor.offset = transform.Offset(0,0)
             contenidor2.offset = transform.Offset(4,0) #Aquest el que fa es moure de lloc l'element
             page.update()
-            time.sleep(0.3)
+            await asyncio.sleep(0.3)
             contenidor2.visible = False
             contenidor.visible = True
             page.update()
-            time.sleep(0.2)
+            await asyncio.sleep(0.2)
             contenidor.scale = 1
             contenidor2.scale= 0
             page.update()
 
-    def animate_center(e):
+    async def animate_center(e):
         contenidor.offset = transform.Offset(0,0) #Aquest el que fa es moure de lloc l'element
         contenidor.update()
            
@@ -159,30 +155,33 @@ def main(page: Page):
                 ElevatedButton("Guarda!", on_click=animate_right, bgcolor="#aad9c4",color="black",col=4), 
     ]) 
 
-    def changetab(e):
+    async def changetab(e):
         index = e.control.selected_index
+     
         if index == 1:
+            print(index)
             print("Seleccionat llocs!")
             contenidors.visible == True
             Tags_amunt.visible == True
             botons.visible == True
             selected_llocs.offset = transform.Offset(0, -0.3)
             page.update()
-            time.sleep(0.1)
+            await asyncio.sleep(0.1)
             selected_llocs.offset = transform.Offset(0,0)
             page.update()
 
         elif index == 0:
-            print("Favorits seleccionat")
-
             while index == 0: #Animacions icones
-                time.sleep(1)
+                await asyncio.sleep(1.5)
                 selected_favorits.size = 27 if selected_favorits.size == 24 else 24
                 page.update()
+                index = e.control.selected_index #S'ha d'actualitzar a dins del codi la variable index, ja que sinó sempre sera True
+
+            print("Favorits seleccionat")
 
         elif index == 2:
             print("Configuració seleccionada")
-            time.sleep(0.01)
+            await asyncio.sleep(0.01)
             selected_configuracio.rotate.angle += (2*pi)
             page.update()
     
