@@ -145,7 +145,7 @@ def main(page: Page):
                 contenidor,
                 contenidor2,
             ]
-        )
+    )
     botons = ResponsiveRow( #Aqui van tots els botons junts 
             vertical_alignment="end",
             
