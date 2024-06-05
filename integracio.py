@@ -1,5 +1,5 @@
 import flet 
-from flet import Page, Stack, Column,TextSpan,TextStyle,Paint, StrokeJoin,PaintingStyle,ShadowBlurStyle, BoxShadow, Image, ListTile,GestureDetector, FontWeight,ElevatedButton, Dismissible,DismissDirection, SafeArea,Theme, animation, Container, transform, Icon, icons, colors, alignment, icons, Row, Text, ResponsiveRow, Chip, NavigationDestination, NavigationBar 
+from flet import Page, Stack,Column,TextSpan,TextStyle,Paint, StrokeJoin,PaintingStyle,ShadowBlurStyle, BoxShadow, Image, ListTile,GestureDetector, FontWeight,ElevatedButton, Dismissible,DismissDirection, SafeArea,Theme, animation, Container, transform, Icon, icons, colors, alignment, icons, Row, Text, ResponsiveRow, Chip, NavigationDestination, NavigationBar 
 import time
 from math import pi
 import asyncio
@@ -97,7 +97,8 @@ def main(page: Page):
             ),
         ],
     )
-    
+
+
     cards = [
         Container(
             image_src = "src/fons.jpg",
@@ -115,7 +116,7 @@ def main(page: Page):
                 controls=[
                     ListTile(
                         title=nom_del_restaurant,
-                        subtitle=Text(f"No se sffsd sdf  jksf  hf kdjshf khfjdksh fsjkfh djks fjdksf",color="black", text_align="center",font_family="Helvetica Neue",weight=FontWeight.W_900),
+                        subtitle=Text(f"No se sffsd sdf  jksf  hf kdjshf khfjdksh fsjkfh djks fjdksf", color="white",text_align="center",font_family="Helvetica Neue",weight=FontWeight.W_900),
                         height=(page.height * 0.8) * 0.20  
                         ),
                     Image(
@@ -135,7 +136,6 @@ def main(page: Page):
     
     def restaurants_select(e):
         pass
-    
     
 #Definirem aqui tots els components com a variables per a tal d'accedir-hi en qualsevol moment en el programa
     Tags_amunt =Row( #Totes les etiquetes juntes 
@@ -248,25 +248,29 @@ def main(page: Page):
     stack.height = page.height * 0.8
     stack.width = page.width 
    
-    async def on_swipe(e, cardi):
+    async def on_swipe(e):
         data = json.loads(e.data)
-        print(data["vx"])
-        if data["vx"] < -300: #Esquerra
-            cards[0].animate_offset = animation.Animation(500)  # Configura la animación de desplazamiento
-            cards[0].offset = transform.Offset(-4, 0)  # Aplica el desplazamiento
-            page.update()
-            await asyncio.sleep(0.15)  # Espera a que la animación termine
-            cards.remove(cards[0])
-           # print(f"Card {len(cards)} swiped left {cards[0].content.value}")
+        print(data["pv"])
+        if data["pv"] != 0:
+            if data["pv"] < 1: #Esquerra
+                cards[0].animate_offset = animation.Animation(500)  
+                cards[0].offset = transform.Offset(-4, 0)  
+                page.update()
+                await asyncio.sleep(0.15) 
+                cards.remove(cards[0])
+            elif data["pv"] > 0: #Dreta
+                cards[0].animate_offset = animation.Animation(500)  
+                cards[0].offset = transform.Offset(4, 0)  
+                page.update()
+                await asyncio.sleep(0.15)  
+                cards.remove(cards[0])   
+            update_cards()
+            await scale_next_card()
 
-        elif data["vx"] > 300: #Dreta
-            cards[0].animate_offset = animation.Animation(500)  # Configura la animación de desplazamiento
-            cards[0].offset = transform.Offset(4, 0)  # Aplica el desplazamiento
-            page.update()
-            await asyncio.sleep(0.15)  # Espera a que la animación termine
-            cards.remove(cards[0])
-            #print(f"Card {len(cards)} swiped left {cards[0].content.value}")
-        else: #Més detalls
+    async def on_swipe_vertical(e):
+        data = json.loads(e.data)
+        print(data["pv"])
+        if data["pv"] < 1:
             cards[0].animate_scale = animation.Animation(800)
             cards[0].scale = 2
             cards[0].animate_opacity = animation.Animation(700)
@@ -276,11 +280,15 @@ def main(page: Page):
             stack.visible = False
             botons.visible = False
             Tags_amunt.visible = False
-        update_cards()
-        await scale_next_card()
-        
-    def handle_swipe(e, cardi):
-        asyncio.run(on_swipe(e, cardi))
+            update_cards()
+            await scale_next_card()
+        else: 
+            pass
+
+    def handle_swipe(e):
+        asyncio.run(on_swipe(e))
+    def handle_swipe_vertical(e):
+        asyncio.run(on_swipe_vertical(e))
     # Aquest el que fa es convertir cada card individual en GestureDetector. Amb això, podem detectar cap a on es mou i com funciona. Es molt útil i ens ho serà en un futur.
     def update_cards():
         #print(cards[0].content.controls[1].image_src)
@@ -289,13 +297,13 @@ def main(page: Page):
             stack.controls.append(
                 GestureDetector(
                     content=card,
-                    on_horizontal_drag_end=lambda e, cardi=card: handle_swipe(e, card),
-                    on_vertical_drag_end=lambda e, cardi=card: handle_swipe(e, card)
+                    on_horizontal_drag_end=lambda e: handle_swipe(e),
+                    on_vertical_drag_end=lambda e: handle_swipe_vertical(e)
                 )
             )
  
             if len(cards) == 1:
-                for i in range(1,20):
+                for i in range(0,10):
                     cards.append(Container(
                     image_src = "src/fons.jpg",
                     image_fit = "FILL",
