@@ -1,15 +1,15 @@
 import flet 
-from flet import Page, Stack,Column,TextSpan,TextStyle,Paint, StrokeJoin,PaintingStyle,ShadowBlurStyle, BoxShadow, Image, ListTile,GestureDetector, FontWeight,ElevatedButton, Dismissible,DismissDirection, SafeArea,Theme, animation, Container, transform, Icon, icons, colors, alignment, icons, Row, Text, ResponsiveRow, Chip, NavigationDestination, NavigationBar 
-import time
+from flet import Page,Geolocator, ImageFit, ImageRepeat,Card,GridView, ListTile, MainAxisAlignment,TextButton,Stack,Column,TextSpan,TextStyle,Paint,AlertDialog,IconButton, StrokeJoin,PaintingStyle,ShadowBlurStyle, BoxShadow, Image, ListTile,GestureDetector, FontWeight,ElevatedButton, Dismissible,DismissDirection, SafeArea,Theme, animation, Container, transform, Icon, icons, colors, alignment, icons, Row, Text, ResponsiveRow, Chip, NavigationBarDestination, NavigationBar 
 from math import pi
 import asyncio
 import json
-
+import location
+anterior = 1
 def main(page: Page):
     page.bgcolor = "#FFFCF1"
     page.title = "Near here..."
-    page.window_width = 390
-    page.window_height = 790
+    page.window.width = 390
+    page.window.height = 790
     page.horizontal_alignment = "center"
     page.theme_mode = "light"
     page.fonts = {
@@ -18,38 +18,57 @@ def main(page: Page):
            "Proxima Nova ExtraBold": "fonts/ProximaNova-ExtraBold.ttf",
            "Helvetica Neue": "fonts/HelveticaNeueMedium.otf",
            "Stres": "fonts/Stres.otf",
-           "Abril Fatface": "http://themes.googleusercontent.com/static/fonts/abrilfatface/v5/X1g_KwGeBV3ajZIXQ9VnDibsRidxnYrfzLNRqJkHfFo.ttf",
     }
     page.theme = Theme(font_family="Helvetica Neue")
+    #gl = Geolocator()
+    #page.add(gl)
+    #gl.request_permission() 
+    #location.handle_permission(gl,AlertDialog, page, Text,TextButton,MainAxisAlignment)
     page.update()
 
-    async def animate_left(e):
-        cards[0].animate_offset = animation.Animation(600)  
+    async def seguent(e):
         cards[0].offset = transform.Offset(-4, 0)  
         page.update()
-        await asyncio.sleep(0.2)  
+        await asyncio.sleep(0.15)  
         cards.remove(cards[0])
         print(f"Card {len(cards)} swiped left")
         update_cards()
         await scale_next_card()
     
-    async def animate_right(e):
-        cards[0].animate_offset = animation.Animation(600)  # Configura la animación de desplazamiento
-        cards[0].offset = transform.Offset(4, 0)  # Aplica el desplazamiento
+    async def guarda(e):
+        cards[0].offset = transform.Offset(4, 0)  
         page.update()
-        await asyncio.sleep(0.2)  # Espera a que la animación termine
+        await asyncio.sleep(0.15)  
         cards.remove(cards[0])
         print(f"Card {len(cards)} swiped left")
         update_cards()
         await scale_next_card()
 
-    async def animate_center(e):
-        pass   
+    async def mes_info(e):
+        #Animació en general per fer desapareixer tot 
+        cards[0].animate_scale = animation.Animation(600)
+        cards[0].scale = 2
+        cards[0].opacity = 0.1
+        botons.animate_opacity = animation.Animation(600)
+        Tags_amunt.animate_opacity = animation.Animation(600)
+        botons.opacity = 0.12
+        Tags_amunt.opacity = 0.12
+        page.update()
+        await asyncio.sleep(0.6)
+        stack_cards.visible = False
+        botons.visible = False
+        Tags_amunt.visible = False
+        page.update()
+        #Comença a afegir l'altre pàgina
+        #page.add(tornar)
+
     
     size_title = (page.height * 0.04) - 7
+    
     nom_del_restaurant = Stack(
         alignment=alignment.center,
-        height=page.height * 0.057,
+        height=page.height * 0.055,
+        width=page.width,
         controls=[
             Container(
                 content=Text(
@@ -63,7 +82,7 @@ def main(page: Page):
                                 font_family="Stres",
                                 foreground=Paint(
                                     color="#FFFFEA",
-                                    stroke_width=5,
+                                    stroke_width=3.4,
                                     stroke_join=StrokeJoin.BEVEL,
                                     style=PaintingStyle.STROKE,
                                 ),
@@ -99,11 +118,12 @@ def main(page: Page):
             image_fit = "FILL",
             offset=(0,0),
             border_radius=15, 
-            width = page.width * 1,
+            width = page.width,
             height = page.height * 0.8,
             animate_offset=animation.Animation(500),
+            animate_opacity = animation.Animation(600),
             scale=0,
-            animate_scale=animation.Animation(450, "easeOutSine"),
+            animate_scale=animation.Animation(340, "easeOutSine"),
             content=Column(
                 horizontal_alignment="center",
                 controls=[
@@ -113,9 +133,9 @@ def main(page: Page):
                         height=(page.height * 0.8) * 0.15  
                         ),
                     Image(
-                        src=f"https://picsum.photos/{round(page.width * 0.8)}/{round((page.height * 0.8 )* 0.65)}",
+                        src=f"https://picsum.photos/{round(page.width * 0.92)}/{round((page.height * 0.8)* 0.65)}",
                         border_radius = 15+((page.height*0.8)*0.16),
-                        width = page.width * 0.8, 
+                        width = page.width * 0.92, 
                         height = page.height * 0.8 * 0.65,
                         filter_quality="HIGH"
                         )
@@ -180,40 +200,129 @@ def main(page: Page):
     botons = ResponsiveRow( #Aqui van tots els botons junts 
             vertical_alignment="end",
             controls=[
-                ElevatedButton(content=Text("Següent", size=size_botons),on_click=animate_left, bgcolor="#d9acaa", color="black",col=4), 
-                ElevatedButton(content=Text("Més info", size=size_botons), on_click=animate_center,bgcolor="#FBF9F1",color="black",col=4),
-                ElevatedButton(content=Text("Guarda!", size=size_botons), on_click=animate_right, bgcolor="#aad9c4",color="black",col=4), 
+                ElevatedButton(content=Text("Següent", size=size_botons),on_click=seguent, bgcolor="#d9acaa", color="black",col=4), 
+                ElevatedButton(content=Text("Més info", size=size_botons), on_click=mes_info,bgcolor="#FBF9F1",color="black",col=4),
+                ElevatedButton(content=Text("Guarda!", size=size_botons), on_click=guarda, bgcolor="#aad9c4",color="black",col=4), 
     ]) 
-    stack = Stack(alignment="center", offset=(0,0), expand = True)
+    stack_cards = Stack(alignment=alignment.center, offset=(0,0), expand = True)
+    configuracio =Card(color = "#AAD7D9", height=page.height * 0.8,
+            content=Container(
+                content=Column(
+                    [
+                        ListTile(
+                            title=Text("Configuració", size = 20, weight=FontWeight.W_500),
+                        ),
+                        ListTile(title=Text("General"), dense=True),
+                        ListTile(
+                            leading=Icon(icons.PALETTE_OUTLINED, color="black"),
+                            trailing = Icon(icons.CHEVRON_RIGHT_OUTLINED),
+                            title=Text("Tema", color="black"),
+                            selected=True,
+                            # on_click=hey
+                        ),
+                        ListTile(
+                            leading=Icon(icons.LANGUAGE, color="black"),
+                            trailing = Icon(icons.CHEVRON_RIGHT_OUTLINED),
+                            title=Text("Idioma", color="black"),
+                            selected=True,
+                            # on_click=hey
+                        ),
+                        ListTile(
+                            leading=Icon(icons.HISTORY, color="black"),
+                            trailing = Icon(icons.CHEVRON_RIGHT_OUTLINED),
+                            title=Text("Historial de llocs", color="black"),
+                            selected=True,
+                            # on_click=hey
+                        ),
+                    ],
+                    spacing=0,
+                ),
+            )
+        )
+    
+    configuracio = SafeArea(content=configuracio)
 
+    saved_cards = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,345,435,4,543] # Suposem que tenim ja la variable i la deixem 
+    images_saved = GridView(
+        expand=True,
+        runs_count=3,
+        child_aspect_ratio=1,
+        spacing=5,
+        run_spacing=5,
+    )
+    
+    async def canvi_des_de_llocs():
+            stack_cards.visible = False
+            botons.visible = False
+            Tags_amunt.visible = False
+            page.update() 
+    async def canvi_des_de_favorits():
+        page.remove(images_saved)
+        page.update()
+    async def canvi_des_de_configuracio():
+        page.remove(configuracio)
+        page.update()
+    
     async def changetab(e):
+        global anterior
         index = e.control.selected_index
-     
         if index == 1: #Llocs
+            if anterior == 0:
+                await canvi_des_de_favorits()
+            elif anterior == 2:
+                await canvi_des_de_configuracio()
+            anterior = index
             print("Seleccionat llocs!")
-            stack.visible == True
-            Tags_amunt.visible == True
-            botons.visible == True
-            selected_llocs.offset = transform.Offset(0, -0.3)
-            page.update()
-            await asyncio.sleep(0.1)
             selected_llocs.offset = transform.Offset(0,0)
+            botons.visible = True
+            stack_cards.visible = True
+            Tags_amunt.visible = True
+            botons.opacity = 1
+            Tags_amunt.opacity = 1
+            stack_cards.opacity = 1
+            selected_llocs.offset = transform.Offset(0, -0.25)
             page.update()
-
+            await asyncio.sleep(0.14)
+            selected_llocs.offset = transform.Offset(0,0)
+            page.update()       
+            
         elif index == 0: #Favorits
+            if anterior == 1:
+                await canvi_des_de_llocs()
+            elif anterior == 2:
+                await canvi_des_de_configuracio()
+            anterior = index
+            print("Favorits seleccionat")
+            images_saved.controls = []
+            page.add(images_saved)
+            for i in range(len(saved_cards)):
+                images_saved.controls.append(
+                    Image(
+                        src=f"https://picsum.photos/150/150?{i}",
+                        border_radius=10,
+                ))
+                page.update()
+             
             while index == 0: #Animacions icones
                 await asyncio.sleep(1)
                 selected_favorits.size = 27 if selected_favorits.size == 24 else 24
                 page.update()
                 index = e.control.selected_index #S'ha d'actualitzar a dins del codi la variable index, ja que sinó sempre sera True
-            print("Favorits seleccionat")
 
         elif index == 2: #Configuració
+            if anterior == 1:
+                await canvi_des_de_llocs()
+            elif anterior == 0:
+                await canvi_des_de_favorits()
+            anterior = index
+            configuracio.visible = True
             print("Configuració seleccionada")
             await asyncio.sleep(0.01)
             selected_configuracio.rotate.angle += (2*pi)
             page.update()
-    
+            page.add(configuracio)
+            
+        page.update()
     selected_favorits =Icon(name=icons.FAVORITE_ROUNDED, color="#E78895", animate_size=200)
     selected_llocs =Icon(name=icons.LOCATION_PIN, color=colors.BLACK, animate_offset=140, offset=transform.Offset(0,0)) 
     selected_configuracio = Icon(name=icons.SETTINGS_ROUNDED, color=colors.BLACK, rotate=transform.Rotate(0, alignment=alignment.center), animate_rotation=animation.Animation(duration=1000, curve="bounceOut"))
@@ -224,9 +333,9 @@ def main(page: Page):
         indicator_color = "#FBF9F1",
         on_change=changetab,
         destinations=[
-            NavigationDestination(label="Favorits", icon="FAVORITE_BORDER_ROUNDED", selected_icon_content=selected_favorits),
-            NavigationDestination(label="Llocs", icon="LOCATION_ON_OUTLINED", selected_icon_content=selected_llocs), 
-            NavigationDestination(label="Configuració", icon="SETTINGS_OUTLINED", selected_icon_content=selected_configuracio),
+            NavigationBarDestination(label="Favorits", icon="FAVORITE_BORDER_ROUNDED", selected_icon_content=selected_favorits),
+            NavigationBarDestination(label="Llocs", icon="LOCATION_ON_OUTLINED", selected_icon_content=selected_llocs), 
+            NavigationBarDestination(label="Configuració", icon="SETTINGS_OUTLINED", selected_icon_content=selected_configuracio),
         ]
     )
     
@@ -235,56 +344,34 @@ def main(page: Page):
     page.navigation_bar.height = page.height * 0.11
     Tags_amunt.height = page.height * 0.05
     Tags_amunt.width = page.width 
-    stack.height = page.height * 0.8
-    stack.width = page.width 
+    stack_cards.height = page.height * 0.8
+    stack_cards.width = page.width 
    
     async def on_swipe(e):
         data = json.loads(e.data)
         print(data["pv"])
         if data["pv"] != 0:
             if data["pv"] < 1: #Esquerra
-                cards[0].animate_offset = animation.Animation(500)  
-                cards[0].offset = transform.Offset(-4, 0)  
-                page.update()
-                await asyncio.sleep(0.15) 
-                cards.remove(cards[0])
+                await seguent(e)
             elif data["pv"] > 0: #Dreta
-                cards[0].animate_offset = animation.Animation(500)  
-                cards[0].offset = transform.Offset(4, 0)  
-                page.update()
-                await asyncio.sleep(0.15)  
-                cards.remove(cards[0])   
-            update_cards()
-            await scale_next_card()
+                await guarda(e)
 
     async def on_swipe_vertical(e):
         data = json.loads(e.data)
-        print(e.data)
         print(data["pv"])
         if data["pv"] < 1 and data["vy"] < 0:
-            cards[0].animate_scale = animation.Animation(800)
-            cards[0].scale = 2
-            cards[0].animate_opacity = animation.Animation(700)
-            cards[0].opacity = 0.50 
-            page.update()
-            await asyncio.sleep(0.15)
-            stack.visible = False
-            botons.visible = False
-            Tags_amunt.visible = False
-            update_cards()
-            await scale_next_card()
-
-
+            await mes_info(e)
+            
     def handle_swipe(e):
         asyncio.run(on_swipe(e))
     def handle_swipe_vertical(e):
         asyncio.run(on_swipe_vertical(e))
+    
     # Aquest el que fa es convertir cada card individual en GestureDetector. Amb això, podem detectar cap a on es mou i com funciona. Es molt útil i ens ho serà en un futur.
     def update_cards():
-        #print(cards[0].content.controls[1].image_src)
-        stack.controls.clear()
+        stack_cards.controls.clear()
         for card in cards:
-            stack.controls.append(
+            stack_cards.controls.append(
                 GestureDetector(
                     content=card,
                     on_horizontal_drag_end=lambda e: handle_swipe(e),
@@ -293,17 +380,17 @@ def main(page: Page):
             )
  
             if len(cards) == 1:
-                for i in range(0,10):
+                for i in range(0,2):
                     cards.append(Container(
                         image_src = "https://i.imgur.com/Kc6KkMt.jpeg",
                         image_fit = "FILL",
                         offset=(0,0),
                         border_radius=15, 
-                        width = page.width * 1,
+                        width = page.width,
                         height = page.height * 0.8,
                         animate_offset=animation.Animation(500),
                         scale=0,
-                        animate_scale=animation.Animation(450, "easeOutSine"),
+                        animate_scale=animation.Animation(340, "easeOutSine"),
                         content=Column(
                             horizontal_alignment="center",
                             controls=[
@@ -313,9 +400,9 @@ def main(page: Page):
                                     height=(page.height * 0.8) * 0.15  
                                     ),
                                 Image(
-                                    src=f"https://picsum.photos/{round(page.width * 0.8)}/{round((page.height * 0.8 )* 0.65)}",
+                                    src=f"https://picsum.photos/{round(page.width * 0.92)}/{round((page.height * 0.8 )* 0.65)}",
                                     border_radius = 15+((page.height*0.8)*0.16),
-                                    width = page.width * 0.8, 
+                                    width = page.width * 0.92, 
                                     height = page.height * 0.8 * 0.65,
                                     filter_quality="HIGH"
                                     )
@@ -330,19 +417,20 @@ def main(page: Page):
     cards[0].scale = 1 
     
     async def scale_next_card():
-        if len(cards) > 1:  
+        if len(cards) >= 1:  
             next_card = cards[0]
             next_card.scale = 0
             page.update()
-            await asyncio.sleep(0.4)  
+            await asyncio.sleep(0.35)  
             next_card.scale = 1
             page.update()
 
     Tags_amunt = SafeArea(content=Tags_amunt)
     page.add(
         Tags_amunt,
-        stack,
+        stack_cards,
         botons, 
     )
-
+    
+    
 flet.app(target=main,assets_dir="assets")
