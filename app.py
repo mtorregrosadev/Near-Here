@@ -1,11 +1,12 @@
 import flet 
-from flet import Page,View, Geolocator,ImageFit,BorderRadius,AppBar,Card,GridView,TextThemeStyle,ListTile, MainAxisAlignment,TextButton,Stack,Column,TextSpan,TextStyle,Paint,AlertDialog,IconButton, StrokeJoin,PaintingStyle,ShadowBlurStyle, BoxShadow, Image, ListTile,GestureDetector, FontWeight,ElevatedButton, Dismissible,DismissDirection, SafeArea,Theme, animation, Container, transform, Icon, icons, colors, alignment, icons, Row, Text, ResponsiveRow, Chip, NavigationBarDestination, NavigationBar 
+from flet import Page,View,border, RoundedRectangleBorder, Geolocator,ImageFit,BorderRadius,AnimatedSwitcherTransition,AppBar,Card,GridView,TextThemeStyle,ListTile, MainAxisAlignment,AnimatedSwitcher,Stack,Column,TextSpan,TextStyle,Paint,AlertDialog,IconButton, StrokeJoin,PaintingStyle,ShadowBlurStyle, BoxShadow, Image, ListTile,GestureDetector, FontWeight,ElevatedButton, Dismissible,DismissDirection, SafeArea,Theme, animation, Container, transform, Icon, icons, colors, alignment, icons, Row, Text, ResponsiveRow, Chip, NavigationBarDestination, NavigationBar 
 from math import pi
 import asyncio
 import json
 import location
-
-
+import random
+index_photo = 0
+index = 0
 def main(page: Page):
     page.bgcolor = "#FFFCF1"
     page.title = "Near here..."
@@ -193,53 +194,58 @@ def main(page: Page):
         ],
     )
     
-    img_principal = Row(alignment="center",controls=[Image(
+    images_request=[ #Aqui aniran totes les fotos obtingudes per l'API
+            f"https://images.unsplash.com/photo-1714891203404-b25f32706e0a?q=80&w={round(page.width * 0.8)}&h={round((page.height * 0.8) * 0.65)}&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+            f"https://images.unsplash.com/photo-1714837291207-4985c06c9a60?q=80&w={round(page.width * 0.8)}&h={round((page.height * 0.8) * 0.65)}&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+            f"https://images.unsplash.com/photo-1715109429876-e00fbe6c4ae3?q=80&w={round(page.width * 0.8)}&h={round((page.height * 0.8) * 0.65)}&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+            f"https://plus.unsplash.com/premium_photo-1714115035000-023149febb01?q=80&w={round(page.width * 0.8)}&h={round((page.height * 0.8) * 0.65)}&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+            f"https://images.unsplash.com/photo-1714836992953-b8f7b4dc8afc?q=80&w={round(page.width * 0.8)}&h={round((page.height * 0.8) * 0.65)}&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+    ]
+    img_principal = Row(alignment="center",controls=[AnimatedSwitcher(transition=AnimatedSwitcherTransition.FADE,duration=500,content=Image(
         border_radius=15,
-        src=f"https://picsum.photos/{round(page.width * 0.8)}/{round((page.height * 0.8)* 0.65)}", 
+        src=images_request[0], #URL imatge
         width = page.width * 0.8, 
         height = page.height * 0.8 * 0.65, 
         fit="FILL",
-        expand_loose=True,
-        animate_offset=animation.Animation(500),
-        animate_scale=animation.Animation(250),
-        offset=(0,0)
-    )])
-
+    ))])
     img_esq =Image(
             left=-page.width * 0.75,
-            src=f"https://picsum.photos/{round(page.width * 0.8)}/{round((page.height * 0.8)* 0.5)}",
-            border_radius=15,
-            fit="FILL",
             top=35,
-            expand_loose=True,
-            animate_offset=animation.Animation(500),
-            animate_scale=animation.Animation(250),
-            offset=(0,0)
+            src=images_request[len(images_request) - 1],#URL imatge
+            border_radius=20,
+            fit="FILL",
     )
     img_dret = Image(
         right=-page.width * 0.75,
-        src=f"https://picsum.photos/{round(page.width * 0.8)}/{round((page.height * 0.8)* 0.5)}",
+        top=35,
+        src=images_request[1],#URL imatge
         border_radius=15,
         fit="FILL",
-        top=35,
-        expand_loose=True,
-        animate_offset=animation.Animation(500),
-        offset=(0,0),
-        animate_scale=animation.Animation(250)
     )
-    async def esq(e):
-        print("esq")
 
-    async def dret(e):
-        img_principal.controls[0].offset = transform.Offset(-1, 0)
-        img_dret.offset = transform.Offset(-1, 0)
-        img_principal.update() 
-        img_dret.update()
-        img_esq.offset = transform.Offset(-2,0)
-        img_esq.update()
-        img_dret.scale = 1.3
-        await asyncio.sleep(0.5)
+    async def esq(e): #Detecta que has fet click a l'esquerra 
+        global index_photo
+        if index_photo <= 0:
+            index_photo = len(images_request) - 1 # Fa que sempre l'index sigui un número a dins de la llista i resta un, fent així que puguem navegar
+        else:
+            index_photo -= 1
+        img_principal.controls[0].content.src = images_request[index_photo] #Actualitza les fotos 
+        img_esq.src = images_request[index_photo-1 if index_photo-1 >= 0 else (len(images_request)-1)]  #Resta un en el cas que sigui a dins de la llista, sinó posa el més gran (len) - 1, ja que contem des de 0
+        # Incís: Mai entendre perquè els programadors contem des de 0, i després quan fas la longitud d'una llista conta des de 1, en fi.
+        img_dret.src = images_request[index_photo+1 if index_photo+1 <= (len(images_request)- 1) else 0] #El mateix, detecta que sigui a dins de la llista i no sigui negatiu, en el cas posa 0
         page.update()
+
+    async def dret(e): #Mateixos comentaris pero al reves
+        global index_photo
+        if index_photo >= (len(images_request)- 1):
+            index_photo = 0
+        else:
+            index_photo += 1
+        img_principal.controls[0].content.src = images_request[index_photo]
+        img_esq.src = images_request[index_photo-1 if index_photo-1 >= 0 else (len(images_request)-1)]  
+        img_dret.src = images_request[index_photo+1 if index_photo+1 <= (len(images_request)- 1) else 0]  
+        page.update()
+        
     cards = [
         Container(
             image_src = "https://i.imgur.com/Kc6KkMt.jpeg",
@@ -262,8 +268,9 @@ def main(page: Page):
                         ),
                         Container(content=Stack(
                                         [   img_principal,
-                                            img_esq,
+                                            
                                             img_dret,
+                                            img_esq,
                                             IconButton(
                                                     icon=icons.CHEVRON_RIGHT,
                                                     icon_color = "black",
@@ -317,55 +324,96 @@ def main(page: Page):
 
 #Definirem aqui tots els components com a variables per a tal d'accedir-hi en qualsevol moment en el programa
     Tags_amunt =Row( #Totes les etiquetes juntes 
-                spacing=8,
+                spacing=5,
                 alignment= "center",
-                scale=0.9,
+                scale=0.952,
                 controls=[
-                    Chip(
+                    Container(border=border.all(1, "#c4e4da"),border_radius=15.5,content=Chip(
                         selected_color="#AAD7D9",
                         bgcolor="#E8EEED",
-                        label=Text("Restaurants"),
-                        on_select=categ_chip_sel
-                    ), 
-                    Chip(
+                        label=Text("Restaurants",weight=FontWeight.W_400,font_family="default"),
+                        leading=Icon(icons.RESTAURANT_MENU_OUTLINED),
+                        on_select=categ_chip_sel,
+                        shadow_color = "#9ebdbf",
+                        selected_shadow_color = "9ebdbf",
+                        elevation=2,
+                        shape = RoundedRectangleBorder(radius=14.5),
+                        show_checkmark=False,
+                    )), 
+                    Container(border=border.all(1, "#c4e4da"),border_radius=15.5,content=Chip(
                         selected_color="#AAD7D9",
                         bgcolor="#E8EEED",
-                        label=Text("Llocs emblematics"),
-                        on_select=categ_chip_sel
-                    ), 
-                    Chip(
+                        label=Text("Llocs emblematics",weight=FontWeight.W_400,font_family="default"),
+                        leading=Icon(icons.MUSEUM_OUTLINED),
+                        on_select=categ_chip_sel,
+                        shadow_color = "#9ebdbf",
+                        selected_shadow_color = "9ebdbf",
+                        elevation=2,
+                        shape = RoundedRectangleBorder(radius=14.5),
+                        show_checkmark=False,
+                    )), 
+                    Container(border=border.all(1, "#c4e4da"),border_radius=15.5,content=Chip(
                         selected_color="#AAD7D9",
                         bgcolor="#E8EEED",
-                        label=Text("Parcs"),
-                        on_select=categ_chip_sel
-                    ),
-                    Chip(
+                        label=Text("Parcs",weight=FontWeight.W_400,font_family="default"),
+                        leading=Icon(icons.PARK_OUTLINED),
+                        on_select=categ_chip_sel,
+                        shadow_color = "#9ebdbf",
+                        selected_shadow_color = "9ebdbf",
+                        elevation=2,
+                        shape = RoundedRectangleBorder(radius=14.5),
+                        show_checkmark=False,
+                    )), 
+                    Container(border=border.all(1, "#c4e4da"),border_radius=15.5,content=Chip(
                         selected_color="#AAD7D9",
                         bgcolor="#E8EEED",
-                        label=Text("Restaurants"),
-                        on_select=categ_chip_sel
-                    ), 
-                    Chip(
-                        selected_color="#AAD7D9",  
-                        bgcolor="#E8EEED",                 
-                        label=Text("Llocs emblematics"),
-                        on_select=categ_chip_sel
-                    ), 
-                    Chip(
-                        selected_color="#AAD7D9",                    
+                        label=Text("Restaurants",weight=FontWeight.W_400,font_family="default"),
+                        leading=Icon(icons.RESTAURANT_MENU_OUTLINED),
+                        on_select=categ_chip_sel,
+                        shadow_color = "#9ebdbf",
+                        selected_shadow_color = "9ebdbf",
+                        elevation=2,
+                        shape = RoundedRectangleBorder(radius=14.5),
+                        show_checkmark=False,
+                    )), 
+                    Container(border=border.all(1, "#c4e4da"),border_radius=15.5,content=Chip(
+                        selected_color="#AAD7D9",
                         bgcolor="#E8EEED",
-                        label=Text("Ns"),
-                        on_select=categ_chip_sel
-                    ),
-                    Chip(
-                        selected_color="#AAD7D9",     
-                        leading=Icon(icons.READ_MORE_OUTLINED, color="black"),
+                        label=Text("Restaurants",weight=FontWeight.W_400,font_family="default"),
+                        leading=Icon(icons.RESTAURANT_MENU_OUTLINED),
+                        on_select=categ_chip_sel,
+                        shadow_color = "#9ebdbf",
+                        selected_shadow_color = "9ebdbf",
+                        elevation=2,
+                        shape = RoundedRectangleBorder(radius=14.5),
+                        show_checkmark=False,
+                    )), 
+                    Container(border=border.all(1, "#c4e4da"),border_radius=15.5,content=Chip(
+                        selected_color="#AAD7D9",
                         bgcolor="#E8EEED",
-                        label=Text("Més"),
-                        on_select=mes_info_select
-                    )
+                        label=Text("Restaurants",weight=FontWeight.W_400,font_family="default"),
+                        leading=Icon(icons.RESTAURANT_MENU_OUTLINED),
+                        on_select=categ_chip_sel,
+                        shadow_color = "#9ebdbf",
+                        selected_shadow_color = "9ebdbf",
+                        elevation=2,
+                        shape = RoundedRectangleBorder(radius=14.5),
+                        show_checkmark=False,
+                    )), 
+                    Container(border=border.all(1, "#829891"),border_radius=15.5,content=Chip(
+                        selected_color="#AAD7D9",
+                        bgcolor="#E8EEED",
+                        label=Text("Més",weight=FontWeight.W_400,font_family="default"),
+                        leading=Icon(icons.READ_MORE_OUTLINED,color="black"),
+                        on_select=mes_info_select,
+                        shadow_color = "#9ebdbf",
+                        selected_shadow_color = "9ebdbf",
+                        elevation=2,
+                        shape = RoundedRectangleBorder(radius=14.5),
+                        show_checkmark=False,
+                    )), 
                 ],
-                scroll="always",
+                scroll="ADAPTIVE",
     )
     size_botons = page.width / 30
     if size_botons >= 14:
@@ -518,7 +566,7 @@ def main(page: Page):
     botons.height = page.height * 0.08
     botons.width = page.width
     page.navigation_bar.height = page.height * 0.11
-    Tags_amunt.height = page.height * 0.05
+    Tags_amunt.height = page.height * 0.045
     Tags_amunt.width = page.width 
     stack_cards.height = page.height * 0.8
     stack_cards.width = page.width 
