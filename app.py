@@ -1,13 +1,13 @@
 import flet 
-from flet import Page,View,border, RoundedRectangleBorder, Geolocator,ImageFit,BorderRadius,AnimatedSwitcherTransition,AppBar,Card,GridView,TextThemeStyle,ListTile, MainAxisAlignment,AnimatedSwitcher,Stack,Column,TextSpan,TextStyle,Paint,AlertDialog,IconButton, StrokeJoin,PaintingStyle,ShadowBlurStyle, BoxShadow, Image, ListTile,GestureDetector, FontWeight,ElevatedButton, Dismissible,DismissDirection, SafeArea,Theme, animation, Container, transform, Icon, icons, colors, alignment, icons, Row, Text, ResponsiveRow, Chip, NavigationBarDestination, NavigationBar 
+from flet import Page,View,border, Divider,ListView,Checkbox,RoundedRectangleBorder,TileAffinity,ExpansionTile,Geolocator,ImageFit,BorderRadius,AnimatedSwitcherTransition,AppBar,Card,GridView,TextThemeStyle,ListTile, MainAxisAlignment,AnimatedSwitcher,Stack,Column,TextSpan,TextStyle,Paint,AlertDialog,IconButton, StrokeJoin,PaintingStyle,ShadowBlurStyle, BoxShadow, Image, ListTile,GestureDetector, FontWeight,ElevatedButton, Dismissible,DismissDirection, SafeArea,Theme, animation, Container, transform, Icon, icons, colors, alignment, icons, Row, Text, ResponsiveRow, Chip, NavigationBarDestination, NavigationBar 
 from math import pi
 import asyncio
 import json
 import location
-import random
 index_photo = 0
-index = 0
-def main(page: Page):
+
+
+async def main(page: Page):
     page.bgcolor = "#FFFCF1"
     page.title = "Near here..."
     page.window.width = 390
@@ -18,7 +18,7 @@ def main(page: Page):
            "Proxima Nova": "fonts/ProximaNova-Regular.ttf",
            "Proxima Nova Bold": "fonts/ProximaNova-Bold.ttf",
            "Proxima Nova ExtraBold": "fonts/ProximaNova-ExtraBold.ttf",
-           "Helvetica Neue": "fonts/HelveticaNeueMedium.otf",
+           "Helvetica Neue": "fonts/HelveticaNeue-Regular.otf",
            "Stres": "fonts/Stres.otf",
            "WorkSans": "fonts/WorkSans-Black.ttf"
     }
@@ -99,7 +99,111 @@ def main(page: Page):
             page.add(SafeArea(content=ElevatedButton("Tornar", on_click=tornar)))
         
         if page.route == '/categories':
-            page.add(SafeArea(content=ElevatedButton("Tornar", on_click=tornar)))
+            Categ_info = Column([
+                     ExpansionTile(
+                            title=Text("Menjar",weight=FontWeight.W_600),
+                            subtitle=Text("Restaurants, bars, cafeteries, etc.",weight=FontWeight.W_300),
+                            affinity=TileAffinity.LEADING,
+                            collapsed_text_color=colors.BLACK,
+                            text_color=colors.BLACK,
+                            controls=[
+                                Checkbox(label="General (Conjunt de tots) 13000", adaptive=True, on_change=categ_check_sel),
+                                Checkbox(label="Panaderia", adaptive=True, on_change=categ_check_sel),
+                                Checkbox(label="Bar", adaptive=True, on_change=categ_check_sel),
+                                Checkbox(label="Cafeteria", adaptive=True, on_change=categ_check_sel),
+                                Checkbox(label="Creperia", adaptive=True, on_change=categ_check_sel),
+                                Checkbox(label="Botiga de postres", adaptive=True, on_change=categ_check_sel),
+                                Checkbox(label="Restaurants", adaptive=True, on_change=categ_check_sel),
+                                Checkbox(label="Restaurants 'Gluten-Free'", adaptive=True, on_change=categ_check_sel),
+                            ],
+                    ),
+                     ExpansionTile(
+                            title=Text("Espais naturals",weight=FontWeight.W_600),
+                            subtitle=Text("Parcs, muntanyes, platges, llacs, etc.",weight=FontWeight.W_300),
+                            affinity=TileAffinity.LEADING, 
+                            collapsed_text_color=colors.BLACK,
+                            text_color=colors.BLACK,
+                            controls=[
+                                Checkbox(label="General (Conjunt de tots) 16000", adaptive=True, on_change=categ_check_sel),
+                                Checkbox(label="Platja", adaptive=True, on_change=categ_check_sel),
+                                Checkbox(label="Monument", adaptive=True, on_change=categ_check_sel),
+                                Checkbox(label="Parcs", adaptive=True, on_change=categ_check_sel),
+                            ],
+                    ),
+                     ExpansionTile(
+                            title=Text("Botigues",weight=FontWeight.W_600),
+                            subtitle=Text("Botigues de roba, llibreries, centres comercials, etc.",weight=FontWeight.W_300),
+                            affinity=TileAffinity.LEADING,
+                            collapsed_text_color=colors.BLACK,
+                            text_color=colors.BLACK,
+                            controls=[
+                                Checkbox(label="Botigues 17000", adaptive=True, on_change=categ_check_sel),
+                                Checkbox(label="Roba i moda", adaptive=True, on_change=categ_check_sel),
+                                Checkbox(label="Centres comercials", adaptive=True, on_change=categ_check_sel),
+                                Checkbox(label="Llibreries", adaptive=True, on_change=categ_check_sel),
+                                Checkbox(label="De conveniència", adaptive=True, on_change=categ_check_sel),
+                                Checkbox(label="Vintage i de segona mà", adaptive=True, on_change=categ_check_sel),
+                                Checkbox(label="Flors i jardins", adaptive=True, on_change=categ_check_sel),
+                                Checkbox(label="Joguines", adaptive=True, on_change=categ_check_sel),
+                                Checkbox(label="Menjar", adaptive=True, on_change=categ_check_sel),
+                            ],
+                    ),
+                     ExpansionTile(
+                            title=Text("Entreteniment", weight=FontWeight.W_600),
+                            subtitle=Text("Inclou parcs d'atraccions, aquaris, arcades, galeries d'art, etc.", weight=FontWeight.W_300),
+                            affinity=TileAffinity.LEADING,
+                            collapsed_text_color=colors.BLACK,
+                            text_color=colors.BLACK,
+                            controls=[
+                                Checkbox(label="General (Conjunt de tots) 10000",adaptive=True, on_change=categ_check_sel),
+                                Checkbox(label="Museus",adaptive=True, on_change=categ_check_sel),                                
+                                Checkbox(label="Karaoke",adaptive=True, on_change=categ_check_sel),
+                                Checkbox(label="Escape Room",adaptive=True, on_change=categ_check_sel),
+                                Checkbox(label="Bolera", adaptive=True, on_change=categ_check_sel),
+                                Checkbox(label="Cinema", adaptive=True, on_change=categ_check_sel),
+                                Checkbox(label="Parc d'atraccions", adaptive=True, on_change=categ_check_sel),
+                            ],
+                    ),
+                     ExpansionTile(
+                            title=Text("Viatges",weight=FontWeight.W_600),
+                            subtitle=Text("Hotels, aeroports, estacions de tren, etc.",weight=FontWeight.W_300),
+                            affinity=TileAffinity.LEADING,
+                            collapsed_text_color=colors.BLACK,
+                            text_color=colors.BLACK,
+                            controls=[
+                                Checkbox(label="General (Conjunt de tots) 19000",adaptive=True, on_change=categ_check_sel),
+                                Checkbox(label="Lloguer bicis",adaptive=True, on_change=categ_check_sel),                                
+                                Checkbox(label="Lloguer de barques",adaptive=True, on_change=categ_check_sel),
+                                Checkbox(label="Allotjament",adaptive=True, on_change=categ_check_sel),
+                                Checkbox(label="Parking", adaptive=True, on_change=categ_check_sel),
+                                Checkbox(label="Àrea de descans", adaptive=True, on_change=categ_check_sel),
+                                Checkbox(label="Agència de viatges", adaptive=True, on_change=categ_check_sel),
+                            ],
+                    )
+                    ])
+            categ_info_add = Column(scroll="adaptive", height=page.height * 0.75,horizontal_alignment="center", controls=[Categ_info,ExpansionTile(
+                            title=Text("Turisme",weight=FontWeight.W_600),
+                            subtitle=Text("Que puc veure aqui?",weight=FontWeight.W_300),
+                            affinity=TileAffinity.LEADING,
+                            collapsed_text_color=colors.BLACK,
+                            text_color=colors.BLACK,
+                            controls=[
+                                Text("Quan fas click al apartat de turisme, l'algorisme et detecta els millors llocs per visitar a prop teu!"),
+                                Text("Ideal per viatges :)")
+                            ],
+                    ),
+                    ElevatedButton("Tornar", bgcolor="#7cb7b9", color="black", on_click=tornar)])
+            
+            for category in Categ_info.controls: #El que fa això es comprovar un a un si són a dins de categories_sel agafant el categories_list i agafant només el número.
+                for i in range(len(category.controls)):
+                    if category.controls[i].label in categories_list:
+                     numeros_categ = categories_list[category.controls[i].label]
+                     for numero in numeros_categ:
+                        if numero in categories_sel:
+                            category.controls[i].value = True #Estic feliç, funciona :D
+
+            page.add(AppBar(leading=IconButton(icons.ARROW_BACK_IOS,alignment="center",on_click=tornar),title=Text("Categories"), bgcolor="#AAD7D9"),categ_info_add)
+            
         
         page.update()
 
@@ -202,6 +306,7 @@ def main(page: Page):
             f"https://images.unsplash.com/photo-1714836992953-b8f7b4dc8afc?q=80&w={round(page.width * 0.8)}&h={round((page.height * 0.8) * 0.65)}&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
     ]
     img_principal = Row(alignment="center",controls=[AnimatedSwitcher(transition=AnimatedSwitcherTransition.FADE,duration=500,content=Image(
+        animate_opacity=250,
         border_radius=15,
         src=images_request[0], #URL imatge
         width = page.width * 0.8, 
@@ -209,17 +314,23 @@ def main(page: Page):
         fit="FILL",
     ))])
     img_esq =Image(
+            animate_opacity=250,
             left=-page.width * 0.75,
             top=35,
             src=images_request[len(images_request) - 1],#URL imatge
             border_radius=20,
+            width = page.width * 0.8, 
+            height = page.height * 0.8 * 0.55, 
             fit="FILL",
     )
     img_dret = Image(
+        animate_opacity=250,
         right=-page.width * 0.75,
         top=35,
         src=images_request[1],#URL imatge
         border_radius=15,
+        width = page.width * 0.8, 
+        height = page.height * 0.8 * 0.55, 
         fit="FILL",
     )
 
@@ -229,9 +340,13 @@ def main(page: Page):
             index_photo = len(images_request) - 1 # Fa que sempre l'index sigui un número a dins de la llista i resta un, fent així que puguem navegar
         else:
             index_photo -= 1
+        img_principal.controls[0].content.opacity = 0.1 #Animació d'opactiat, perquè l'usuari tingui més comoditat visual 
+        img_principal.update()
+        await asyncio.sleep(0.25) 
         img_principal.controls[0].content.src = images_request[index_photo] #Actualitza les fotos 
+        img_principal.controls[0].content.opacity = 1
         img_esq.src = images_request[index_photo-1 if index_photo-1 >= 0 else (len(images_request)-1)]  #Resta un en el cas que sigui a dins de la llista, sinó posa el més gran (len) - 1, ja que contem des de 0
-        # Incís: Mai entendre perquè els programadors contem des de 0, i després quan fas la longitud d'una llista conta des de 1, en fi.
+        #Incís: Mai entendre perquè els programadors contem des de 0, i després quan fas la longitud d'una llista conta des de 1, en fi.
         img_dret.src = images_request[index_photo+1 if index_photo+1 <= (len(images_request)- 1) else 0] #El mateix, detecta que sigui a dins de la llista i no sigui negatiu, en el cas posa 0
         page.update()
 
@@ -241,11 +356,15 @@ def main(page: Page):
             index_photo = 0
         else:
             index_photo += 1
-        img_principal.controls[0].content.src = images_request[index_photo]
+        img_principal.controls[0].content.opacity = 0.1 #Animació d'opactiat, perquè l'usuari tingui més comoditat visual 
+        img_principal.update()
+        await asyncio.sleep(0.25) 
+        img_principal.controls[0].content.src = images_request[index_photo] 
+        img_principal.controls[0].content.opacity = 1
         img_esq.src = images_request[index_photo-1 if index_photo-1 >= 0 else (len(images_request)-1)]  
         img_dret.src = images_request[index_photo+1 if index_photo+1 <= (len(images_request)- 1) else 0]  
         page.update()
-        
+
     cards = [
         Container(
             image_src = "https://i.imgur.com/Kc6KkMt.jpeg",
@@ -268,7 +387,6 @@ def main(page: Page):
                         ),
                         Container(content=Stack(
                                         [   img_principal,
-                                            
                                             img_dret,
                                             img_esq,
                                             IconButton(
@@ -293,9 +411,6 @@ def main(page: Page):
                                         ]
                                     ),
                                     expand_loose=True,
-                                   # bgcolor="black",
-                                    #alignment=alignment.center,
-                                    #padding=10,
                                     width=page.window.width,
                                     height=page.window.height * 0.8 * 0.65,
                                 )
@@ -305,22 +420,80 @@ def main(page: Page):
         )
     ]
     
+    categories_list = {
+        #*Chips
+        "Restaurants": [13065],
+        "Parcs": [16032],
+        "Cafeteries": [13037],
+        "Entreteniment": [10000, 12080, 17018],
+        "Botigues": [17000],
+        "Turisme": [10001, 10003, 10004, 10009, 16020, 10027, 16011, 16034, 16031, 16026, 16024, 16025, 16020, 16014, 16011, 16007],  # This still needs to be defined properly #! Falta fer aquest!!
+        "Llocs emblematics": [16020,16026,16031,16051,16052,16053], #! Falta per concretar si esta bé
+        #*Menjar
+        "Panaderia": [13002],
+        "Bar": [13003], 
+        "Cafeteria": [13037],
+        "Creperia": [13041],
+        "Botiga de postres": [13040], 
+        "Restaurants 'Gluten-Free": [13390],
+        #*Outdoors
+        "Platja": [16003],
+        "Monument": [16026],
+        #* Entreteniment
+        "Museus": [10027],
+        "Karaoke": [10021],
+        "Escape Room": [10015], 
+        "Bolera": [10006],
+        "Cinema": [10024],
+        "Parc d'atraccions": [10001,10055,10058],
+        #*Viatges
+        "Lloguer bicis": [19002],
+        "Lloguer de barques": [19003],
+        "Allotjament": [19009],
+        "Parking": [19020],
+        "Àrea de descans": [19024],
+        "Agència de viatges": [19055],
+        #*Botigues
+        "Roba i moda": [17039],
+        "Centres comercials":[17114,17033],
+        "Llibreries":[17018,17022,12080],
+        "De conveniència": [17029],
+        "Vintage i de segona mà": [17138,17019],
+        "Flors i jardins": [17056,17101],
+        "Joguines": [17135],
+        "Menjar": [17057]
+
+    }
+    def categ_check_sel(e):
+        if e.control.value == True:
+            categories = categories_list.get(e.control.label, [])
+            for category in categories:
+                if category not in categories_sel:
+                    categories_sel.append(category)
+        else: 
+            categories = categories_list.get(e.control.label, [])
+            for category in categories:
+                if category in categories_sel:
+                    categories_sel.remove(category)
+        print(categories_sel)
     def categ_chip_sel(e):
         if e.control.selected:# El que fa es afegir en el cas de que estigui seleccionat i detecta la chip
-            categories_sel.append(13065) if e.control.label.value == "Restaurants" and e.control.selected else False
-            categories_sel.append(16032) if e.control.label.value == "Parcs" and e.control.selected else False
-            #categories_sel.append(16032) if e.control.label.value == "Parcs" and e.control.selected else False
+            categories = categories_list.get(e.control.label.value, [])
+            for category in categories:
+                if category not in categories_sel:
+                    categories_sel.append(category)
         else:
-            for category in categories_sel:
-                if category == 13065 and e.control.label.value == "Restaurants": # Posar totes les condicions aqui
+            categories = categories_list.get(e.control.label.value, [])
+            for category in categories:
+                if category in categories_sel:
                     categories_sel.remove(category)
-                if category == 16032 and e.control.label.value == "Parcs": # Posar totes les condicions aqui
-                    categories_sel.remove(category)
-            
+        
         print(categories_sel)
+    
     def mes_info_select(e):
         page.go('/categories')
-        Tags_amunt.controls[len(Tags_amunt.controls)-1].selected = False
+        Tags_amunt.controls[len(Tags_amunt.controls) - 1].content.selected = False
+
 
 #Definirem aqui tots els components com a variables per a tal d'accedir-hi en qualsevol moment en el programa
     Tags_amunt =Row( #Totes les etiquetes juntes 
@@ -367,8 +540,8 @@ def main(page: Page):
                     Container(border=border.all(1, "#c4e4da"),border_radius=15.5,content=Chip(
                         selected_color="#AAD7D9",
                         bgcolor="#E8EEED",
-                        label=Text("Restaurants",weight=FontWeight.W_400,font_family="default"),
-                        leading=Icon(icons.RESTAURANT_MENU_OUTLINED),
+                        label=Text("Cafeteries",weight=FontWeight.W_400,font_family="default"),
+                        leading=Icon(icons.LOCAL_CAFE_OUTLINED),
                         on_select=categ_chip_sel,
                         shadow_color = "#9ebdbf",
                         selected_shadow_color = "9ebdbf",
@@ -379,8 +552,8 @@ def main(page: Page):
                     Container(border=border.all(1, "#c4e4da"),border_radius=15.5,content=Chip(
                         selected_color="#AAD7D9",
                         bgcolor="#E8EEED",
-                        label=Text("Restaurants",weight=FontWeight.W_400,font_family="default"),
-                        leading=Icon(icons.RESTAURANT_MENU_OUTLINED),
+                        label=Text("Entreteniment",weight=FontWeight.W_400,font_family="default"),
+                        leading=Icon(icons.INSERT_EMOTICON_OUTLINED),
                         on_select=categ_chip_sel,
                         shadow_color = "#9ebdbf",
                         selected_shadow_color = "9ebdbf",
@@ -391,8 +564,20 @@ def main(page: Page):
                     Container(border=border.all(1, "#c4e4da"),border_radius=15.5,content=Chip(
                         selected_color="#AAD7D9",
                         bgcolor="#E8EEED",
-                        label=Text("Restaurants",weight=FontWeight.W_400,font_family="default"),
-                        leading=Icon(icons.RESTAURANT_MENU_OUTLINED),
+                        label=Text("Botigues",weight=FontWeight.W_400,font_family="default"),
+                        leading=Icon(icons.SHOPPING_BAG_OUTLINED),
+                        on_select=categ_chip_sel,
+                        shadow_color = "#9ebdbf",
+                        selected_shadow_color = "9ebdbf",
+                        elevation=2,
+                        shape = RoundedRectangleBorder(radius=14.5),
+                        show_checkmark=False,
+                    )), 
+                    Container(border=border.all(1, "#c4e4da"),border_radius=15.5,content=Chip(
+                        selected_color="#AAD7D9",
+                        bgcolor="#E8EEED",
+                        label=Text("Turisme",weight=FontWeight.W_400,font_family="default"),
+                        leading=Icon(icons.FLIGHT_OUTLINED),
                         on_select=categ_chip_sel,
                         shadow_color = "#9ebdbf",
                         selected_shadow_color = "9ebdbf",
@@ -413,7 +598,7 @@ def main(page: Page):
                         show_checkmark=False,
                     )), 
                 ],
-                scroll="ADAPTIVE",
+                scroll="adaptive", # ! Canviar a hidden quan facis la build
     )
     size_botons = page.width / 30
     if size_botons >= 14:
@@ -518,7 +703,6 @@ def main(page: Page):
 
     configuracio = SafeArea(content=configuracio)
 
-    
     async def changetab(e):
         index = e.control.selected_index
         if index == 1: #Llocs
@@ -593,18 +777,11 @@ def main(page: Page):
     
     # Aquest el que fa es convertir cada card individual en GestureDetector. Amb això, podem detectar cap a on es mou i com funciona. Es molt útil i ens ho serà en un futur.
     def update_cards():
+        print(len(cards))
         stack_cards.controls.clear()
-        for card in cards:
-            stack_cards.controls.append(
-                GestureDetector(
-                    content=card,
-                    on_horizontal_drag_end=lambda e: handle_swipe(e),
-                    on_vertical_drag_end=lambda e: handle_swipe_vertical(e)
-                )
-            )
- 
-            if len(cards) == 1:
-                for i in range(0,2):
+        if len(cards) == 0:
+                for i in range(0,1):
+                    print("Carta creada")
                     cards.append( 
                         Container(
                             image_src = "https://i.imgur.com/Kc6KkMt.jpeg",
@@ -626,48 +803,26 @@ def main(page: Page):
                                         height=(page.height * 0.8) * 0.16  
                                         ),
                                         Container(content=Stack(
-                                                        [   
-                                                            Row(alignment="center",controls=[Image(
-                                                                border_radius=15,
-                                                                src=f"https://picsum.photos/{round(page.width * 0.8)}/{round((page.height * 0.8)* 0.65)}", 
-                                                                width = page.width * 0.8, 
-                                                                height = page.height * 0.8 * 0.65, 
-                                                                fit="FILL",
-                                                                expand_loose=True,
-                                                            )]),
-                                                            Image(
-                                                                left=-page.width * 0.75,
-                                                                src=f"https://picsum.photos/{round(page.width * 0.8)}/{round((page.height * 0.8)* 0.5)}",
-                                                                border_radius=15,
-                                                                fit="FILL",
-                                                                top=35,
-                                                                expand_loose=True,
-                                                            ),
-                                                            Image(
-                                                                right=-page.width * 0.75,
-                                                                src=f"https://picsum.photos/{round(page.width * 0.8)}/{round((page.height * 0.8)* 0.5)}",
-                                                                border_radius=15,
-                                                                fit="FILL",
-                                                                top=35,
-                                                                expand_loose=True,
-                                                            ),
+                                                        [   img_principal,
+                                                            img_dret,
+                                                            img_esq,
                                                             IconButton(
                                                                     icon=icons.CHEVRON_RIGHT,
                                                                     icon_color = "black",
-                                                                    bgcolor="white",
+                                                                    bgcolor="#FBF9F1",
                                                                     on_click=dret,
                                                                     alignment=alignment.center,
-                                                                    right=0,
+                                                                    right=2,
                                                                     width = page.window.width * 0.1,
                                                                     top=page.window.height * 0.8 * 0.7 / 2,
                                                             ),
                                                             IconButton(
                                                                     icon=icons.CHEVRON_LEFT,
                                                                     icon_color = "black",
-                                                                    bgcolor="white",
+                                                                    bgcolor="#FBF9F1",
                                                                     on_click=esq,
                                                                     width = page.window.width * 0.1,
-                                                                    left=0,
+                                                                    left=2,
                                                                     top=page.window.height * 0.8 * 0.7 / 2,
                                                             ),
                                                         ]
@@ -679,14 +834,21 @@ def main(page: Page):
                                     ]
                                 )
                                         
-                        )
-                    
-                    )   
-            page.update()
+                        ))   
+        page.update()
+        for card in cards:
+            print("Carta insertada")
+            stack_cards.controls.append(
+                GestureDetector(
+                    content=card,
+                    on_horizontal_drag_end=lambda e: handle_swipe(e),
+                    on_vertical_drag_end=lambda e: handle_swipe_vertical(e)
+                )
+            )
+ 
     
     update_cards()
     #L'iniciem només començar el programa per tal de fer apareixer tots els elements i escalem la primera a 1 per tal de mostrar-la
-    cards[0].scale = 1 
     
     async def scale_next_card():
         if len(cards) >= 1:  
@@ -703,6 +865,9 @@ def main(page: Page):
         stack_cards,
         botons, 
     )
+    
+    await scale_next_card()
+
     
     
 flet.app(target=main,assets_dir="assets")
