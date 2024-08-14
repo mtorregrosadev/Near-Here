@@ -943,7 +943,7 @@ async def main(page: Page):
                                         height=page.height * 0.12,
                                         spans=[
                                             TextSpan(
-                                                f"{dadesLlocs[i]["name"]}",  
+                                                f"{dadesLlocs[i]['name']}",  
                                                 TextStyle(
                                                     weight=FontWeight.W_900,
                                                     size=size_title,
