@@ -1,3 +1,3 @@
-flet==0.23.2
+flet
 asyncio==3.4.3
 requests==2.32.3
