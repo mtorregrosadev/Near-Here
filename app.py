@@ -223,10 +223,10 @@ async def main(page: Page):
                 new_url = invariant_part + new_dimensions + '/' + remainder
                 
                 return new_url
-            
-            loc_visited = await page.client_storage.get_async("loc_visited")  
+            global index_photo_stack 
+            loc_visited = await page.client_storage.get_async("loc_visited")
+            loc_visited = loc_visited[:index_photo_stack]  #! Està malament, ja que només posa els 25 actuals.
             loc_visited_photos = await page.client_storage.get_async("loc_visited_photos")  
-            print(loc_visited_photos[0][0])
             page.add(configuracio)    
             images_saved.height = page.height
             images_saved.controls = []
