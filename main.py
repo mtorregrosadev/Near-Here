@@ -900,12 +900,12 @@ async def main(page: Page):
                     # Definim tots els components de la card
                     if 'address' in dadesLlocs[i]["location"]: #! BUG-6
                         subtitle_card = Column(horizontal_alignment="center", controls=[
-                            Text(f"Direcció: {dadesLlocs[i]["location"]['address']} | Distància: {dadesLlocs[i]["distance"]}m", color="white",weight=FontWeight.W_900),
+                            Text(f"Direcció: {dadesLlocs[i]['location']['address']} | Distància: {dadesLlocs[i]['distance']}m", color="white", weight=FontWeight.W_900),
                             Row(alignment="center",width = page.width, controls=[])
                             ]) #! Fer que sigui responsive row per si la pantalla es més petita
                     else: 
                         subtitle_card = Column(horizontal_alignment="center", controls=[
-                            Text(f"Direcció: {None} | Distància: {dadesLlocs[i]["distance"]}m", color="white",weight=FontWeight.W_900),
+                            Text(f"Direcció: {None} | Distància: {dadesLlocs[i]['distance']}m", color="white",weight=FontWeight.W_900),
                             Row(alignment="center",width = page.width, controls=[])
                             ]) 
                     for j in range(len(categories[i])):
