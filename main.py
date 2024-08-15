@@ -144,14 +144,10 @@ async def main(page: Page):
            "WorkSans": "fonts/WorkSans-Black.ttf"
     }
     page.theme = Theme(font_family="Helvetica Neue")
-    # gl = Geolocator()
-    # page.add(gl)
-    # try: 
-    #     await asyncio.wait_for(gl.request_permission_async(), timeout=0.4)
-    #     await asyncio.wait_for(location.handle_permission(gl,AlertDialog, page, Text,TextButton,MainAxisAlignment), timeout=0.4)
-    # except:
-    #     await gl.request_permission_async() 
-    #     await location.handle_permission(gl,AlertDialog, page, Text,TextButton,MainAxisAlignment)
+    gl = Geolocator()
+    page.overlay.append(gl)
+
+
     page.update()
     page.session.set("categories_sel", [])
     page.session.set("categories_sel_antic",[])
@@ -159,8 +155,9 @@ async def main(page: Page):
     await page.client_storage.set_async("radius_sel", 1000)
     await page.client_storage.set_async("sort_sel", "RELEVANCE")
     await page.client_storage.set_async("preu", 0)
+    await gl.request_permission_async()
+    await location.handle_permission(gl,AlertDialog, page, Text,TextButton,MainAxisAlignment)
 
-    
     def view_pop(event): #Per anar enrere 
         #print("view pop:", event.view) #Això només imprimeix en terminal, de normal no cal
         if page.route == '/categories' or page.route == '/info':
@@ -174,7 +171,7 @@ async def main(page: Page):
 
     async def on_change_page(e):
         page.controls.clear() if page.route != '/info' else None
-        page.add(gl)
+        #page.add(gl)
         async def tornar(e):
             page.go("/")
         
@@ -883,8 +880,8 @@ async def main(page: Page):
                 
                 index_photo_stack = -1
                 #:) Cobren el mateix demanant 5, 10 que 50
-                # p = await gl.get_current_position_async()
-                llocs = Llocs(41.447307312667945,2.2506724588932023,radius_sel,25,loc_visited,categories_sel,sort_sel, preu) #! Problema, dona sempre el mateix BUG-5
+                p = await gl.get_current_position_async()
+                llocs = Llocs(p.latitude,p.longitude,radius_sel,25,loc_visited,categories_sel,sort_sel, preu) #! Problema, dona sempre el mateix BUG-5
 
                 dadesLlocs, loc_visited = llocs.dades()
                 await page.client_storage.set_async("loc_visited", loc_visited)
