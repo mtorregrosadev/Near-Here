@@ -146,18 +146,18 @@ async def main(page: Page):
     page.theme = Theme(font_family="Helvetica Neue")
     gl = Geolocator()
     page.overlay.append(gl)
-
-
     page.update()
     page.session.set("categories_sel", [])
     page.session.set("categories_sel_antic",[])
+    page.session.set("dadesLlocs", [])
     await page.client_storage.set_async("loc_visited", [])
     await page.client_storage.set_async("radius_sel", 1000)
     await page.client_storage.set_async("sort_sel", "RELEVANCE")
     await page.client_storage.set_async("preu", 0)
     await gl.request_permission_async()
     await location.handle_permission(gl,AlertDialog, page, Text,TextButton,MainAxisAlignment)
-
+    await page.client_storage.set_async("saved_cards", [])
+    await page.client_storage.set_async("saved_cards_images", [])
     def view_pop(event): #Per anar enrere 
         #print("view pop:", event.view) #Això només imprimeix en terminal, de normal no cal
         if page.route == '/categories' or page.route == '/info':
@@ -170,11 +170,32 @@ async def main(page: Page):
         #  page.go(top_view.route)
 
     async def on_change_page(e):
+
         page.controls.clear() if page.route != '/info' else None
         #page.add(gl)
         async def tornar(e):
             page.go("/")
-        
+        def resize_image_url(url, width, height):
+                        # Part invariable de l'URL
+                        invariant_part = "https://fastly.4sqi.net/img/general/"
+                        
+                        # Busca la posició on comença la part variable (les dimensions i la resta de l'URL)
+                        start_index = len(invariant_part)
+                        
+                        # Obté la part variable de l'URL
+                        variable_part = url[start_index:]
+                        
+                        # Busca la primera part que coincideix amb el patró 'widthxheight'
+                        dimensions, remainder = variable_part.split('/', 1)
+                        
+                        # Substitueix les dimensions per les noves
+                        new_dimensions = f'{width}x{height}'
+                        
+                        # Construeix la nova URL
+                        new_url = invariant_part + new_dimensions + '/' + remainder
+                        
+                        return new_url
+                    
         if page.route == '/':
             print("Seleccionat llocs!")
             selected_llocs.offset = transform.Offset(0,0)
@@ -186,17 +207,25 @@ async def main(page: Page):
             cards[0].opacity = 1
    
         if page.route == '/favorits':
+            saved_cards_images = await page.client_storage.get_async("saved_cards_images")   
+            saved_cards = await page.client_storage.get_async("saved_cards")
             print("Favorits seleccionat")
             images_saved.controls = []
             page.add(images_saved)
             if len(saved_cards) > 0:
                 for i in range(len(saved_cards)):
-                    images_saved.controls.append(
-                        Container(content=Column(spacing=0.5,horizontal_alignment="center", controls=[Image(
-                            src=f"https://picsum.photos/150/150?{i}",
-                            border_radius=10), Text(f"{i}", text_align="center")
-                    ])))
-                    page.update()
+                    if saved_cards_images[i] != []:
+                        url = saved_cards_images[i]
+                        new_url = resize_image_url(url, 150, 150)
+                        images_saved.controls.append(
+                            Container(content=Column(spacing=0.5,horizontal_alignment="center", controls=[Image(
+                                src=new_url,
+                                border_radius=10), Text(f"{saved_cards[i]['name']}", text_align="center")
+                        ])))
+                        images_saved.controls.reverse()
+                        page.update()
+                    else:
+                        print("No té foto") #! Per acabar
             else:
                 page.add(SafeArea(content=Text("No tens favorits!", text_align="center", height=page.height)))
 
@@ -205,27 +234,6 @@ async def main(page: Page):
             print("Configuració seleccionada")
 
         if page.route == '/configuracio/historial': 
-            def resize_image_url(url, width, height):
-                # Part invariable de l'URL
-                invariant_part = "https://fastly.4sqi.net/img/general/"
-                
-                # Busca la posició on comença la part variable (les dimensions i la resta de l'URL)
-                start_index = len(invariant_part)
-                
-                # Obté la part variable de l'URL
-                variable_part = url[start_index:]
-                
-                # Busca la primera part que coincideix amb el patró 'widthxheight'
-                dimensions, remainder = variable_part.split('/', 1)
-                
-                # Substitueix les dimensions per les noves
-                new_dimensions = f'{width}x{height}'
-                
-                # Construeix la nova URL
-                new_url = invariant_part + new_dimensions + '/' + remainder
-                
-                return new_url
-            
             loc_visited = await page.client_storage.get_async("loc_visited")  
             loc_visited_photos = await page.client_storage.get_async("loc_visited_photos")  
             loc_visited = loc_visited[:index_photo_stack]  #! Està malament, ja que només posa els 25 actuals.
@@ -245,7 +253,7 @@ async def main(page: Page):
                         ])))
                         page.update()
                     else:
-                        print("No té foto")
+                        print("No té foto") #! Per acabar
             else:
                 page.views.append(View(controls=[AppBar(title=Text("Historial de Llocs"), bgcolor="#AAD7D9",adaptive=True,),SafeArea(content=Text("No has explorat cap lloc encara!", text_align="center", height=page.height))], bgcolor = "#FFFCF1"))
         
@@ -447,6 +455,15 @@ async def main(page: Page):
         await scale_next_card()
     
     async def guarda(e):
+        global index_photo_stack
+        saved_cards = await page.client_storage.get_async("saved_cards")
+        dadesLlocs = page.session.get("dadesLlocs")
+        images_request = page.session.get("images_request")
+        saved_cards_images = await page.client_storage.get_async("saved_cards_images")   
+        saved_cards.append(dadesLlocs[index_photo_stack])
+        saved_cards_images.append(images_request[index_photo_stack][0]) if images_request[index_photo_stack] != [] else saved_cards_images.append(images_request[index_photo_stack])
+        saved_cards = await page.client_storage.set_async("saved_cards", saved_cards)
+        saved_cards_images = await page.client_storage.set_async("saved_cards_images", saved_cards_images)
         cards[0].offset = transform.Offset(4, 0)  
         page.update()
         await asyncio.sleep(0.15)  
@@ -524,6 +541,7 @@ async def main(page: Page):
         "Menjar": [17057]
 
     }
+    
     def categ_check_sel(e):
         categories_sel = page.session.get("categories_sel")
         if e.control.value == True:
@@ -679,7 +697,6 @@ async def main(page: Page):
                 ElevatedButton(content=Text("Guarda!",size=size_botons, theme_style=TextThemeStyle.LABEL_LARGE), on_click=guarda, bgcolor="#aad9c4",color="black",col=4), 
     ]) 
     stack_cards = Stack(alignment=alignment.center, offset=(0,0), expand = True)
-    saved_cards = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25] # Suposem que tenim ja la variable i la deixem 
     images_saved = GridView(
         expand=True,
         height=page.height * 0.89, 
@@ -804,7 +821,7 @@ async def main(page: Page):
     selected_configuracio = Icon(name=icons.SETTINGS_ROUNDED, color=colors.BLACK, rotate=transform.Rotate(0, alignment=alignment.center), animate_rotation=animation.Animation(duration=1000, curve="bounceOut"))
     
     page.navigation_bar=NavigationBar(
-        bgcolor = "#7cb7b9",
+        bgcolor = "#6fa4a6",
         selected_index = 1,
         indicator_color = "#FBF9F1",
         on_change=changetab,
@@ -869,6 +886,7 @@ async def main(page: Page):
         print("Preu:", preu)
         
         if len(cards) == 0 or canvi == True:
+                page.session.set("dadesLlocs", [])
                 #* Demanem les dades 
                 print("index_photo_Stack: ",index_photo_stack)
                 if canvi == True:
@@ -885,11 +903,15 @@ async def main(page: Page):
                 llocs = Llocs(p.latitude,p.longitude,radius_sel,25,loc_visited,categories_sel,sort_sel, preu) #! Problema, dona sempre el mateix BUG-5
 
                 dadesLlocs, loc_visited = llocs.dades()
+                page.session.set("dadesLlocs", dadesLlocs)
                 await page.client_storage.set_async("loc_visited", loc_visited)
 
                 if dadesLlocs == []:
                     print("Això no ha de passar!") 
                 images_request = llocs.photos()
+                page.session.set("images_request", images_request)
+                loc_visited_photos = await page.client_storage.get_async("loc_visited_photos")
+                loc_visited_photos.append(images_request)
                 await page.client_storage.set_async("loc_visited_photos", images_request)
                 # print(images_request)
                 categories = llocs.categories()
@@ -1112,7 +1134,7 @@ async def main(page: Page):
                     
                     print("Carta creada")
                     carta = Container(
-                            image_src = "src/fons.jpg", #! Canviar-la a l'assets
+                            image_src = "src/fons.jpg",
                             image_fit = "FILL",
                             offset=(0,0),
                             border_radius=15, 
