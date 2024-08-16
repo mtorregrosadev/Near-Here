@@ -1,12 +1,13 @@
-def handle_permission(gl, AlertDialog, page, Text, TextButton,MainAxisAlignment):
-    status = gl.get_permission_status()
+import asyncio
+async def handle_permission(gl, AlertDialog, page, Text, TextButton,MainAxisAlignment):
+    status = await gl.get_permission_status_async()
     if str(status) == "GeolocatorPermissionStatus.WHILE_IN_USE" or str(status) == "GeolocatorPermissionStatus.ALWAYS":
         pass
     else:
         def handle_click(e):
-            gl.open_app_settings()
-        def handle_check(e):
-            status = gl.get_permission_status()
+            gl.open_app_settings_async()
+        async def handle_check(e):
+            status = await gl.get_permission_status_async()
             if str(status) == "GeolocatorPermissionStatus.WHILE_IN_USE" or str(status) == "GeolocatorPermissionStatus.ALWAYS":
                 page.close(dlg_modal)
             else: 
