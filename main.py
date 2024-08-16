@@ -228,6 +228,7 @@ async def main(page: Page):
             
             loc_visited = await page.client_storage.get_async("loc_visited")  
             loc_visited_photos = await page.client_storage.get_async("loc_visited_photos")  
+            loc_visited = loc_visited[:index_photo_stack]  #! Està malament, ja que només posa els 25 actuals.
             page.add(configuracio)    
             images_saved.height = page.height
             images_saved.controls = []
