@@ -12,7 +12,6 @@ import sys
 
 images_request = []
 index_photo_stack = -1
-categories_sel_antic = []
 canvi = False
 cards = []
 class Llocs:
@@ -170,7 +169,6 @@ async def main(page: Page):
     page.overlay.append(gl)
     page.update()
     page.session.set("categories_sel", [])
-    page.session.set("categories_sel_antic",[])
     page.session.set("dadesLlocs", [])
     await page.client_storage.set_async("loc_visited", [])
     await page.client_storage.set_async("radius_sel", 1000)
@@ -258,13 +256,33 @@ async def main(page: Page):
         if page.route == '/configuracio/historial': 
             loc_visited = await page.client_storage.get_async("loc_visited")  
             loc_visited_photos = await page.client_storage.get_async("loc_visited_photos")  
-            loc_visited = loc_visited[:index_photo_stack]  #! Està malament, ja que només posa els 25 actuals.
             page.add(configuracio)    
+            print(len(loc_visited))
             images_saved.height = page.height
             images_saved.controls = []
-            if len(loc_visited) > 0:
+            if len(loc_visited) > 0 and len(loc_visited) > 25: #! Per arreglar
+                loc_visited = loc_visited[:(len(loc_visited))-25]  
+                print(loc_visited)
+                loc_visited_photos = loc_visited[:(len(loc_visited))-25]
                 page.views.append(View(controls=[AppBar(title=Text("Historial de Llocs"), adaptive=True,bgcolor="#AAD7D9"), images_saved],bgcolor = "#FFFCF1"))
-                for i in range(len(loc_visited)):
+                for i in range(len(loc_visited)-25):
+                    if loc_visited_photos[i] != []:
+                        url = loc_visited_photos[i][0]
+                        new_url = resize_image_url(url, 150, 150)
+                        images_saved.controls.append(
+                            Container(content=Column(spacing=0.5,horizontal_alignment="center", controls=[Image(
+                                src=new_url,
+                                border_radius=10), Text(f"{loc_visited[i]['name']}", text_align="center")
+                        ])))
+                        page.update()
+                    else:
+                        print("No té foto") #! Per acabar
+            elif len(loc_visited) <= 25 and len(loc_visited) > 0: 
+                loc_visited = loc_visited[:index_photo_stack] if len(loc_visited) <= 25 else  loc_visited[index_photo_stack:]
+                loc_visited_photos = loc_visited_photos[:index_photo_stack] if len(loc_visited_photos) <= 25 else  loc_visited_photos[index_photo_stack:]
+                page.views.append(View(controls=[AppBar(title=Text("Historial de Llocs"), adaptive=True,bgcolor="#AAD7D9"), images_saved],bgcolor = "#FFFCF1"))
+                for i in range(len(loc_visited)):      
+                    print("LOC VISITED", loc_visited)
                     if loc_visited_photos[i] != []:
                         url = loc_visited_photos[i][0]
                         new_url = resize_image_url(url, 150, 150)
@@ -278,7 +296,7 @@ async def main(page: Page):
                         print("No té foto") #! Per acabar
             else:
                 page.views.append(View(controls=[AppBar(title=Text("Historial de Llocs"), bgcolor="#AAD7D9",adaptive=True,),SafeArea(content=Text("No has explorat cap lloc encara!", text_align="center", height=page.height))], bgcolor = "#FFFCF1"))
-        
+
         if page.route == '/configuracio/tema':
             page.add(configuracio)
             page.views.append(View(bgcolor = "#FFFCF1",controls=[AppBar(title=Text("Tema"), adaptive=True,bgcolor="#AAD7D9")]))
@@ -290,10 +308,13 @@ async def main(page: Page):
         if page.route == "/configuracio/config_near":
             page.add(configuracio)
             async def radius(e):
+                global canvi 
                 await page.client_storage.set_async("radius_sel", round(e.control.value) * 1000)
                 radius_sel = await page.client_storage.get_async("radius_sel") 
                 print(radius_sel)
+                canvi = True
             async def sort(e):
+                global canvi 
                 print(e.control.value)
                 if e.control.value == "Valoració":
                     await page.client_storage.set_async("sort_sel", "RATING")
@@ -305,10 +326,13 @@ async def main(page: Page):
                     await page.client_storage.set_async("sort_sel", "POPULARITY")
                 sort_sel = await page.client_storage.get_async("sort_sel") 
                 print(sort_sel)
+                canvi = True
             async def preu_sel(e):
+                global canvi 
                 await page.client_storage.set_async("preu", round(e.control.value))
                 preu = await page.client_storage.get_async("preu") 
                 print(preu)
+                canvi = True
 
             sort_sel = await page.client_storage.get_async("sort_sel")
             if sort_sel == "RATING":
@@ -586,6 +610,7 @@ async def main(page: Page):
     }
     
     def categ_check_sel(e):
+        global canvi
         categories_sel = page.session.get("categories_sel")
         if e.control.value == True:
             categories = categories_list.get(e.control.label, [])
@@ -593,15 +618,18 @@ async def main(page: Page):
                 if category not in categories_sel:
                     categories_sel.append(category)
                     page.session.set("categories_sel", categories_sel)
+                    canvi = True
         else: 
             categories = categories_list.get(e.control.label, [])
             for category in categories:
                 if category in categories_sel:
                     categories_sel.remove(category)
                     page.session.set("categories_sel", categories_sel)
+                    canvi = True
         categories_sel = page.session.get("categories_sel")
         print(categories_sel)
     def categ_chip_sel(e):
+        global canvi
         categories_sel = page.session.get("categories_sel")
         if e.control.selected:# El que fa es afegir en el cas de que estigui seleccionat i detecta la chip
             categories = categories_list.get(e.control.label.value, [])
@@ -609,12 +637,14 @@ async def main(page: Page):
                 if category not in categories_sel:
                     categories_sel.append(category)
                     page.session.set("categories_sel", categories_sel)
+                    canvi = True
         else:
             categories = categories_list.get(e.control.label.value, [])
             for category in categories:
                 if category in categories_sel:
                     categories_sel.remove(category)
                     page.session.set("categories_sel", categories_sel)
+                    canvi = True
         categories_sel = page.session.get("categories_sel")
         print(categories_sel)
         
@@ -631,7 +661,7 @@ async def main(page: Page):
                 scale=0.952,
                 controls=[
                     Container(border=border.all(1, "#c4e4da"),border_radius=15.5,content=Chip(
-                        selected_color="#AAD7D9",
+                        selected_color="#6fa4a6",
                         bgcolor="#E8EEED",
                         label=Text("Restaurants",weight=FontWeight.W_400,font_family="default"),
                         leading=Icon(icons.RESTAURANT_MENU_OUTLINED),
@@ -643,7 +673,7 @@ async def main(page: Page):
                         show_checkmark=False,
                     )), 
                     Container(border=border.all(1, "#c4e4da"),border_radius=15.5,content=Chip(
-                        selected_color="#AAD7D9",
+                        selected_color="#6fa4a6",
                         bgcolor="#E8EEED",
                         label=Text("Llocs emblematics",weight=FontWeight.W_400,font_family="default"),
                         leading=Icon(icons.MUSEUM_OUTLINED),
@@ -655,7 +685,7 @@ async def main(page: Page):
                         show_checkmark=False,
                     )), 
                     Container(border=border.all(1, "#c4e4da"),border_radius=15.5,content=Chip(
-                        selected_color="#AAD7D9",
+                        selected_color="#6fa4a6",
                         bgcolor="#E8EEED",
                         label=Text("Parcs",weight=FontWeight.W_400,font_family="default"),
                         leading=Icon(icons.PARK_OUTLINED),
@@ -667,7 +697,7 @@ async def main(page: Page):
                         show_checkmark=False,
                     )), 
                     Container(border=border.all(1, "#c4e4da"),border_radius=15.5,content=Chip(
-                        selected_color="#AAD7D9",
+                        selected_color="#6fa4a6",
                         bgcolor="#E8EEED",
                         label=Text("Cafeteries",weight=FontWeight.W_400,font_family="default"),
                         leading=Icon(icons.LOCAL_CAFE_OUTLINED),
@@ -679,7 +709,7 @@ async def main(page: Page):
                         show_checkmark=False,
                     )), 
                     Container(border=border.all(1, "#c4e4da"),border_radius=15.5,content=Chip(
-                        selected_color="#AAD7D9",
+                        selected_color="#6fa4a6",
                         bgcolor="#E8EEED",
                         label=Text("Entreteniment",weight=FontWeight.W_400,font_family="default"),
                         leading=Icon(icons.INSERT_EMOTICON_OUTLINED),
@@ -691,7 +721,7 @@ async def main(page: Page):
                         show_checkmark=False,
                     )), 
                     Container(border=border.all(1, "#c4e4da"),border_radius=15.5,content=Chip(
-                        selected_color="#AAD7D9",
+                        selected_color="#6fa4a6",
                         bgcolor="#E8EEED",
                         label=Text("Botigues",weight=FontWeight.W_400,font_family="default"),
                         leading=Icon(icons.SHOPPING_BAG_OUTLINED),
@@ -703,7 +733,7 @@ async def main(page: Page):
                         show_checkmark=False,
                     )), 
                     Container(border=border.all(1, "#c4e4da"),border_radius=15.5,content=Chip(
-                        selected_color="#AAD7D9",
+                        selected_color="#6fa4a6",
                         bgcolor="#E8EEED",
                         label=Text("Turisme",weight=FontWeight.W_400,font_family="default"),
                         leading=Icon(icons.FLIGHT_OUTLINED),
@@ -715,7 +745,7 @@ async def main(page: Page):
                         show_checkmark=False,
                     )), 
                     Container(border=border.all(1, "#829891"),border_radius=15.5,content=Chip(
-                        selected_color="#AAD7D9",
+                        selected_color="#6fa4a6",
                         bgcolor="#E8EEED",
                         label=Text("Més",weight=FontWeight.W_400,font_family="default"),
                         leading=Icon(icons.READ_MORE_OUTLINED,color="black"),
@@ -920,15 +950,7 @@ async def main(page: Page):
         #:) Solucionat tot emmagatzemat!!!!!!!!
         loc_visited = await page.client_storage.get_async("loc_visited") 
         categories_sel = page.session.get("categories_sel")
-        categories_sel_antic = page.session.get("categories_sel_antic")
-        print("categories_sel_antic:",categories_sel_antic)
         print("categories_sel:",categories_sel)
-        if categories_sel_antic != categories_sel:
-            canvi = True
-            print("CANVIIII!")
-        categories_sel_antic = copy.deepcopy(categories_sel) 
-        categories_sel_antic = page.session.set("categories_sel_antic", categories_sel_antic)
-
         sort_sel = await page.client_storage.get_async("sort_sel")
         radius_sel = await page.client_storage.get_async("radius_sel")
         preu = await page.client_storage.get_async("preu")
@@ -1065,7 +1087,7 @@ async def main(page: Page):
                         print("Si té fotos")
                         if len(dadesLlocs[i]['photos']) == 1: 
                             img_principal = Row(alignment="center",controls=[AnimatedSwitcher(transition=AnimatedSwitcherTransition.FADE,duration=500,content=Image(
-                                    animate_opacity=200,
+                                    animate_opacity=150,
                                     border_radius=15,
                                     src=images_request[i][0], #URL imatge
                                     width = page.width * 0.8, 
@@ -1073,7 +1095,7 @@ async def main(page: Page):
                                     fit="COVER"
                                     ))])
                             img_esq =Image(
-                                        animate_opacity=200,
+                                        animate_opacity=150,
                                         left=-page.width * 0.75,
                                         top=35,                                    
                                         border_radius=20,
@@ -1082,7 +1104,7 @@ async def main(page: Page):
                                         fit="COVER",
                                     )
                             img_dret = Image(
-                                        animate_opacity=200,
+                                        animate_opacity=150,
                                         right=-page.width * 0.75,
                                         top=35,
                                         border_radius=15,
@@ -1092,7 +1114,7 @@ async def main(page: Page):
                                     )
                         else: 
                                 img_principal = Row(alignment="center",controls=[AnimatedSwitcher(transition=AnimatedSwitcherTransition.FADE,duration=500,content=Image(
-                                    animate_opacity=200,
+                                    animate_opacity=150,
                                     border_radius=15,
                                     src=images_request[i][0], #URL imatge
                                     width = page.width * 0.8, 
@@ -1100,7 +1122,7 @@ async def main(page: Page):
                                     fit="COVER"
                                     ))])
                                 img_esq =Image(
-                                        animate_opacity=200,
+                                        animate_opacity=150,
                                         left=-page.width * 0.75,
                                         top=35,                                     # ! BUG-8
                                         src=images_request[i][len(images_request[i]) - 1],#URL imatge
@@ -1110,7 +1132,7 @@ async def main(page: Page):
                                         fit="COVER",
                                     )
                                 img_dret = Image(
-                                        animate_opacity=200,
+                                        animate_opacity=150,
                                         right=-page.width * 0.75,
                                         top=35,
                                         src=images_request[i][1],#URL imatge
@@ -1121,14 +1143,14 @@ async def main(page: Page):
                                     )
                     else:
                         img_principal = Row(alignment="center",controls=[AnimatedSwitcher(transition=AnimatedSwitcherTransition.FADE,duration=500,content=Image(
-                                    animate_opacity=200,
+                                    animate_opacity=150,
                                     border_radius=15,
                                     width = page.width * 0.8, 
                                     height = page.height * 0.8 * 0.65, 
                                     fit="COVER"
                                     ))])
                         img_esq =Image(
-                                        animate_opacity=200,
+                                        animate_opacity=150,
                                         left=-page.width * 0.75,
                                         top=35,                                     # ! BUG-8
                                         border_radius=20,
@@ -1137,7 +1159,7 @@ async def main(page: Page):
                                         fit="COVER",
                                     )
                         img_dret = Image(
-                                        animate_opacity=200,
+                                        animate_opacity=150,
                                         right=-page.width * 0.75,
                                         top=35,
                                         border_radius=15,
@@ -1170,6 +1192,7 @@ async def main(page: Page):
                         global index_photo
                         img_principal = stack_cards.controls[0].content.content.controls[1].content.controls[0].controls[0].content
                         img_dret = stack_cards.controls[0].content.content.controls[1].content.controls[2]
+                        print("hey")
                         img_esq = stack_cards.controls[0].content.content.controls[1].content.controls[1]
                         if index_photo >= (len(images_request[index_photo_stack])- 1):
                             index_photo = 0
