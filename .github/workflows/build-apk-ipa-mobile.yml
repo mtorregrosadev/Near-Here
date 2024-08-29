@@ -17,7 +17,7 @@ env:
   # https://flet.dev/docs/publish#versioning
   PROJECT_NAME: Near Here
   BUILD_NUMBER: 0
-  BUILD_VERSION: 0.0.4
+  BUILD_VERSION: 0.0.5
   PYTHON_VERSION: 3.12.2
   FLUTTER_VERSION: 3.22.2
 
@@ -47,7 +47,7 @@ jobs:
     - name: Flet Build AAB
       run: |
         flutter config --no-analytics
-        flet build aab -vv --build-number=$BUILD_NUMBER --build-version=$BUILD_VERSION --include-packages flet_geolocator --org com.near_here --project $PROJECT_NAME
+        flet build aab -vv --build-number=$BUILD_NUMBER --build-version=$BUILD_VERSION --include-packages flet_geolocator --org com.near_here --project $PROJECT_NAME --product $PROJECT_NAME
 
     - name: Upload AAB Artifact
       uses: actions/upload-artifact@v4.3.4
@@ -88,7 +88,7 @@ jobs:
     - name: Flet Build APK
       run: |
         flutter config --no-analytics
-        flet build apk -vv --build-number=$BUILD_NUMBER --build-version=$BUILD_VERSION --include-packages flet_geolocator --org com.near_here --project $PROJECT_NAME
+        flet build apk -vv --build-number=$BUILD_NUMBER --build-version=$BUILD_VERSION --include-packages flet_geolocator --org com.near_here --project $PROJECT_NAME --no-android-splash --product $PROJECT_NAME
 
     - name: Upload APK Artifact
       uses: actions/upload-artifact@v4.3.4
@@ -123,7 +123,7 @@ jobs:
     - name: Flet Build IPA
       run: |
         flutter config --no-analytics
-        flet build ipa -vv --build-number=$BUILD_NUMBER --build-version=$BUILD_VERSION --include-packages flet_geolocator --org com.near_here --project $PROJECT_NAME
+        flet build ipa -vv --build-number=$BUILD_NUMBER --build-version=$BUILD_VERSION --include-packages flet_geolocator --org com.near_here --project $PROJECT_NAME --no-ios-splash --product $PROJECT_NAME
 
     - name: Upload IPA Artifact
       uses: actions/upload-artifact@v4.3.4

@@ -1,5 +1,5 @@
 import flet 
-from flet import Page,ListView,Dropdown,dropdown,TextButton,Divider,View,border,Slider,Checkbox,RoundedRectangleBorder,TileAffinity,ExpansionTile,Geolocator,AnimatedSwitcherTransition,AppBar,Card,GridView,TextThemeStyle,ListTile, MainAxisAlignment,AnimatedSwitcher,Stack,Column,TextSpan,TextStyle,Paint,AlertDialog,IconButton, StrokeJoin,PaintingStyle,ShadowBlurStyle, BoxShadow, Image, ListTile,GestureDetector, FontWeight,ElevatedButton, SafeArea,Theme, animation, Container, transform, Icon, icons, colors, alignment, icons, Row, Text, ResponsiveRow, Chip, NavigationBarDestination, NavigationBar 
+from flet import Page,Lottie,Dropdown,dropdown,TextButton,Divider,PageTransitionTheme,View,border,Slider,Checkbox,RoundedRectangleBorder,TileAffinity,ExpansionTile,Geolocator,AnimatedSwitcherTransition,AppBar,Card,GridView,TextThemeStyle,ListTile, MainAxisAlignment,AnimatedSwitcher,Stack,Column,TextSpan,TextStyle,Paint,AlertDialog,IconButton, StrokeJoin,PaintingStyle, Image, ListTile,GestureDetector, FontWeight,ElevatedButton, SafeArea,Theme, animation, Container, transform, Icon, icons, colors, alignment, icons, Row, Text, ResponsiveRow, Chip, NavigationBarDestination, NavigationBar 
 from math import pi
 import asyncio
 import json
@@ -7,8 +7,6 @@ import location
 index_photo = 0
 import requests
 import random
-import io
-import sys
 
 images_request = []
 index_photo_stack = -1
@@ -127,28 +125,18 @@ class Llocs:
             fsq_categories.append(categories)
         return fsq_categories
 
-class PrintLogger(io.StringIO):
-    def __init__(self, log_output, complete_log, page):
-        super().__init__()
-        self.log_output = log_output
-        self.complete_log = complete_log
-        self.page = page
-
-    def write(self, message):
-        self.complete_log.append(message)
-        if self.log_output is not None:
-            self.log_output.controls.append(Text(message.strip()))
-            self.page.update()
-        sys.__stdout__.write(message)
-
-    def flush(self):
-        pass  # No necessitem fer res aquí
-
 async def main(page: Page):
-    complete_log = []
-    log_output = None
-    logger = PrintLogger(log_output, complete_log, page)
-    sys.stdout = logger
+    #crearem la splash screen
+    splash = Container(
+        content=Lottie(src='https://lottie.host/4e716d84-52eb-41fb-bd76-7fadca5cc185/NECtf4dgpL.json'),
+        alignment=alignment.center,
+        bgcolor=colors.WHITE,
+        expand=True,
+    )
+    page.overlay.append(splash)
+    page.update()
+
+    page.on_error = lambda e: print(f"Page Error: {e.data}")
     print("Iniciant l'aplicació...")
     page.bgcolor = "#FFFCF1"
     page.title = "Near here..."
@@ -157,42 +145,46 @@ async def main(page: Page):
     page.horizontal_alignment = "center"
     page.theme_mode = "light"
     page.fonts = {
-           "Proxima Nova": "fonts/ProximaNova-Regular.ttf",
-           "Proxima Nova Bold": "fonts/ProximaNova-Bold.ttf",
-           "Proxima Nova ExtraBold": "fonts/ProximaNova-ExtraBold.ttf",
            "Helvetica Neue": "fonts/HelveticaNeue-Regular.otf",
-           "Stres": "fonts/Stres.otf",
            "WorkSans": "fonts/WorkSans-Black.ttf"
     }
     page.theme = Theme(font_family="Helvetica Neue")
+    page.session.set("categories_sel", [])
+    page.session.set("dadesLlocs", [])
     gl = Geolocator()
     page.overlay.append(gl)
     page.update()
-    page.session.set("categories_sel", [])
-    page.session.set("dadesLlocs", [])
-    await page.client_storage.set_async("loc_visited", [])
-    await page.client_storage.set_async("radius_sel", 1000)
-    await page.client_storage.set_async("sort_sel", "RELEVANCE")
-    await page.client_storage.set_async("preu", 0)
-    await gl.request_permission_async()
-    await location.handle_permission(gl,AlertDialog, page, Text,TextButton,MainAxisAlignment)
-    await page.client_storage.set_async("saved_cards", [])
-    await page.client_storage.set_async("saved_cards_images", [])
+    await asyncio.sleep(1) #Hem d'esperar 1 segon perquè puugui funcionar bé el geolocator
+    async def inicialitzar_configuracio():
+        await page.client_storage.set_async("radius_sel", 1000)
+        await page.client_storage.set_async("sort_sel", "RELEVANCE")
+        await page.client_storage.set_async("preu", 0)
+
+    async def inicialitzar_llistes():
+        await page.client_storage.set_async("loc_visited", [])
+        await page.client_storage.set_async("saved_cards", [])
+        await page.client_storage.set_async("saved_cards_images", [])
+
+    async def configurar_ubicacio():
+        await gl.request_permission_async()
+        await location.handle_permission(gl, AlertDialog, page, Text, TextButton, MainAxisAlignment)
+
+    await asyncio.gather(
+        inicialitzar_configuracio(),
+        inicialitzar_llistes(),
+        configurar_ubicacio()
+    )
+
     def view_pop(event): #Per anar enrere 
-        #print("view pop:", event.view) #Això només imprimeix en terminal, de normal no cal
         if page.route == '/categories' or page.route == '/info':
             page.views.pop()
             page.go('/')
         else: 
             page.views.pop()
             page.go("/configuracio")
-       # top_view = page.views[-1]
-        #  page.go(top_view.route)
 
     async def on_change_page(e):
-
         page.controls.clear() if page.route != '/info' else None
-        #page.add(gl)
         async def tornar(e):
             page.go("/")
         def resize_image_url(url, width, height):
@@ -219,12 +211,12 @@ async def main(page: Page):
         if page.route == '/':
             print("Seleccionat llocs!")
             selected_llocs.offset = transform.Offset(0,0)
-            page.add(Tags_amunt_safe,stack_cards,botons)
             botons.opacity = 1
             Tags_amunt.opacity = 1
             stack_cards.opacity = 1
             cards[0].scale = 1
             cards[0].opacity = 1
+            page.add(Tags_amunt_safe,stack_cards,botons)
    
         if page.route == '/favorits':
             saved_cards_images = await page.client_storage.get_async("saved_cards_images")   
@@ -245,7 +237,7 @@ async def main(page: Page):
                         images_saved.controls.reverse()
                         page.update()
                     else:
-                        print("No té foto") #! Per acabar
+                        print("No té foto") #! Per acabar - build
             else:
                 page.add(SafeArea(content=Text("No tens favorits!", text_align="center", height=page.height)))
 
@@ -260,7 +252,7 @@ async def main(page: Page):
             print(len(loc_visited))
             images_saved.height = page.height
             images_saved.controls = []
-            if len(loc_visited) > 0 and len(loc_visited) > 25: #! Per arreglar
+            if len(loc_visited) > 0 and len(loc_visited) > 25: #! Per arreglar - build
                 loc_visited = loc_visited[:(len(loc_visited))-25]  
                 print(loc_visited)
                 loc_visited_photos = loc_visited[:(len(loc_visited))-25]
@@ -484,29 +476,6 @@ async def main(page: Page):
                             category.initially_expanded=True
             page.views.append(View(bgcolor = "#FFFCF1",controls=[AppBar(title=Text("Categories"),adaptive=True, bgcolor="#AAD7D9"), SafeArea(content=categ_info_add)]))
             #page.add(AppBar(leading=IconButton(icons.ARROW_BACK_IOS,alignment="center",on_click=tornar),title=Text("Categories"), bgcolor="#AAD7D9"),categ_info_add)
-            
-        if page.route == '/dev/log':
-            page.add(configuracio)
-            log_output = ListView(expand=True, spacing=0.1,)
-            logger.log_output = log_output  # Assigna la ListView a PrintLogger
-            log_save = []
-            # Afegeix logs ja capturats a la ListView
-            for msg in complete_log:
-                log_output.controls.append(Text(msg.strip()))
-            log_output.controls.reverse()
-            for msg in complete_log:
-                log_save.append(msg.strip())
-            def save_log_to_file(e):
-                with open("terminal_output.log", "w") as log_file:
-                    log_file.write(log_save)
-                page.add(Text("Log saved!"))
-
-            save_button = ElevatedButton("Save Log", on_click=save_log_to_file, width=page.width)
-            page.views.append(View(
-                bgcolor="#FFFCF1",
-                controls=[AppBar(title=Text("Log"),bgcolor="#AAD7D9", adaptive=True), log_output, save_button]
-            ))
-
         page.update()
     
     page.on_route_change = on_change_page #Aquest defineix que volem que faci el programa en el canvi de route 
@@ -787,8 +756,6 @@ async def main(page: Page):
         page.go("/configuracio/idioma")
     async def config_near(e):
         page.go("/configuracio/config_near")
-    async def log(e):
-        page.go("/dev/log")
     configuracio =Card(color = "#AAD7D9", height=page.height * 0.8, expand=True,
             content=Container(
                 content=Column(
@@ -803,7 +770,7 @@ async def main(page: Page):
                             trailing = Icon(icons.CHEVRON_RIGHT_OUTLINED),
                             title=Text("Tema", color="black"),
                             selected=True,
-                            height=(page.height * 0.8) / 14,
+                            height=(page.height * 0.8) / 13,
                             on_click=tema
                         ),
                         ListTile(
@@ -811,7 +778,7 @@ async def main(page: Page):
                             trailing = Icon(icons.CHEVRON_RIGHT_OUTLINED),
                             title=Text("Idioma", color="black"),
                             selected=True,
-                            height=(page.height * 0.8) / 14,
+                            height=(page.height * 0.8) / 13,
                             on_click=Idioma
                         ),
                         ListTile(
@@ -819,7 +786,7 @@ async def main(page: Page):
                             trailing = Icon(icons.CHEVRON_RIGHT_OUTLINED),
                             title=Text("Historial de llocs", color="black"),
                             selected=True,
-                            height=(page.height * 0.8) / 14,
+                            height=(page.height * 0.8) / 13,
                             on_click=Historial
                         ),
                         ListTile(
@@ -827,7 +794,7 @@ async def main(page: Page):
                             trailing = Icon(icons.CHEVRON_RIGHT_OUTLINED),
                             title=Text("Pàrametres cerca de llocs", color="black"),
                             selected=True,
-                            height=(page.height * 0.8) / 14,
+                            height=(page.height * 0.8) / 13,
                             on_click=config_near
                         ),
                         ListTile(title=Text("Jo i l'App"), dense=True,height=(page.height * 0.8) / 10),
@@ -835,7 +802,7 @@ async def main(page: Page):
                             leading=Icon(icons.INFO_OUTLINED, color="black"),
                             trailing = Icon(icons.CHEVRON_RIGHT_OUTLINED),
                             title=Text("Sobre l'App", color="black"),
-                            height=(page.height * 0.8) / 14,
+                            height=(page.height * 0.8) / 13,
                             selected=True,
                             # on_click=hey
                         ),
@@ -844,7 +811,7 @@ async def main(page: Page):
                             trailing = Icon(icons.CHEVRON_RIGHT_OUTLINED),
                             title=Text("Politica de privacitat", color="black"),
                             selected=True,
-                            height=(page.height * 0.8) / 14,
+                            height=(page.height * 0.8) / 13,
                             # on_click=hey
                         ),
                         ListTile(
@@ -852,18 +819,9 @@ async def main(page: Page):
                             trailing = Icon(icons.CHEVRON_RIGHT_OUTLINED),
                             title=Text("Ajuda", color="black"),
                             selected=True,
-                            height=(page.height * 0.8) / 14,
+                            height=(page.height * 0.8) / 13,
                             # on_click=hey
-                        ),    
-                        ListTile(title=Text("Desenvolupadors"), dense=True,height=(page.height * 0.8) / 10),                    
-                        ListTile(
-                            leading=Icon(icons.CODE_OUTLINED, color="black"),
-                            trailing = Icon(icons.CHEVRON_RIGHT_OUTLINED),
-                            title=Text("Log", color="black"),
-                            selected=True,
-                            height=(page.height * 0.8) / 14,
-                            on_click=log
-                        ),
+                        )
                     ],
                     spacing=0,
                 ),
@@ -1181,7 +1139,7 @@ async def main(page: Page):
                             index_photo -= 1
                         img_principal.opacity = 0.1 #Animació d'opactiat, perquè l'usuari tingui més comoditat visual 
                         img_principal.update()
-                        await asyncio.sleep(0.2) 
+                        await asyncio.sleep(0.15) 
                         img_principal.src = images_request[index_photo_stack][index_photo] #Actualitza les fotos 
                         img_principal.opacity = 1
                         img_esq.src = images_request[index_photo_stack][index_photo-1 if index_photo-1 >= 0 else (len(images_request[index_photo_stack])-1)]  #Resta un en el cas que sigui a dins de la llista, sinó posa el més gran (len) - 1, ja que contem des de 0
@@ -1192,7 +1150,6 @@ async def main(page: Page):
                         global index_photo
                         img_principal = stack_cards.controls[0].content.content.controls[1].content.controls[0].controls[0].content
                         img_dret = stack_cards.controls[0].content.content.controls[1].content.controls[2]
-                        print("hey")
                         img_esq = stack_cards.controls[0].content.content.controls[1].content.controls[1]
                         if index_photo >= (len(images_request[index_photo_stack])- 1):
                             index_photo = 0
@@ -1200,7 +1157,7 @@ async def main(page: Page):
                             index_photo += 1
                         img_principal.opacity = 0.1 #Animació d'opactiat, perquè l'usuari tingui més comoditat visual 
                         img_principal.update()
-                        await asyncio.sleep(0.2) 
+                        await asyncio.sleep(0.15) 
                         img_principal.src = images_request[index_photo_stack][index_photo] 
                         img_principal.opacity = 1
                         img_esq.src = images_request[index_photo_stack][index_photo-1 if index_photo-1 >= 0 else (len(images_request[index_photo_stack])-1)]  
@@ -1335,12 +1292,6 @@ async def main(page: Page):
             else:
                 break
 
- 
-    
-    await update_cards()
-    
-    #L'iniciem només començar el programa per tal de fer apareixer tots els elements i escalem la primera a 1 per tal de mostrar-la
-    
     async def scale_next_card():
         global images_request
         global index_photo_stack
@@ -1358,6 +1309,14 @@ async def main(page: Page):
         stack_cards,
         botons, 
     )
+    
+    #Treiem la splsash screen
+    page.overlay.remove(splash)
+    page.update()
+    
+    await update_cards()
+    #L'iniciem només començar el programa per tal de fer apareixer tots els elements i escalem la primera a 1 per tal de mostrar-la
+    
     await scale_next_card()
     
     
