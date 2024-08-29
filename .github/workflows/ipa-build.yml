@@ -6,7 +6,7 @@ on:
 
 env:
   # https://flet.dev/docs/publish#versioning
-  PROJECT_NAME: Near Here
+  PROJECT_NAME: Near_Here
   BUILD_NUMBER: 0
   BUILD_VERSION: 0.0.5
   PYTHON_VERSION: 3.12.2
@@ -38,7 +38,7 @@ jobs:
     - name: Flet Build IPA
       run: |
         flutter config --no-analytics
-        flet build ipa -vv --build-number=$BUILD_NUMBER --build-version=$BUILD_VERSION --include-packages flet_geolocator --no-ios-splash --product $PROJECT_NAME --org com.near_here
+        flet build ipa -vv --build-number=$BUILD_NUMBER --build-version=$BUILD_VERSION --include-packages flet_geolocator flet_lottie --no-ios-splash --product $PROJECT_NAME --org com.near_here
 
     - name: Upload IPA Artifact
       uses: actions/upload-artifact@v4.3.4  # https://github.com/marketplace/actions/upload-a-build-artifact
