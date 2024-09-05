@@ -153,6 +153,8 @@ async def main(page: Page):
     gl = Geolocator()
     page.overlay.append(gl)
     page.update()
+    page.session.set("categories_sel", [])
+    page.session.set("categories_sel_antic",[])
     async def inicialitzar_configuracio():
         await page.client_storage.set_async("radius_sel", 1000)
         await page.client_storage.set_async("sort_sel", "RELEVANCE")
