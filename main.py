@@ -136,12 +136,11 @@ async def main(page: Page):
     page.overlay.append(splash)
     page.update()
 
-    page.on_error = lambda e: print(f"Page Error: {e.data}")
     print("Iniciant l'aplicació...")
     page.bgcolor = "#FFFCF1"
     page.title = "Near here..."
     page.window.width = 390
-    page.window.height = 790
+    page.window.height = 800
     page.horizontal_alignment = "center"
     page.theme_mode = "light"
     page.fonts = {
@@ -154,7 +153,6 @@ async def main(page: Page):
     gl = Geolocator()
     page.overlay.append(gl)
     page.update()
-    await asyncio.sleep(1) #Hem d'esperar 1 segon perquè puugui funcionar bé el geolocator
     async def inicialitzar_configuracio():
         await page.client_storage.set_async("radius_sel", 1000)
         await page.client_storage.set_async("sort_sel", "RELEVANCE")
@@ -165,15 +163,21 @@ async def main(page: Page):
         await page.client_storage.set_async("saved_cards", [])
         await page.client_storage.set_async("saved_cards_images", [])
 
-    async def configurar_ubicacio():
-        await gl.request_permission_async()
-        await location.handle_permission(gl, AlertDialog, page, Text, TextButton, MainAxisAlignment)
+    async def configurar_ubicacio(gl):
+        status = await gl.get_permission_status_async()
+        if str(status) == "GeolocatorPermissionStatus.WHILE_IN_USE" or str(status) == "GeolocatorPermissionStatus.ALWAYS":
+            pass
+        else:
+            await gl.request_permission_async()
+            await location.handle_permission(gl, AlertDialog, page, Text, TextButton, MainAxisAlignment)
 
     await asyncio.gather(
         inicialitzar_configuracio(),
         inicialitzar_llistes(),
-        configurar_ubicacio()
     )
+
+    await asyncio.sleep(1)
+    await configurar_ubicacio(gl)
 
     def view_pop(event): #Per anar enrere 
         if page.route == '/categories' or page.route == '/info':
@@ -478,6 +482,8 @@ async def main(page: Page):
             #page.add(AppBar(leading=IconButton(icons.ARROW_BACK_IOS,alignment="center",on_click=tornar),title=Text("Categories"), bgcolor="#AAD7D9"),categ_info_add)
         page.update()
     
+
+
     page.on_route_change = on_change_page #Aquest defineix que volem que faci el programa en el canvi de route 
     page.on_view_pop = view_pop
     
@@ -524,8 +530,6 @@ async def main(page: Page):
         #Comença a afegir l'altre pàgina
         page.go('/info')
 
-
-    
     
     categories_list = {
         #*Chips
@@ -897,7 +901,8 @@ async def main(page: Page):
         if data["pv"] < 1 and data["vy"] < 0:
             await mes_info(e)
             
-    
+
+
     # Aquest el que fa es convertir cada card individual en GestureDetector. Amb això, podem detectar cap a on es mou i com funciona. Es molt útil i ens ho serà en un futur.
     async def update_cards():
         stack_cards.controls.clear() 
@@ -1292,6 +1297,10 @@ async def main(page: Page):
             else:
                 break
 
+    await update_cards()
+    #L'iniciem només començar el programa per tal de fer apareixer tots els elements i escalem la primera a 1 per tal de mostrar-la 
+    
+
     async def scale_next_card():
         global images_request
         global index_photo_stack
@@ -1309,14 +1318,9 @@ async def main(page: Page):
         stack_cards,
         botons, 
     )
-    
     #Treiem la splsash screen
     page.overlay.remove(splash)
     page.update()
-    
-    await update_cards()
-    #L'iniciem només començar el programa per tal de fer apareixer tots els elements i escalem la primera a 1 per tal de mostrar-la
-    
     await scale_next_card()
     
     
