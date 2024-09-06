@@ -148,13 +148,11 @@ async def main(page: Page):
            "WorkSans": "fonts/WorkSans-Black.ttf"
     }
     page.theme = Theme(font_family="Helvetica Neue")
-    page.session.set("categories_sel", [])
-    page.session.set("dadesLlocs", [])
     gl = Geolocator()
     page.overlay.append(gl)
     page.update()
     page.session.set("categories_sel", [])
-    page.session.set("categories_sel_antic",[])
+    page.session.set("dadesLlocs", [])
     async def inicialitzar_configuracio():
         await page.client_storage.set_async("radius_sel", 1000)
         await page.client_storage.set_async("sort_sel", "RELEVANCE")
@@ -178,7 +176,7 @@ async def main(page: Page):
         inicialitzar_llistes(),
     )
 
-    await asyncio.sleep(1)
+    await asyncio.sleep(0.5)
     await configurar_ubicacio(gl)
 
     def view_pop(event): #Per anar enrere 
@@ -190,6 +188,7 @@ async def main(page: Page):
             page.go("/configuracio")
 
     async def on_change_page(e):
+        global canvi 
         page.controls.clear() if page.route != '/info' else None
         async def tornar(e):
             page.go("/")
@@ -306,13 +305,11 @@ async def main(page: Page):
         if page.route == "/configuracio/config_near":
             page.add(configuracio)
             async def radius(e):
-                global canvi 
                 await page.client_storage.set_async("radius_sel", round(e.control.value) * 1000)
                 radius_sel = await page.client_storage.get_async("radius_sel") 
                 print(radius_sel)
                 canvi = True
             async def sort(e):
-                global canvi 
                 print(e.control.value)
                 if e.control.value == "Valoració":
                     await page.client_storage.set_async("sort_sel", "RATING")
@@ -326,7 +323,6 @@ async def main(page: Page):
                 print(sort_sel)
                 canvi = True
             async def preu_sel(e):
-                global canvi 
                 await page.client_storage.set_async("preu", round(e.control.value))
                 preu = await page.client_storage.get_async("preu") 
                 print(preu)
