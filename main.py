@@ -1,5 +1,5 @@
 import flet 
-from flet import Page,Lottie,Dropdown,dropdown,TextButton,Divider,PageTransitionTheme,View,border,Slider,Checkbox,RoundedRectangleBorder,TileAffinity,ExpansionTile,Geolocator,AnimatedSwitcherTransition,AppBar,Card,GridView,TextThemeStyle,ListTile, MainAxisAlignment,AnimatedSwitcher,Stack,Column,TextSpan,TextStyle,Paint,AlertDialog,IconButton, StrokeJoin,PaintingStyle, Image, ListTile,GestureDetector, FontWeight,ElevatedButton, SafeArea,Theme, animation, Container, transform, Icon, icons, colors, alignment, icons, Row, Text, ResponsiveRow, Chip, NavigationBarDestination, NavigationBar 
+from flet import Page,Dropdown,dropdown,Lottie,TextButton,Divider,View,border,Slider,Checkbox,RoundedRectangleBorder,TileAffinity,ExpansionTile,Geolocator,AnimatedSwitcherTransition,AppBar,Card,GridView,TextThemeStyle,ListTile, MainAxisAlignment,AnimatedSwitcher,Stack,Column,TextSpan,TextStyle,Paint,AlertDialog,IconButton, StrokeJoin,PaintingStyle,ShadowBlurStyle, BoxShadow, Image, ListTile,GestureDetector, FontWeight,ElevatedButton, SafeArea,Theme, animation, Container, transform, Icon, icons, colors, alignment, icons, Row, Text, ResponsiveRow, Chip, NavigationBarDestination, NavigationBar 
 from math import pi
 import asyncio
 import json
@@ -7,6 +7,7 @@ import location
 index_photo = 0
 import requests
 import random
+
 
 images_request = []
 index_photo_stack = -1
@@ -128,7 +129,7 @@ class Llocs:
 async def main(page: Page):
     #crearem la splash screen
     splash = Container(
-        content=Lottie(src='https://lottie.host/4e716d84-52eb-41fb-bd76-7fadca5cc185/NECtf4dgpL.json'),
+        content=Lottie(src='src/NearHere.json'),
         alignment=alignment.center,
         bgcolor=colors.WHITE,
         expand=True,
@@ -162,6 +163,7 @@ async def main(page: Page):
         await page.client_storage.set_async("loc_visited", [])
         await page.client_storage.set_async("saved_cards", [])
         await page.client_storage.set_async("saved_cards_images", [])
+        await page.client_storage.set_async("loc_visited_photos", [])  
 
     async def configurar_ubicacio(gl):
         status = await gl.get_permission_status_async()
@@ -480,8 +482,6 @@ async def main(page: Page):
             #page.add(AppBar(leading=IconButton(icons.ARROW_BACK_IOS,alignment="center",on_click=tornar),title=Text("Categories"), bgcolor="#AAD7D9"),categ_info_add)
         page.update()
     
-
-
     page.on_route_change = on_change_page #Aquest defineix que volem que faci el programa en el canvi de route 
     page.on_view_pop = view_pop
     
@@ -528,6 +528,8 @@ async def main(page: Page):
         #Comença a afegir l'altre pàgina
         page.go('/info')
 
+
+    
     
     categories_list = {
         #*Chips
@@ -579,7 +581,6 @@ async def main(page: Page):
         "Menjar": [17057]
 
     }
-    
     def categ_check_sel(e):
         global canvi
         categories_sel = page.session.get("categories_sel")
@@ -823,7 +824,7 @@ async def main(page: Page):
                             selected=True,
                             height=(page.height * 0.8) / 13,
                             # on_click=hey
-                        )
+                        ),
                     ],
                     spacing=0,
                 ),
@@ -899,8 +900,7 @@ async def main(page: Page):
         if data["pv"] < 1 and data["vy"] < 0:
             await mes_info(e)
             
-
-
+    
     # Aquest el que fa es convertir cada card individual en GestureDetector. Amb això, podem detectar cap a on es mou i com funciona. Es molt útil i ens ho serà en un futur.
     async def update_cards():
         stack_cards.controls.clear() 
@@ -923,12 +923,12 @@ async def main(page: Page):
         print(f"Preu:{preu}")
         
         if len(cards) == 0 or canvi == True:
-                page.session.set("dadesLlocs", [])
                 #* Demanem les dades 
                 print("index_photo_Stack: ",index_photo_stack)
                 if canvi == True:
                     canvi = False
                     loc_visited = loc_visited[:index_photo_stack]
+                    print(len(loc_visited))
                     dadesLlocs = []
                     cards.clear()
                     await page.client_storage.set_async("loc_visited", loc_visited)
@@ -1047,6 +1047,7 @@ async def main(page: Page):
                     if images_request[i] != []: #! BUG-6
                         print("Si té fotos")
                         if len(dadesLlocs[i]['photos']) == 1: 
+                            print("prova")
                             img_principal = Row(alignment="center",controls=[AnimatedSwitcher(transition=AnimatedSwitcherTransition.FADE,duration=500,content=Image(
                                     animate_opacity=150,
                                     border_radius=15,
@@ -1278,6 +1279,7 @@ async def main(page: Page):
                     img_esq.src = images_request[index_photo_stack][len(images_request[index_photo_stack]) - 1]
                     page.update()
                 elif len(images_request[index_photo_stack]) == 1:
+                    print("es 1")
                     img_principal.src = images_request[index_photo_stack][0]
                     img_dret.visible = False
                     img_esq.visible = False
@@ -1295,10 +1297,12 @@ async def main(page: Page):
             else:
                 break
 
-    await update_cards()
-    #L'iniciem només començar el programa per tal de fer apareixer tots els elements i escalem la primera a 1 per tal de mostrar-la 
+ 
     
-
+    await update_cards()
+    
+    #L'iniciem només començar el programa per tal de fer apareixer tots els elements i escalem la primera a 1 per tal de mostrar-la
+    
     async def scale_next_card():
         global images_request
         global index_photo_stack
@@ -1316,7 +1320,6 @@ async def main(page: Page):
         stack_cards,
         botons, 
     )
-    #Treiem la splsash screen
     page.overlay.remove(splash)
     page.update()
     await scale_next_card()
