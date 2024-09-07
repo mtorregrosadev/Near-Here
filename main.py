@@ -1,13 +1,12 @@
 import flet 
 from flet import Page,Dropdown,dropdown,Lottie,TextButton,Divider,View,border,Slider,Checkbox,RoundedRectangleBorder,TileAffinity,ExpansionTile,Geolocator,AnimatedSwitcherTransition,AppBar,Card,GridView,TextThemeStyle,ListTile, MainAxisAlignment,AnimatedSwitcher,Stack,Column,TextSpan,TextStyle,Paint,AlertDialog,IconButton, StrokeJoin,PaintingStyle,ShadowBlurStyle, BoxShadow, Image, ListTile,GestureDetector, FontWeight,ElevatedButton, SafeArea,Theme, animation, Container, transform, Icon, icons, colors, alignment, icons, Row, Text, ResponsiveRow, Chip, NavigationBarDestination, NavigationBar 
-from math import pi
 import asyncio
 import json
 import location
 index_photo = 0
 import requests
 import random
-
+import math
 
 images_request = []
 index_photo_stack = -1
@@ -164,6 +163,7 @@ async def main(page: Page):
         await page.client_storage.set_async("saved_cards", [])
         await page.client_storage.set_async("saved_cards_images", [])
         await page.client_storage.set_async("loc_visited_photos", [])  
+        await page.client_storage.set_async("categories_visited", [])
 
     async def configurar_ubicacio(gl):
         status = await gl.get_permission_status_async()
@@ -214,7 +214,22 @@ async def main(page: Page):
                         new_url = invariant_part + new_dimensions + '/' + remainder
                         
                         return new_url
-                    
+        def convertir_url(url):
+            parts = url.split('/')
+            filename = parts[-1]
+            filename_parts = filename.split('_')
+                
+            # Si no té ja el sufix "_bg", l'afegim abans del número.
+            if 'bg' not in filename_parts:
+                filename_parts.insert(-1, 'bg')
+                
+            # Reconstruïm el nom del fitxer
+            new_filename = '_'.join(filename_parts)
+            parts[-1] = new_filename
+                
+            # Reconstruïm la URL completa
+            return '/'.join(parts)
+        
         if page.route == '/':
             print("Seleccionat llocs!")
             selected_llocs.offset = transform.Offset(0,0)
@@ -228,6 +243,7 @@ async def main(page: Page):
         if page.route == '/favorits':
             saved_cards_images = await page.client_storage.get_async("saved_cards_images")   
             saved_cards = await page.client_storage.get_async("saved_cards")
+            categories_visited = await page.client_storage.get_async("categories_visited")
             print("Favorits seleccionat")
             images_saved.controls = []
             page.add(images_saved)
@@ -244,7 +260,12 @@ async def main(page: Page):
                         images_saved.controls.reverse()
                         page.update()
                     else:
-                        print("No té foto") #! Per acabar - build
+                        images_saved.controls.append(
+                            Container(content=Column(spacing=0.5,horizontal_alignment="center", controls=[Image(
+                                src=f"{convertir_url(categories_visited[i][0])}",
+                                border_radius=10), Text(f"{saved_cards[i]['name']}", text_align="center")
+                        ])))
+                        page.update() 
             else:
                 page.add(SafeArea(content=Text("No tens favorits!", text_align="center", height=page.height)))
 
@@ -255,16 +276,14 @@ async def main(page: Page):
         if page.route == '/configuracio/historial': 
             loc_visited = await page.client_storage.get_async("loc_visited")  
             loc_visited_photos = await page.client_storage.get_async("loc_visited_photos")  
+            categories_visited = await page.client_storage.get_async("categories_visited")
             page.add(configuracio)    
             print(len(loc_visited))
             images_saved.height = page.height
             images_saved.controls = []
-            if len(loc_visited) > 0 and len(loc_visited) > 25: #! Per arreglar - build
-                loc_visited = loc_visited[:(len(loc_visited))-25]  
-                print(loc_visited)
-                loc_visited_photos = loc_visited[:(len(loc_visited))-25]
+            if len(loc_visited) > 0: 
                 page.views.append(View(controls=[AppBar(title=Text("Historial de Llocs"), adaptive=True,bgcolor="#AAD7D9"), images_saved],bgcolor = "#FFFCF1"))
-                for i in range(len(loc_visited)-25):
+                for i in range(len(loc_visited)):
                     if loc_visited_photos[i] != []:
                         url = loc_visited_photos[i][0]
                         new_url = resize_image_url(url, 150, 150)
@@ -275,24 +294,13 @@ async def main(page: Page):
                         ])))
                         page.update()
                     else:
-                        print("No té foto") #! Per acabar
-            elif len(loc_visited) <= 25 and len(loc_visited) > 0: 
-                loc_visited = loc_visited[:index_photo_stack] if len(loc_visited) <= 25 else  loc_visited[index_photo_stack:]
-                loc_visited_photos = loc_visited_photos[:index_photo_stack] if len(loc_visited_photos) <= 25 else  loc_visited_photos[index_photo_stack:]
-                page.views.append(View(controls=[AppBar(title=Text("Historial de Llocs"), adaptive=True,bgcolor="#AAD7D9"), images_saved],bgcolor = "#FFFCF1"))
-                for i in range(len(loc_visited)):      
-                    print("LOC VISITED", loc_visited)
-                    if loc_visited_photos[i] != []:
-                        url = loc_visited_photos[i][0]
-                        new_url = resize_image_url(url, 150, 150)
                         images_saved.controls.append(
                             Container(content=Column(spacing=0.5,horizontal_alignment="center", controls=[Image(
-                                src=new_url,
+                                src=f"{convertir_url(categories_visited[i][0])}",
                                 border_radius=10), Text(f"{loc_visited[i]['name']}", text_align="center")
                         ])))
-                        page.update()
-                    else:
-                        print("No té foto") #! Per acabar
+                        page.update() 
+                images_saved.controls.reverse()
             else:
                 page.views.append(View(controls=[AppBar(title=Text("Historial de Llocs"), bgcolor="#AAD7D9",adaptive=True,),SafeArea(content=Text("No has explorat cap lloc encara!", text_align="center", height=page.height))], bgcolor = "#FFFCF1"))
 
@@ -307,11 +315,13 @@ async def main(page: Page):
         if page.route == "/configuracio/config_near":
             page.add(configuracio)
             async def radius(e):
+                global canvi 
                 await page.client_storage.set_async("radius_sel", round(e.control.value) * 1000)
                 radius_sel = await page.client_storage.get_async("radius_sel") 
                 print(radius_sel)
                 canvi = True
             async def sort(e):
+                global canvi 
                 print(e.control.value)
                 if e.control.value == "Valoració":
                     await page.client_storage.set_async("sort_sel", "RATING")
@@ -325,6 +335,7 @@ async def main(page: Page):
                 print(sort_sel)
                 canvi = True
             async def preu_sel(e):
+                global canvi 
                 await page.client_storage.set_async("preu", round(e.control.value))
                 preu = await page.client_storage.get_async("preu") 
                 print(preu)
@@ -369,7 +380,15 @@ async def main(page: Page):
             ],scroll="adaptive")
             page.views.append(View(bgcolor = "#FFFCF1",controls=[AppBar(title=Text("Pàrametres cerca"), adaptive=True,bgcolor="#AAD7D9"),parametres_cerca]))
             
-        if page.route == '/info':
+        if page.route == '/configuracio/sobre_app':
+            page.views.append(View(bgcolor = "#FFFCF1",controls=[
+                AppBar(title=Text("Sobre l'aplicació"), adaptive=True,bgcolor="#AAD7D9"),
+                SafeArea(content=Text("NEAR HERE...", text_align="center", weight=FontWeight.W_900, theme_style=TextThemeStyle.DISPLAY_SMALL, width=page.width, color="#6b9e9f")),
+                Text("Versió: 0.1", text_align="center", weight=FontWeight.W_300, theme_style=TextThemeStyle.BODY_SMALL, width=page.width),
+                Divider(),
+                Text("Fet per: Marc Lumbreras Torregrosa \n Fet com a part pràctica del Treball de Recerca a Batxillerat, 2024-2025",text_align="center", weight=FontWeight.W_300, theme_style=TextThemeStyle.BODY_SMALL, width=page.width)
+            ]))
+        if page.route == '/info': 
             page.views.append(View(bgcolor = "#FFFCF1",controls=[AppBar(bgcolor="#AAD7D9",adaptive=True),SafeArea(content=ElevatedButton("Tornar", on_click=view_pop))]))
         
         if page.route == '/categories':
@@ -759,6 +778,8 @@ async def main(page: Page):
         page.go("/configuracio/idioma")
     async def config_near(e):
         page.go("/configuracio/config_near")
+    async def sobre_app(e):
+        page.go("/configuracio/sobre_app")
     configuracio =Card(color = "#AAD7D9", height=page.height * 0.8, expand=True,
             content=Container(
                 content=Column(
@@ -807,7 +828,7 @@ async def main(page: Page):
                             title=Text("Sobre l'App", color="black"),
                             height=(page.height * 0.8) / 13,
                             selected=True,
-                            # on_click=hey
+                            on_click=sobre_app
                         ),
                         ListTile(
                             leading=Icon(icons.PRIVACY_TIP_OUTLINED, color="black"),
@@ -855,7 +876,7 @@ async def main(page: Page):
         elif index == 2: #Configuració
             page.go('/configuracio')
             await asyncio.sleep(0.001)
-            selected_configuracio.rotate.angle += (2*pi)
+            selected_configuracio.rotate.angle += (2*math.pi)
             page.update()
             
              
@@ -927,43 +948,55 @@ async def main(page: Page):
                 print("index_photo_Stack: ",index_photo_stack)
                 if canvi == True:
                     canvi = False
-                    loc_visited = loc_visited[:index_photo_stack]
                     print(len(loc_visited))
                     dadesLlocs = []
                     cards.clear()
-                    await page.client_storage.set_async("loc_visited", loc_visited)
-                
+
                 index_photo_stack = -1
                 #:) Cobren el mateix demanant 5, 10 que 50
                 p = await gl.get_current_position_async()
-                llocs = Llocs(p.latitude,p.longitude,radius_sel,25,loc_visited,categories_sel,sort_sel, preu) #! Problema, dona sempre el mateix BUG-5
-
+                llocs = Llocs(p.latitude,p.longitude,radius_sel,25,loc_visited,categories_sel,sort_sel, preu) 
                 dadesLlocs, loc_visited = llocs.dades()
                 page.session.set("dadesLlocs", dadesLlocs)
-                await page.client_storage.set_async("loc_visited", loc_visited)
-
                 if dadesLlocs == []:
                     print("Això no ha de passar!") 
                 images_request = llocs.photos()
                 page.session.set("images_request", images_request)
-                loc_visited_photos = await page.client_storage.get_async("loc_visited_photos")
-                loc_visited_photos.append(images_request)
-                await page.client_storage.set_async("loc_visited_photos", images_request)
                 # print(images_request)
                 categories = llocs.categories()
+                categories_visited = await page.client_storage.get_async("categories_visited")
+                categories_visited.extend(categories)
+                await page.client_storage.set_async("categories_visited", categories_visited)
                 # print(categories)
-
+                def distancia(i): #La fórmula de Haversine
+                    latitude_inicial = math.radians(p.latitude)
+                    longitude_inicial = math.radians(p.longitude)
+                    latitude_final = math.radians(dadesLlocs[i]['geocodes']['main']['latitude'])
+                    longitude_final = math.radians(dadesLlocs[i]['geocodes']['main']['longitude'])
+                    # Ara després de passar a radians el que fem és fer la diferencia entre latituds i longituds.
+                    dif_1 = latitude_final  - latitude_inicial
+                    dif_2 = longitude_final  - longitude_inicial
+                    #Apliquem la formula ara 
+                    a = math.sin(dif_1/2)**2 + math.cos(latitude_inicial) * math.cos(latitude_final) * math.sin(dif_2/2)**2
+                    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1-a))
+                    R = 6371000 # I multipliquem pel radi de la terra
+                    d = R * c
+                    if d > 1000:
+                        return f"{round(d/1000)} Km"
+                    else:
+                        return f"{round(d)} m"
+                
                 for i in range(len(dadesLlocs)):
                     print("dadesLlocs i", i)
                     # Definim tots els components de la card
-                    if 'address' in dadesLlocs[i]["location"]: #! BUG-6
+                    if 'address' in dadesLlocs[i]["location"]: 
                         subtitle_card = Column(horizontal_alignment="center", controls=[
-                            Text(f"Direcció: {dadesLlocs[i]['location']['address']} | Distància: {dadesLlocs[i]['distance']}m", color="white", weight=FontWeight.W_900),
+                            Text(f"Direcció: {dadesLlocs[i]['location']['address']} | Distància: {distancia(i)}", color="white", weight=FontWeight.W_900),
                             Row(alignment="center",width = page.width, controls=[])
                             ]) #! Fer que sigui responsive row per si la pantalla es més petita
                     else: 
                         subtitle_card = Column(horizontal_alignment="center", controls=[
-                            Text(f"Direcció: {None} | Distància: {dadesLlocs[i]['distance']}m", color="white",weight=FontWeight.W_900),
+                            Text(f"Direcció: {None} | Distància: {distancia(i)}", color="white",weight=FontWeight.W_900),
                             Row(alignment="center",width = page.width, controls=[])
                             ]) 
                     for j in range(len(categories[i])):
@@ -1044,7 +1077,7 @@ async def main(page: Page):
                     print("images_request i", images_request[i])
                     print("index_photo_stack", index_photo_stack)
 
-                    if images_request[i] != []: #! BUG-6
+                    if images_request[i] != []: 
                         print("Si té fotos")
                         if len(dadesLlocs[i]['photos']) == 1: 
                             print("prova")
@@ -1086,7 +1119,7 @@ async def main(page: Page):
                                 img_esq =Image(
                                         animate_opacity=150,
                                         left=-page.width * 0.75,
-                                        top=35,                                     # ! BUG-8
+                                        top=35,                                     
                                         src=images_request[i][len(images_request[i]) - 1],#URL imatge
                                         border_radius=20,
                                         width = page.width * 0.8, 
@@ -1114,7 +1147,7 @@ async def main(page: Page):
                         img_esq =Image(
                                         animate_opacity=150,
                                         left=-page.width * 0.75,
-                                        top=35,                                     # ! BUG-8
+                                        top=35,                                     
                                         border_radius=20,
                                         width = page.width * 0.8, 
                                         height = page.height * 0.8 * 0.55, 
@@ -1224,11 +1257,11 @@ async def main(page: Page):
                         )
                     cards.append(carta)
                     
-                    if 'rating' in dadesLlocs[i]: #! BUG-6
-                        bottom_rating = Text(f"Rating: {dadesLlocs[i]['rating']}", color="white", weight=FontWeight.W_900)
+                    if 'rating' in dadesLlocs[i]: 
+                        bottom_rating = Text(f"Valoració: {dadesLlocs[i]['rating']}", color="white", weight=FontWeight.W_900)
                         carta.content.controls[2].controls.append(bottom_rating)
-                    if 'price' in dadesLlocs[i]: #! BUG-6
-                        bottom_price = Row([Text(f"Price (màx 4): ",color="white",weight=FontWeight.W_900)])
+                    if 'price' in dadesLlocs[i]:
+                        bottom_price = Row([Text(f"Preu:",color="white",weight=FontWeight.W_900)])
                         for c in range(round(dadesLlocs[i]['price'])):
                             if dadesLlocs[i]['price'] == 1:
                                 color = "#b4deb6" 
@@ -1258,7 +1291,7 @@ async def main(page: Page):
                         on_horizontal_drag_end=on_swipe,
                         on_vertical_drag_end=on_swipe_vertical
                     )
-                ) #! BUG-3   
+                ) 
                 # :) Solucionat!
                 img_principal = stack_cards.controls[0].content.content.controls[1].content.controls[0].controls[0].content     
                 img_principal_animate = stack_cards.controls[0].content.content.controls[1].content.controls[0]
@@ -1272,6 +1305,13 @@ async def main(page: Page):
                 img_esq.visible = True
                 IconButton_dret.visible = True
                 IconButton_esq.visible = True
+                loc_visited = await page.client_storage.get_async("loc_visited")
+                loc_visited_photos = await page.client_storage.get_async("loc_visited_photos")
+                dadesLlocs = page.session.get("dadesLlocs")
+                loc_visited.append(dadesLlocs[index_photo_stack])
+                loc_visited_photos.append(images_request[index_photo_stack])
+                await page.client_storage.set_async("loc_visited", loc_visited)
+                await page.client_storage.set_async("loc_visited_photos", loc_visited_photos)
 
                 if len(images_request[index_photo_stack]) > 1:
                     img_principal.src = images_request[index_photo_stack][0]
