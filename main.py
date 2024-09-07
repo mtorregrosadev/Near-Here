@@ -33,7 +33,7 @@ class Llocs:
             self.limit += 2
             randloc = (len(self.loc_visited) // 10) * increment
         else:
-            return lat,lon #En cas de que sigui més de 120 (el qual es un canvi molt gran, 1,2 Km) ja retorna igual
+            return lat,lon 
         new_lat = lat + random.uniform(-randloc, randloc)
         new_lon = lon + random.uniform(-randloc, randloc)
         return new_lat, new_lon #Retorna les localitzacions randomitzades
@@ -232,14 +232,39 @@ async def main(page: Page):
         
         if page.route == '/':
             print("Seleccionat llocs!")
-            selected_llocs.offset = transform.Offset(0,0)
-            botons.opacity = 1
-            Tags_amunt.opacity = 1
-            stack_cards.opacity = 1
-            cards[0].scale = 1
-            cards[0].opacity = 1
-            page.add(Tags_amunt_safe,stack_cards,botons)
-   
+            if len(cards) >= 1:
+                selected_llocs.offset = transform.Offset(0,0)
+                cards[0].scale = 1
+                cards[0].opacity = 1
+                botons.opacity = 1
+                Tags_amunt.opacity = 1
+                page.add(Tags_amunt_safe,stack_cards,botons)
+            else:
+                page.go("/error")
+        
+        if page.route == '/error':
+            async def refresca(e):
+                await update_cards()
+                page.go("/")
+                await asyncio.sleep(0.01)
+                await scale_next_card()
+            print("Error!")
+            not_found=Column([
+                    Text("No hem trobat més llocs D:", text_align="center", weight=FontWeight.W_900, theme_style=TextThemeStyle.TITLE_LARGE, width=page.width, color="#6b9e9f"),
+                    Lottie(src="https://lottie.host/d6837472-c583-41b9-892e-f20114ad7046/sm0epJuEJM.json"),
+                    Divider(),
+                    Text("Has seleccionat una categoria la qual no és disponible a la teva zona o ens hem quedat sense llocs!\n\n\nProva de canviar els km de lluny i fes clic a refrescar la pàgina!")
+
+            ], height=page.height*0.73)
+            botons_not_found = Row( #Aqui van tots els botons junts 
+                    vertical_alignment="end", width=page.width, alignment="center", height=page.height*0.15,
+                    controls=[
+                        ElevatedButton(content=Row([Icon(icons.SETTINGS_OUTLINED),Text("Obre la configuració",size=size_botons,theme_style=TextThemeStyle.LABEL_LARGE)]),on_click=config_near,bgcolor="#b2ccc6",color="black"),
+                        ElevatedButton(content=Row([Icon(icons.AUTORENEW_OUTLINED),Text("Refresca",size=size_botons,theme_style=TextThemeStyle.LABEL_LARGE)]),on_click=refresca,bgcolor="#b2ccc6",color="black")
+            ])
+
+            page.add(Tags_amunt_safe,not_found,botons_not_found)
+
         if page.route == '/favorits':
             saved_cards_images = await page.client_storage.get_async("saved_cards_images")   
             saved_cards = await page.client_storage.get_async("saved_cards")
@@ -384,7 +409,7 @@ async def main(page: Page):
             page.views.append(View(bgcolor = "#FFFCF1",controls=[
                 AppBar(title=Text("Sobre l'aplicació"), adaptive=True,bgcolor="#AAD7D9"),
                 SafeArea(content=Text("NEAR HERE...", text_align="center", weight=FontWeight.W_900, theme_style=TextThemeStyle.DISPLAY_SMALL, width=page.width, color="#6b9e9f")),
-                Text("Versió: 0.1", text_align="center", weight=FontWeight.W_300, theme_style=TextThemeStyle.BODY_SMALL, width=page.width),
+                Text("Versió: 0.1.1", text_align="center", weight=FontWeight.W_300, theme_style=TextThemeStyle.BODY_SMALL, width=page.width),
                 Divider(),
                 Text("Fet per: Marc Lumbreras Torregrosa \n Fet com a part pràctica del Treball de Recerca a Batxillerat, 2024-2025",text_align="center", weight=FontWeight.W_300, theme_style=TextThemeStyle.BODY_SMALL, width=page.width)
             ]))
@@ -955,11 +980,11 @@ async def main(page: Page):
                 index_photo_stack = -1
                 #:) Cobren el mateix demanant 5, 10 que 50
                 p = await gl.get_current_position_async()
-                llocs = Llocs(p.latitude,p.longitude,radius_sel,25,loc_visited,categories_sel,sort_sel, preu) 
+                llocs = Llocs(p.latitude,p.longitude,radius_sel,50,loc_visited,categories_sel,sort_sel, preu) 
                 dadesLlocs, loc_visited = llocs.dades()
                 page.session.set("dadesLlocs", dadesLlocs)
                 if dadesLlocs == []:
-                    print("Això no ha de passar!") 
+                    page.go("/error")
                 images_request = llocs.photos()
                 page.session.set("images_request", images_request)
                 # print(images_request)
