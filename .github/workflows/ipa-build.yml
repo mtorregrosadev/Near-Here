@@ -16,7 +16,7 @@ on:
 env:
   # https://flet.dev/docs/publish#versioning
   BUILD_NUMBER: 0
-  BUILD_VERSION: 0.0.5
+  BUILD_VERSION: 0.1.1
   PYTHON_VERSION: 3.12.2
   FLUTTER_VERSION: 3.24.0
 
@@ -48,10 +48,19 @@ jobs:
         flutter config --no-analytics
         flet build ipa --verbose --build-number=$BUILD_NUMBER --build-version=$BUILD_VERSION --include-packages flet_geolocator flet_lottie
 
+    - name: Create Payload Directory
+      run: mkdir Payload
+
+    - name: Move Runner.app to Payload
+      run: mv build/ipa/Runner.xcarchive/Products/Applications/Runner.app Payload/
+
+    - name: Package Payload Directory
+      run: zip -r Near_Here-${{ env.BUILD_VERSION }}.ipa Payload
+
     - name: Upload IPA Artifact
       uses: actions/upload-artifact@v4.3.4  # https://github.com/marketplace/actions/upload-a-build-artifact
       with:
         name: ipa-build-artifact  # the name of the artifact
-        path: build/ipa  # location of Flet build output
+        path: Near_Here-${{ env.BUILD_VERSION }}.ipa  # location of Flet build output
         if-no-files-found: error  # Fail the action with an error message if no files are found
         overwrite: false  # If true, an artifact with a matching name will be deleted before a new one is uploaded. If false, the action will fail if an artifact for the given name already exists. Does not fail if the artifact does not exist.
