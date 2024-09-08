@@ -17,7 +17,7 @@ env:
   # https://flet.dev/docs/publish#versioning
   PROJECT_NAME: Near_Here
   BUILD_NUMBER: 0
-  BUILD_VERSION: 0.1.1
+  BUILD_VERSION: 0.1.2
   PYTHON_VERSION: 3.12.2
   FLUTTER_VERSION: 3.22.2
 

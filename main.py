@@ -1,5 +1,5 @@
 import flet 
-from flet import Page,Dropdown,dropdown,Lottie,TextButton,Divider,View,border,Slider,Checkbox,RoundedRectangleBorder,TileAffinity,ExpansionTile,Geolocator,AnimatedSwitcherTransition,AppBar,Card,GridView,TextThemeStyle,ListTile, MainAxisAlignment,AnimatedSwitcher,Stack,Column,TextSpan,TextStyle,Paint,AlertDialog,IconButton, StrokeJoin,PaintingStyle,ShadowBlurStyle, BoxShadow, Image, ListTile,GestureDetector, FontWeight,ElevatedButton, SafeArea,Theme, animation, Container, transform, Icon, icons, colors, alignment, icons, Row, Text, ResponsiveRow, Chip, NavigationBarDestination, NavigationBar 
+from flet import Page,Dropdown,TextField,DecorationImage,dropdown,Lottie,Offset,TextButton,Divider,View,border,Slider,Checkbox,RoundedRectangleBorder,TileAffinity,ExpansionTile,Geolocator,AnimatedSwitcherTransition,AppBar,Card,GridView,TextThemeStyle,ListTile, MainAxisAlignment,AnimatedSwitcher,Stack,Column,TextSpan,TextStyle,Paint,AlertDialog,IconButton, StrokeJoin,PaintingStyle,ShadowBlurStyle, BoxShadow, Image, ListTile,GestureDetector, FontWeight,ElevatedButton, SafeArea,Theme, animation, Container, transform, Icon, icons, colors, alignment, icons, Row, Text, ResponsiveRow, Chip, NavigationBarDestination, NavigationBar 
 import asyncio
 import json
 import location
@@ -13,7 +13,7 @@ index_photo_stack = -1
 canvi = False
 cards = []
 class Llocs:
-    def __init__(self, latitud, longitud, radius, limit, loc_visited,categories_sel, sort_sel, preu): #Definim totes les variables que hem donat a traves de la class
+    def __init__(self, latitud, longitud, radius, limit, loc_visited,categories_sel, sort_sel, preu, near): #Definim totes les variables que hem donat a traves de la class
         self.latitud = latitud 
         self.longitud = longitud
         self.radius = radius
@@ -22,6 +22,7 @@ class Llocs:
         self.categories_s = categories_sel
         self.sort = sort_sel
         self.preu = preu
+        self.near = near
 
     def _randomize_coordinates(self, lat, lon):
         # Afegeix un petit desplaçament a les coordenades perquè no sigui sempre igual
@@ -46,31 +47,29 @@ class Llocs:
                 tcategories = ",".join(str(a) for a in self.categories_s)
 
         #print(tcategories)
-        randomized_lat, randomized_lon = self._randomize_coordinates(self.latitud, self.longitud) #Rep les coordenades randomitzades
+        randomized_lat, randomized_lon = self._randomize_coordinates(self.latitud, self.longitud) if self.near is None or self.near == "" else (self.latitud, self.longitud) #Rep les coordenades randomitzades 
         url = f"https://api.foursquare.com/v3/places/search"
         headers = {
             "accept": "application/json",
             "Authorization": "fsq3qcPa3WReZWK3a7h5flm4z4wKmecTbWUMl/Pot9hd1Bs="
         }
+        params = {
+            "ll": f"{randomized_lat},{randomized_lon}",
+            "radius": self.radius,
+            "limit": self.limit, # Tots aquests parametres serán obligatoris
+            "fields": "fsq_id,name,geocodes,location,categories,related_places,timezone,closed_bucket,social_media,rating,price,photos,menu,distance,chains", 
+            "sort": self.sort,
+        }
+
         if self.preu != 0:
-            params = {
-                "ll": f"{randomized_lat},{randomized_lon}",
-                "radius": self.radius,
-                "limit": self.limit, # Tots aquests parametres serán obligatoris
-                "categories": tcategories if tcategories != "" else None, 
-                "fields": "fsq_id,name,geocodes,location,categories,related_places,timezone,closed_bucket,social_media,rating,price,photos,menu,distance,chains", 
-                "sort": self.sort,
-                "max_price": self.preu
-            }
-        else:
-            params = {
-                "ll": f"{randomized_lat},{randomized_lon}",
-                "radius": self.radius,
-                "limit": self.limit, # Tots aquests parametres serán obligatoris
-                "categories": tcategories if tcategories != "" else None, 
-                "fields": "fsq_id,name,geocodes,location,categories,related_places,timezone,closed_bucket,social_media,rating,price,photos,menu,distance,chains", 
-                "sort": self.sort,
-            }
+            params["max_price"] = self.preu
+        if tcategories != "":
+            params["categories"] = tcategories
+        if self.near is not None and self.near != "":
+            params["near"] = self.near
+            del params["ll"]
+            del params["radius"]
+            print("Params: ", params)
 
         locations = requests.get(url, headers=headers, params=params)
         
@@ -84,7 +83,10 @@ class Llocs:
                         self.loc_visited.append(loc)
             else:
                 print("Error en la consulta de l'API")
-       
+        elif locations.status_code == 400:
+            print("error 400")
+            return "error 400", []
+
         self.data = data
         return data, self.loc_visited
 
@@ -182,7 +184,7 @@ async def main(page: Page):
     await configurar_ubicacio(gl)
 
     def view_pop(event): #Per anar enrere 
-        if page.route == '/categories' or page.route == '/info':
+        if page.route == '/categories' or page.route == '/info' or page.route == '/lloc_especific':
             page.views.pop()
             page.go('/')
         else: 
@@ -253,7 +255,7 @@ async def main(page: Page):
                     Text("No hem trobat més llocs D:", text_align="center", weight=FontWeight.W_900, theme_style=TextThemeStyle.TITLE_LARGE, width=page.width, color="#6b9e9f"),
                     Lottie(src="https://lottie.host/d6837472-c583-41b9-892e-f20114ad7046/sm0epJuEJM.json"),
                     Divider(),
-                    Text("Has seleccionat una categoria la qual no és disponible a la teva zona o ens hem quedat sense llocs!\n\n\nProva de canviar els km de lluny i fes clic a refrescar la pàgina!")
+                    Text("Has seleccionat una categoria que no està disponible a la teva zona o no hem pogut trobar llocs a la teva zona o on has especificat!\n\n\nProva de canviar els km de distància, o cercar en un altre lloc específic i fes clic a refrescar la pàgina!")
 
             ], height=page.height*0.73)
             botons_not_found = Row( #Aqui van tots els botons junts 
@@ -365,7 +367,8 @@ async def main(page: Page):
                 preu = await page.client_storage.get_async("preu") 
                 print(preu)
                 canvi = True
-
+            async def event_lloc_especific(e):
+                page.go("/lloc_especific")
             sort_sel = await page.client_storage.get_async("sort_sel")
             if sort_sel == "RATING":
                 value_em = "Valoració"
@@ -402,6 +405,10 @@ async def main(page: Page):
                 Text("PREU",weight=FontWeight.W_600, size=18),
                 Text("Configura el preu màxim que vols pagar de l'1 al 4! 1 (barat), 4 (car). Si selecciones 0, no hi haura filtre i sortiran tots",weight=FontWeight.W_300),
                 Slider(min=0, max=4, divisions=4, label="{value}", on_change_end=preu_sel,active_color="#7A9A9C", inactive_color="#c9d6d7", value=preu),
+                Divider(),
+                Text("Lloc específic",weight=FontWeight.W_600, size=18),
+                Text("Vols cercar a un lloc el qual no sigui el teu? Fes click per seleccionar-lo!",weight=FontWeight.W_300), 
+                ElevatedButton("Cercar a...", on_click=event_lloc_especific, width=page.width, bgcolor="#c9d6d7", color="black")
             ],scroll="adaptive")
             page.views.append(View(bgcolor = "#FFFCF1",controls=[AppBar(title=Text("Pàrametres cerca"), adaptive=True,bgcolor="#AAD7D9"),parametres_cerca]))
             
@@ -414,7 +421,13 @@ async def main(page: Page):
                 Text("Fet per: Marc Lumbreras Torregrosa \n Fet com a part pràctica del Treball de Recerca a Batxillerat, 2024-2025",text_align="center", weight=FontWeight.W_300, theme_style=TextThemeStyle.BODY_SMALL, width=page.width)
             ]))
         if page.route == '/info': 
-            page.views.append(View(bgcolor = "#FFFCF1",controls=[AppBar(bgcolor="#AAD7D9",adaptive=True),SafeArea(content=ElevatedButton("Tornar", on_click=view_pop))]))
+            dadesLlocs = page.session.get("dadesLlocs")
+            page.views.append(View(bgcolor = "#FFFCF1",controls=[
+                    AppBar(bgcolor="#AAD7D9",adaptive=True),
+                    SafeArea(content=Text(f"{dadesLlocs[index_photo_stack]['name']}", text_align="center", weight=FontWeight.W_900, theme_style=TextThemeStyle.DISPLAY_SMALL, width=page.width, color="#6b9e9f")),
+                    ElevatedButton("Tornar", on_click=view_pop, width=page.width)
+                    
+            ]))
         
         if page.route == '/categories':
             categories_sel = page.session.get("categories_sel")
@@ -524,6 +537,24 @@ async def main(page: Page):
                             category.initially_expanded=True
             page.views.append(View(bgcolor = "#FFFCF1",controls=[AppBar(title=Text("Categories"),adaptive=True, bgcolor="#AAD7D9"), SafeArea(content=categ_info_add)]))
             #page.add(AppBar(leading=IconButton(icons.ARROW_BACK_IOS,alignment="center",on_click=tornar),title=Text("Categories"), bgcolor="#AAD7D9"),categ_info_add)
+        
+        if page.route == "/configuracio/ajuda":
+            page.views.append(View(bgcolor = "#FFFCF1",controls=[
+                AppBar(title=Text("Ajuda"),adaptive=True, bgcolor="#AAD7D9"), 
+                SafeArea(content=Text("Qualsevol dubte o problema, no dubtis a contactar-me a l'e-mail:\n\nmarquitorregrosa@gmail.com", width=page.width, text_align="center"))
+            ]))
+        
+        if page.route == "/lloc_especific":
+            def lloc_especific(e):
+                global canvi
+                print(e.control.value)
+                page.session.set("lloc_especific", e.control.value)
+                canvi = True
+            page.views.append(View(bgcolor = "#FFFCF1",controls=[
+                AppBar(title=Text("Cerca a un lloc"),adaptive=True, bgcolor="#AAD7D9"), 
+                SafeArea(content=Text("Vols cercar a un lloc el qual no sigui el teu? Posa aqui el lloc i retorna a l'app per cercar!\n", width=page.width, text_align="center")),
+                TextField(adaptive=True, on_change=lloc_especific, hint_text="Posa el lloc aqui", label="On vols cercar?", value=f"{page.session.get('lloc_especific')}" if page.session.contains_key('lloc_especific') else None)
+            ]))
         page.update()
     
     page.on_route_change = on_change_page #Aquest defineix que volem que faci el programa en el canvi de route 
@@ -661,6 +692,10 @@ async def main(page: Page):
                     categories_sel.remove(category)
                     page.session.set("categories_sel", categories_sel)
                     canvi = True
+        if e.control.label.value == "   Cerca a un lloc     ":
+            page.go('/lloc_especific')
+            e.control.selected = False
+        
         categories_sel = page.session.get("categories_sel")
         print(categories_sel)
         
@@ -679,7 +714,7 @@ async def main(page: Page):
                     Container(border=border.all(1, "#c4e4da"),border_radius=15.5,content=Chip(
                         selected_color="#6fa4a6",
                         bgcolor="#E8EEED",
-                        label=Text("Restaurants",weight=FontWeight.W_400,font_family="default"),
+                        label=Text("Restaurants",weight=FontWeight.W_400,),
                         leading=Icon(icons.RESTAURANT_MENU_OUTLINED),
                         on_select=categ_chip_sel,
                         shadow_color = "#9ebdbf",
@@ -691,7 +726,7 @@ async def main(page: Page):
                     Container(border=border.all(1, "#c4e4da"),border_radius=15.5,content=Chip(
                         selected_color="#6fa4a6",
                         bgcolor="#E8EEED",
-                        label=Text("Llocs emblematics",weight=FontWeight.W_400,font_family="default"),
+                        label=Text("Llocs emblematics",weight=FontWeight.W_400,),
                         leading=Icon(icons.MUSEUM_OUTLINED),
                         on_select=categ_chip_sel,
                         shadow_color = "#9ebdbf",
@@ -703,7 +738,7 @@ async def main(page: Page):
                     Container(border=border.all(1, "#c4e4da"),border_radius=15.5,content=Chip(
                         selected_color="#6fa4a6",
                         bgcolor="#E8EEED",
-                        label=Text("Parcs",weight=FontWeight.W_400,font_family="default"),
+                        label=Text("Parcs",weight=FontWeight.W_400,),
                         leading=Icon(icons.PARK_OUTLINED),
                         on_select=categ_chip_sel,
                         shadow_color = "#9ebdbf",
@@ -715,7 +750,7 @@ async def main(page: Page):
                     Container(border=border.all(1, "#c4e4da"),border_radius=15.5,content=Chip(
                         selected_color="#6fa4a6",
                         bgcolor="#E8EEED",
-                        label=Text("Cafeteries",weight=FontWeight.W_400,font_family="default"),
+                        label=Text("Cafeteries",weight=FontWeight.W_400,),
                         leading=Icon(icons.LOCAL_CAFE_OUTLINED),
                         on_select=categ_chip_sel,
                         shadow_color = "#9ebdbf",
@@ -727,7 +762,7 @@ async def main(page: Page):
                     Container(border=border.all(1, "#c4e4da"),border_radius=15.5,content=Chip(
                         selected_color="#6fa4a6",
                         bgcolor="#E8EEED",
-                        label=Text("Entreteniment",weight=FontWeight.W_400,font_family="default"),
+                        label=Text("Entreteniment",weight=FontWeight.W_400,),
                         leading=Icon(icons.INSERT_EMOTICON_OUTLINED),
                         on_select=categ_chip_sel,
                         shadow_color = "#9ebdbf",
@@ -739,7 +774,7 @@ async def main(page: Page):
                     Container(border=border.all(1, "#c4e4da"),border_radius=15.5,content=Chip(
                         selected_color="#6fa4a6",
                         bgcolor="#E8EEED",
-                        label=Text("Botigues",weight=FontWeight.W_400,font_family="default"),
+                        label=Text("Botigues",weight=FontWeight.W_400,),
                         leading=Icon(icons.SHOPPING_BAG_OUTLINED),
                         on_select=categ_chip_sel,
                         shadow_color = "#9ebdbf",
@@ -751,8 +786,20 @@ async def main(page: Page):
                     Container(border=border.all(1, "#c4e4da"),border_radius=15.5,content=Chip(
                         selected_color="#6fa4a6",
                         bgcolor="#E8EEED",
-                        label=Text("Turisme",weight=FontWeight.W_400,font_family="default"),
+                        label=Text("Turisme",weight=FontWeight.W_400,),
                         leading=Icon(icons.FLIGHT_OUTLINED),
+                        on_select=categ_chip_sel,
+                        shadow_color = "#9ebdbf",
+                        selected_shadow_color = "9ebdbf",
+                        elevation=2,
+                        shape = RoundedRectangleBorder(radius=14.5),
+                        show_checkmark=False,
+                    )), 
+                    Container(border=border.all(1, "#c4e4da"),border_radius=15.5,content=Chip(
+                        selected_color="#6fa4a6",
+                        bgcolor="#E8EEED",
+                        label=Text("   Cerca a un lloc     ",weight=FontWeight.W_100,opacity=0.3),
+                        leading=Icon(icons.SEARCH_OUTLINED),
                         on_select=categ_chip_sel,
                         shadow_color = "#9ebdbf",
                         selected_shadow_color = "9ebdbf",
@@ -763,7 +810,7 @@ async def main(page: Page):
                     Container(border=border.all(1, "#829891"),border_radius=15.5,content=Chip(
                         selected_color="#6fa4a6",
                         bgcolor="#E8EEED",
-                        label=Text("Més",weight=FontWeight.W_400,font_family="default"),
+                        label=Text("Més",weight=FontWeight.W_400,),
                         leading=Icon(icons.READ_MORE_OUTLINED,color="black"),
                         on_select=mes_info_select,
                         shadow_color = "#9ebdbf",
@@ -805,6 +852,8 @@ async def main(page: Page):
         page.go("/configuracio/config_near")
     async def sobre_app(e):
         page.go("/configuracio/sobre_app")
+    async def ajuda(e):
+        page.go("/configuracio/ajuda")
     configuracio =Card(color = "#AAD7D9", height=page.height * 0.8, expand=True,
             content=Container(
                 content=Column(
@@ -869,7 +918,7 @@ async def main(page: Page):
                             title=Text("Ajuda", color="black"),
                             selected=True,
                             height=(page.height * 0.8) / 13,
-                            # on_click=hey
+                            on_click=ajuda
                         ),
                     ],
                     spacing=0,
@@ -980,326 +1029,348 @@ async def main(page: Page):
                 index_photo_stack = -1
                 #:) Cobren el mateix demanant 5, 10 que 50
                 p = await gl.get_current_position_async()
-                llocs = Llocs(p.latitude,p.longitude,radius_sel,50,loc_visited,categories_sel,sort_sel, preu) 
-                dadesLlocs, loc_visited = llocs.dades()
-                page.session.set("dadesLlocs", dadesLlocs)
-                if dadesLlocs == []:
-                    page.go("/error")
-                images_request = llocs.photos()
-                page.session.set("images_request", images_request)
-                # print(images_request)
-                categories = llocs.categories()
-                categories_visited = await page.client_storage.get_async("categories_visited")
-                categories_visited.extend(categories)
-                await page.client_storage.set_async("categories_visited", categories_visited)
-                # print(categories)
-                def distancia(i): #La fórmula de Haversine
-                    latitude_inicial = math.radians(p.latitude)
-                    longitude_inicial = math.radians(p.longitude)
-                    latitude_final = math.radians(dadesLlocs[i]['geocodes']['main']['latitude'])
-                    longitude_final = math.radians(dadesLlocs[i]['geocodes']['main']['longitude'])
-                    # Ara després de passar a radians el que fem és fer la diferencia entre latituds i longituds.
-                    dif_1 = latitude_final  - latitude_inicial
-                    dif_2 = longitude_final  - longitude_inicial
-                    #Apliquem la formula ara 
-                    a = math.sin(dif_1/2)**2 + math.cos(latitude_inicial) * math.cos(latitude_final) * math.sin(dif_2/2)**2
-                    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1-a))
-                    R = 6371000 # I multipliquem pel radi de la terra
-                    d = R * c
-                    if d > 1000:
-                        return f"{round(d/1000)} Km"
-                    else:
-                        return f"{round(d)} m"
                 
-                for i in range(len(dadesLlocs)):
-                    print("dadesLlocs i", i)
-                    # Definim tots els components de la card
-                    if 'address' in dadesLlocs[i]["location"]: 
-                        subtitle_card = Column(horizontal_alignment="center", controls=[
-                            Text(f"Direcció: {dadesLlocs[i]['location']['address']} | Distància: {distancia(i)}", color="white", weight=FontWeight.W_900),
-                            Row(alignment="center",width = page.width, controls=[])
-                            ]) #! Fer que sigui responsive row per si la pantalla es més petita
-                    else: 
-                        subtitle_card = Column(horizontal_alignment="center", controls=[
-                            Text(f"Direcció: {None} | Distància: {distancia(i)}", color="white",weight=FontWeight.W_900),
-                            Row(alignment="center",width = page.width, controls=[])
-                            ]) 
-                    for j in range(len(categories[i])):
-                        subtitle_card.controls[1].controls.append(
-                            Image(src=categories[i][j], height=20)
-                    )
+                if page.session.contains_key("lloc_especific"):
+                    print("Entra")
+                    lloc_especific = page.session.get("lloc_especific")
+                
+                if page.session.contains_key("lloc_especific"): # Comprova si hi ha un lloc específic posat per l'usuari
+                    if lloc_especific != "":
+                        llocs = Llocs(None,None,radius_sel,50,loc_visited,categories_sel,sort_sel, preu, lloc_especific) 
+                    else: #En el cas que l'usuari no hagi posat cap lloc però ja sigui inicialitzada la variable
+                        llocs = Llocs(p.latitude,p.longitude,radius_sel,50,loc_visited,categories_sel,sort_sel, preu, None) 
+                else: #En el cas que no hi hagi cap lloc específic posat
+                    llocs = Llocs(p.latitude,p.longitude,radius_sel,50,loc_visited,categories_sel,sort_sel, preu, None) 
+                dadesLlocs, loc_visited = llocs.dades()
+                if dadesLlocs == "error 400":
+                    page.go("/error")
+                else:
                     
-                    def get_dynamic_font_size(text, base_size, min_size, max_size):
-                        text_length = len(text)
-                        if text_length <= 10:
-                            return max_size
-                        elif text_length >= 50:
-                            return min_size
+                    page.session.set("dadesLlocs", dadesLlocs)
+
+                    if dadesLlocs == []:
+                        page.go("/error")
+                    images_request = llocs.photos()
+                    page.session.set("images_request", images_request)
+                    # print(images_request)
+                    categories = llocs.categories()
+                    categories_visited = await page.client_storage.get_async("categories_visited")
+                    categories_visited.extend(categories)
+                    await page.client_storage.set_async("categories_visited", categories_visited)
+                    # print(categories)
+                    def distancia(i): #La fórmula de Haversine
+                        latitude_inicial = math.radians(p.latitude)
+                        longitude_inicial = math.radians(p.longitude)
+                        latitude_final = math.radians(dadesLlocs[i]['geocodes']['main']['latitude'])
+                        longitude_final = math.radians(dadesLlocs[i]['geocodes']['main']['longitude'])
+                        # Ara després de passar a radians el que fem és fer la diferencia entre latituds i longituds.
+                        dif_1 = latitude_final  - latitude_inicial
+                        dif_2 = longitude_final  - longitude_inicial
+                        #Apliquem la formula ara 
+                        a = math.sin(dif_1/2)**2 + math.cos(latitude_inicial) * math.cos(latitude_final) * math.sin(dif_2/2)**2
+                        c = 2 * math.atan2(math.sqrt(a), math.sqrt(1-a))
+                        R = 6371000 # I multipliquem pel radi de la terra
+                        d = R * c
+                        if d > 1000:
+                            return f"{round(d/1000)} Km"
                         else:
-                            return max_size - (max_size - min_size) * (text_length - 10) / (50 - 10)
-
-                    # Example base size, minimum size, and maximum size
-                    base_size = page.height * 0.055
-                    min_size = 8
-                    max_size = base_size - 13
-
-                    # Adjust size_title based on the length of dadesLlocs[i]["name"]
-                    size_title = get_dynamic_font_size(dadesLlocs[i]["name"], base_size, min_size, max_size) # :) Mig solucionat
-                    #size_title = (page.height * 0.055) - 10 #! BUG-7
-                    nom_del_restaurant = Stack(
-                            alignment=alignment.center,
-                            height=page.height * 0.055,
-                            width=page.width,
-                            controls=[
-                                Container(
-                                    content=Text(
-                                        no_wrap = True,
-                                        text_align="center", 
-                                        width=page.width,
-                                        height=page.height * 0.12,
-                                        spans=[
-                                            TextSpan(
-                                                f"{dadesLlocs[i]['name']}",  
-                                                TextStyle(
-                                                    weight=FontWeight.W_900,
-                                                    size=size_title,
-                                                    font_family="WorkSans",
-                                                    foreground=Paint(
-                                                        color="#FFFFEA",
-                                                        stroke_width=3.4,
-                                                        stroke_join=StrokeJoin.BEVEL,
-                                                        style=PaintingStyle.STROKE,
-                                                    ),
-                                                ),
-                                            ),
-                                        ],
-                                    ),
-                                    alignment=alignment.center
-                                ),
-                                Container(
-                                    content=Text(
-                                        no_wrap = True,
-                                        text_align="center",
-                                        width=page.width,
-                                        height=page.height * 0.12,
-                                        spans=[
-                                            TextSpan(
-                                                f"{dadesLlocs[i]['name']}",
-                                                TextStyle( 
-                                                    size=size_title,
-                                                    weight=FontWeight.W_900,
-                                                    font_family="WorkSans",
-                                                    color=colors.BLACK,
-                                                ),
-                                            ),
-                                        ],
-                                    ),
-                                    alignment=alignment.center
-                                ),
-                            ],
-                        )
- 
-                    print("images_request i", images_request[i])
-                    print("index_photo_stack", index_photo_stack)
-
-                    if images_request[i] != []: 
-                        print("Si té fotos")
-                        if len(dadesLlocs[i]['photos']) == 1: 
-                            print("prova")
-                            img_principal = Row(alignment="center",controls=[AnimatedSwitcher(transition=AnimatedSwitcherTransition.FADE,duration=500,content=Image(
-                                    animate_opacity=150,
-                                    border_radius=15,
-                                    src=images_request[i][0], #URL imatge
-                                    width = page.width * 0.8, 
-                                    height = page.height * 0.8 * 0.65, 
-                                    fit="COVER"
-                                    ))])
-                            img_esq =Image(
-                                        animate_opacity=150,
-                                        left=-page.width * 0.75,
-                                        top=35,                                    
-                                        border_radius=20,
-                                        width = page.width * 0.8, 
-                                        height = page.height * 0.8 * 0.55, 
-                                        fit="COVER",
-                                    )
-                            img_dret = Image(
-                                        animate_opacity=150,
-                                        right=-page.width * 0.75,
-                                        top=35,
-                                        border_radius=15,
-                                        width = page.width * 0.8, 
-                                        height = page.height * 0.8 * 0.55, 
-                                        fit="COVER",
-                                    )
+                            return f"{round(d)} m"
+                    
+                    for i in range(len(dadesLlocs)):
+                        print("dadesLlocs i", i)
+                        # Definim tots els components de la card
+                        if 'address' in dadesLlocs[i]["location"]: 
+                            subtitle_card = Column(horizontal_alignment="center", controls=[
+                                Text(f"Direcció: {dadesLlocs[i]['location']['address']} | Distància: {distancia(i)}", color="white", weight=FontWeight.W_900),
+                                Row(alignment="center",width = page.width, controls=[])
+                                ]) #! Fer que sigui responsive row per si la pantalla es més petita
                         else: 
-                                img_principal = Row(alignment="center",controls=[AnimatedSwitcher(transition=AnimatedSwitcherTransition.FADE,duration=500,content=Image(
-                                    animate_opacity=150,
-                                    border_radius=15,
-                                    src=images_request[i][0], #URL imatge
-                                    width = page.width * 0.8, 
-                                    height = page.height * 0.8 * 0.65, 
-                                    fit="COVER"
-                                    ))])
-                                img_esq =Image(
-                                        animate_opacity=150,
-                                        left=-page.width * 0.75,
-                                        top=35,                                     
-                                        src=images_request[i][len(images_request[i]) - 1],#URL imatge
-                                        border_radius=20,
-                                        width = page.width * 0.8, 
-                                        height = page.height * 0.8 * 0.55, 
-                                        fit="COVER",
-                                    )
-                                img_dret = Image(
-                                        animate_opacity=150,
-                                        right=-page.width * 0.75,
-                                        top=35,
-                                        src=images_request[i][1],#URL imatge
-                                        border_radius=15,
-                                        width = page.width * 0.8, 
-                                        height = page.height * 0.8 * 0.55, 
-                                        fit="COVER",
-                                    )
-                    else:
-                        img_principal = Row(alignment="center",controls=[AnimatedSwitcher(transition=AnimatedSwitcherTransition.FADE,duration=500,content=Image(
-                                    animate_opacity=150,
-                                    border_radius=15,
-                                    width = page.width * 0.8, 
-                                    height = page.height * 0.8 * 0.65, 
-                                    fit="COVER"
-                                    ))])
-                        img_esq =Image(
-                                        animate_opacity=150,
-                                        left=-page.width * 0.75,
-                                        top=35,                                     
-                                        border_radius=20,
-                                        width = page.width * 0.8, 
-                                        height = page.height * 0.8 * 0.55, 
-                                        fit="COVER",
-                                    )
-                        img_dret = Image(
-                                        animate_opacity=150,
-                                        right=-page.width * 0.75,
-                                        top=35,
-                                        border_radius=15,
-                                        width = page.width * 0.8, 
-                                        height = page.height * 0.8 * 0.55, 
-                                        fit="COVER",
-                                    )
-                        print("No té fotos")
- 
-                    
-                    async def esq(e): #Detecta que has fet click a l'esquerra 
-                        global index_photo
-                        img_principal = stack_cards.controls[0].content.content.controls[1].content.controls[0].controls[0].content
-                        img_dret = stack_cards.controls[0].content.content.controls[1].content.controls[2]
-                        img_esq = stack_cards.controls[0].content.content.controls[1].content.controls[1]
-                        if index_photo <= 0:
-                                index_photo = len(images_request[index_photo_stack]) - 1 # Fa que sempre l'index sigui un número a dins de la llista i resta un, fent així que puguem navegar
-                        else:
-                            index_photo -= 1
-                        img_principal.opacity = 0.1 #Animació d'opactiat, perquè l'usuari tingui més comoditat visual 
-                        img_principal.update()
-                        await asyncio.sleep(0.15) 
-                        img_principal.src = images_request[index_photo_stack][index_photo] #Actualitza les fotos 
-                        img_principal.opacity = 1
-                        img_esq.src = images_request[index_photo_stack][index_photo-1 if index_photo-1 >= 0 else (len(images_request[index_photo_stack])-1)]  #Resta un en el cas que sigui a dins de la llista, sinó posa el més gran (len) - 1, ja que contem des de 0
-                        #Incís: Mai entendre perquè els programadors contem des de 0, i després quan fas la longitud d'una llista conta des de 1, en fi.
-                        img_dret.src = images_request[index_photo_stack][index_photo+1 if index_photo+1 <= (len(images_request[index_photo_stack])- 1) else 0] #El mateix, detecta que sigui a dins de la llista i no sigui negatiu, en el cas posa 0
-                        page.update()
-                    async def dret(e): #Mateixos comentaris pero al reves
-                        global index_photo
-                        img_principal = stack_cards.controls[0].content.content.controls[1].content.controls[0].controls[0].content
-                        img_dret = stack_cards.controls[0].content.content.controls[1].content.controls[2]
-                        img_esq = stack_cards.controls[0].content.content.controls[1].content.controls[1]
-                        if index_photo >= (len(images_request[index_photo_stack])- 1):
-                            index_photo = 0
-                        else:
-                            index_photo += 1
-                        img_principal.opacity = 0.1 #Animació d'opactiat, perquè l'usuari tingui més comoditat visual 
-                        img_principal.update()
-                        await asyncio.sleep(0.15) 
-                        img_principal.src = images_request[index_photo_stack][index_photo] 
-                        img_principal.opacity = 1
-                        img_esq.src = images_request[index_photo_stack][index_photo-1 if index_photo-1 >= 0 else (len(images_request[index_photo_stack])-1)]  
-                        img_dret.src = images_request[index_photo_stack][index_photo+1 if index_photo+1 <= (len(images_request[index_photo_stack])- 1) else 0]  
-                        page.update()
-                    
-                    print("Carta creada")
-                    carta = Container(
-                            image_src = "src/fons.jpg",
-                            image_fit = "FILL",
-                            offset=(0,0),
-                            border_radius=15, 
-                            width = page.width,
-                            height = page.height * 0.8,
-                            animate_offset=animation.Animation(500),
-                            animate_opacity = animation.Animation(600),
-                            scale=0,
-                            animate_scale=animation.Animation(340, "easeOutSine"),
-                            content=Column(
-                                horizontal_alignment="center",
-                                controls=[
-                                    ListTile(
-                                        title=nom_del_restaurant,
-                                        subtitle=subtitle_card,
-                                        height=(page.height * 0.8) * 0.15  
-                                        ),
-                                        Container(content=Stack(
-                                                        [   img_principal,
-                                                            img_esq,
-                                                            img_dret,
-                                                            IconButton(
-                                                                    icon=icons.CHEVRON_RIGHT,
-                                                                    icon_color = "black",
-                                                                    bgcolor="#FBF9F1",
-                                                                    on_click=lambda e: asyncio.run(esq(e)),
-                                                                    alignment=alignment.center,
-                                                                    right=2,
-                                                                    width = page.window.width * 0.1,
-                                                                    top=page.window.height * 0.8 * 0.7 / 2,
-                                                            ),
-                                                            IconButton(
-                                                                    icon=icons.CHEVRON_LEFT,
-                                                                    icon_color = "black",
-                                                                    bgcolor="#FBF9F1",
-                                                                    on_click=lambda e: asyncio.run(dret(e)),
-                                                                    width = page.window.width * 0.1,
-                                                                    left=2,
-                                                                    top=page.window.height * 0.8 * 0.7 / 2,
-                                                            ),
-                                                        ]
-                                                    ),
-                                                    # expand_loose=True,
-                                                    width=page.width,
-                                                    height=page.height * 0.8 * 0.6,
-                                                ),
-                                                Row([],width = page.width, alignment="center")
-                                    ]
-                                )
-                                        
+                            subtitle_card = Column(horizontal_alignment="center", controls=[
+                                Text(f"Direcció: {None} | Distància: {distancia(i)}", color="white",weight=FontWeight.W_900),
+                                Row(alignment="center",width = page.width, controls=[])
+                                ]) 
+                        for j in range(len(categories[i])):
+                            subtitle_card.controls[1].controls.append(
+                                Image(src=categories[i][j], height=20)
                         )
-                    cards.append(carta)
-                    
-                    if 'rating' in dadesLlocs[i]: 
-                        bottom_rating = Text(f"Valoració: {dadesLlocs[i]['rating']}", color="white", weight=FontWeight.W_900)
-                        carta.content.controls[2].controls.append(bottom_rating)
-                    if 'price' in dadesLlocs[i]:
-                        bottom_price = Row([Text(f"Preu:",color="white",weight=FontWeight.W_900)])
-                        for c in range(round(dadesLlocs[i]['price'])):
-                            if dadesLlocs[i]['price'] == 1:
-                                color = "#b4deb6" 
-                            elif dadesLlocs[i]['price'] == 2:
-                                color = "#ffffbf"
-                            elif dadesLlocs[i]['price'] == 3:
-                                color = "#ffc08c"
+                        
+                        def get_dynamic_font_size(text, base_size, min_size, max_size):
+                            text_length = len(text)
+                            if text_length <= 10:
+                                return max_size
+                            elif text_length >= 50:
+                                return min_size
                             else:
-                                color = "#ff7b5a"
-                            bottom_price.controls.append(
-                                Icon(icons.ATTACH_MONEY, color=color)
-                            )  
-                        carta.content.controls[2].controls.append(bottom_price)
+                                return max_size - (max_size - min_size) * (text_length - 10) / (50 - 10)
+
+                        # Example base size, minimum size, and maximum size
+                        base_size = page.height * 0.055
+                        min_size = base_size - 25
+                        max_size = base_size - 13
+
+                        # Adjust size_title based on the length of dadesLlocs[i]["name"]
+                        size_title = get_dynamic_font_size(dadesLlocs[i]["name"], base_size, min_size, max_size) # :) Mig solucionat
+                        #size_title = (page.height * 0.055) - 10 #! BUG-7
+                        nom_del_restaurant = Stack(
+                                alignment=alignment.center,
+                                height=page.height * 0.055,
+                                width=page.width,
+                                controls=[
+                                    Container(
+                                        content=Text(
+                                            no_wrap = True,
+                                            text_align="center", 
+                                            width=page.width,
+                                            height=page.height * 0.12,
+                                            spans=[
+                                                TextSpan(
+                                                    f"{dadesLlocs[i]['name']}",  
+                                                    TextStyle(
+                                                        weight=FontWeight.W_900,
+                                                        size=size_title,
+                                                        font_family="WorkSans",
+                                                        foreground=Paint(
+                                                            color="#FFFFEA",
+                                                            stroke_width=3.4,
+                                                            stroke_join=StrokeJoin.BEVEL,
+                                                            style=PaintingStyle.STROKE,
+                                                        ),
+                                                    ),
+                                                ),
+                                            ],
+                                        ),
+                                        alignment=alignment.center
+                                    ),
+                                    Container(
+                                        content=Text(
+                                            no_wrap = True,
+                                            text_align="center",
+                                            width=page.width,
+                                            height=page.height * 0.12,
+                                            spans=[
+                                                TextSpan(
+                                                    f"{dadesLlocs[i]['name']}",
+                                                    TextStyle( 
+                                                        size=size_title,
+                                                        weight=FontWeight.W_900,
+                                                        font_family="WorkSans",
+                                                        color=colors.BLACK,
+                                                    ),
+                                                ),
+                                            ],
+                                        ),
+                                        alignment=alignment.center
+                                    ),
+                                ],
+                            )
+    
+                        print("images_request i", images_request[i])
+                        print("index_photo_stack", index_photo_stack)
+
+                        if images_request[i] != []: 
+                            print("Si té fotos")
+                            if len(dadesLlocs[i]['photos']) == 1: 
+                                print("prova")
+                                img_principal = Row(alignment="center",controls=[AnimatedSwitcher(transition=AnimatedSwitcherTransition.FADE,duration=500,content=Image(
+                                        animate_opacity=150, 
+                                        border_radius=15,
+                                        src=images_request[i][0], #URL imatge
+                                        width = page.width * 0.8, 
+                                        height = page.height * 0.8 * 0.65, 
+                                        fit="COVER"
+                                        ))])
+                                img_esq =Image(
+                                            animate_opacity=150,
+                                            left=-page.width * 0.75,
+                                            top=33,                                    
+                                            border_radius=20,
+                                            width = page.width * 0.8, 
+                                            height = page.height * 0.8 * 0.5, 
+                                            fit="COVER",
+                                        )
+                                img_dret = Image(
+                                            animate_opacity=150,
+                                            right=-page.width * 0.75,
+                                            top=33,
+                                            border_radius=15,
+                                            width = page.width * 0.8, 
+                                            height = page.height * 0.8 * 0.5, 
+                                            fit="COVER",
+                                        )
+                            else: 
+                                    img_principal = Row(alignment="center",controls=[AnimatedSwitcher(transition=AnimatedSwitcherTransition.FADE,duration=500,content=Image(
+                                        animate_opacity=150,
+                                        border_radius=15,
+                                        src=images_request[i][0], #URL imatge
+                                        width = page.width * 0.8, 
+                                        height = page.height * 0.8 * 0.65, 
+                                        fit="COVER"
+                                        ))])
+                                    img_esq =Image(
+                                            animate_opacity=150,
+                                            left=-page.width * 0.75,
+                                            top=33,                                     
+                                            src=images_request[i][len(images_request[i]) - 1],#URL imatge
+                                            border_radius=20,
+                                            width = page.width * 0.8, 
+                                            height = page.height * 0.8 * 0.5, 
+                                            fit="COVER",
+                                        )
+                                    img_dret = Image(
+                                            animate_opacity=150,
+                                            right=-page.width * 0.75,
+                                            top=33,
+                                            src=images_request[i][1],#URL imatge
+                                            border_radius=15,
+                                            width = page.width * 0.8, 
+                                            height = page.height * 0.8 * 0.5, 
+                                            fit="COVER",
+                                        )
+                        else:
+                            img_principal = Row(alignment="center",controls=[AnimatedSwitcher(transition=AnimatedSwitcherTransition.FADE,duration=500,content=Image(
+                                        animate_opacity=150,
+                                        border_radius=15,
+                                        width = page.width * 0.8, 
+                                        height = page.height * 0.8 * 0.65, 
+                                        fit="COVER"
+                                        ))])
+                            img_esq =Image(
+                                            animate_opacity=150,
+                                            left=-page.width * 0.75,
+                                            top=33,                                     
+                                            border_radius=20,
+                                            width = page.width * 0.8, 
+                                            height = page.height * 0.8 * 0.5, 
+                                            fit="COVER",
+                                        )
+                            img_dret = Image(
+                                            animate_opacity=150,
+                                            right=-page.width * 0.75,
+                                            top=33,
+                                            border_radius=15,
+                                            width = page.width * 0.8, 
+                                            height = page.height * 0.8 * 0.5, 
+                                            fit="COVER",
+                                        )
+                            print("No té fotos")
+    
+                        
+                        async def esq(e): #Detecta que has fet click a l'esquerra 
+                            global index_photo
+                            img_principal = stack_cards.controls[0].content.content.controls[1].content.controls[0].controls[0].content
+                            img_dret = stack_cards.controls[0].content.content.controls[1].content.controls[2]
+                            img_esq = stack_cards.controls[0].content.content.controls[1].content.controls[1]
+                            if index_photo <= 0:
+                                    index_photo = len(images_request[index_photo_stack]) - 1 # Fa que sempre l'index sigui un número a dins de la llista i resta un, fent així que puguem navegar
+                            else:
+                                index_photo -= 1
+                            img_principal.opacity = 0.1 #Animació d'opactiat, perquè l'usuari tingui més comoditat visual 
+                            img_principal.update()
+                            await asyncio.sleep(0.15) 
+                            img_principal.src = images_request[index_photo_stack][index_photo] #Actualitza les fotos 
+                            img_principal.opacity = 1
+                            img_esq.src = images_request[index_photo_stack][index_photo-1 if index_photo-1 >= 0 else (len(images_request[index_photo_stack])-1)]  #Resta un en el cas que sigui a dins de la llista, sinó posa el més gran (len) - 1, ja que contem des de 0
+                            #Incís: Mai entendre perquè els programadors contem des de 0, i després quan fas la longitud d'una llista conta des de 1, en fi.
+                            img_dret.src = images_request[index_photo_stack][index_photo+1 if index_photo+1 <= (len(images_request[index_photo_stack])- 1) else 0] #El mateix, detecta que sigui a dins de la llista i no sigui negatiu, en el cas posa 0
+                            page.update()
+                        async def dret(e): #Mateixos comentaris pero al reves
+                            global index_photo
+                            img_principal = stack_cards.controls[0].content.content.controls[1].content.controls[0].controls[0].content
+                            img_dret = stack_cards.controls[0].content.content.controls[1].content.controls[2]
+                            img_esq = stack_cards.controls[0].content.content.controls[1].content.controls[1]
+                            if index_photo >= (len(images_request[index_photo_stack])- 1):
+                                index_photo = 0
+                            else:
+                                index_photo += 1
+                            img_principal.opacity = 0.1 #Animació d'opactiat, perquè l'usuari tingui més comoditat visual 
+                            img_principal.update()
+                            await asyncio.sleep(0.15) 
+                            img_principal.src = images_request[index_photo_stack][index_photo] 
+                            img_principal.opacity = 1
+                            img_esq.src = images_request[index_photo_stack][index_photo-1 if index_photo-1 >= 0 else (len(images_request[index_photo_stack])-1)]  
+                            img_dret.src = images_request[index_photo_stack][index_photo+1 if index_photo+1 <= (len(images_request[index_photo_stack])- 1) else 0]  
+                            page.update()
+                        
+                        print("Carta creada")
+                        carta = Container(
+                                image=DecorationImage(
+                                    src="src/fons.jpg",
+                                    fit="FILL"
+                                ),
+                                shadow=BoxShadow(
+                                    blur_radius=6.5,
+                                    color=colors.BLACK
+                                ),
+                                offset=(0,0),
+                                border_radius=15, 
+                                width = page.width,
+                                height = page.height * 0.8,
+                                animate_offset=animation.Animation(500),
+                                animate_opacity = animation.Animation(600),
+                                scale=0,
+                                animate_scale=animation.Animation(340, "easeOutSine"),
+                                content=Column(
+                                    horizontal_alignment="center",
+                                    controls=[
+                                        ListTile(
+                                            title=nom_del_restaurant,
+                                            subtitle=subtitle_card,
+                                            height=(page.height * 0.8) * 0.15  
+                                            ),
+                                            Container(content=Stack(
+                                                            [   img_principal,
+                                                                img_esq,
+                                                                img_dret,
+                                                                IconButton(
+                                                                        icon=icons.CHEVRON_RIGHT,
+                                                                        icon_color = "black",
+                                                                        bgcolor="#FBF9F1",
+                                                                        on_click=lambda e: asyncio.run(esq(e)),
+                                                                        alignment=alignment.center,
+                                                                        right=2,
+                                                                        width = page.window.width * 0.1,
+                                                                        top=page.window.height * 0.8 * 0.7 / 2,
+                                                                ),
+                                                                IconButton(
+                                                                        icon=icons.CHEVRON_LEFT,
+                                                                        icon_color = "black",
+                                                                        bgcolor="#FBF9F1",
+                                                                        on_click=lambda e: asyncio.run(dret(e)),
+                                                                        width = page.window.width * 0.1,
+                                                                        left=2,
+                                                                        top=page.window.height * 0.8 * 0.7 / 2,
+                                                                ),
+                                                            ]
+                                                        ),
+                                                        # expand_loose=True,
+                                                        width=page.width,
+                                                        height=page.height * 0.8 * 0.6,
+                                                    ),
+                                                    Row([],width = page.width, alignment="center")
+                                        ]
+                                    )
+                                            
+                            )
+                        cards.append(carta)
+                        
+                        if 'rating' in dadesLlocs[i]: 
+                            bottom_rating = Text(f"Valoració: {dadesLlocs[i]['rating']}", color="white", weight=FontWeight.W_900)
+                            carta.content.controls[2].controls.append(bottom_rating)
+                        if 'price' in dadesLlocs[i]:
+                            bottom_price = Row([Text(f"Preu:",color="white",weight=FontWeight.W_900)])
+                            for c in range(round(dadesLlocs[i]['price'])):
+                                if dadesLlocs[i]['price'] == 1:
+                                    color = "#b4deb6" 
+                                elif dadesLlocs[i]['price'] == 2:
+                                    color = "#ffffbf"
+                                elif dadesLlocs[i]['price'] == 3:
+                                    color = "#ffc08c"
+                                else:
+                                    color = "#ff7b5a"
+                                bottom_price.controls.append(
+                                    Icon(icons.ATTACH_MONEY, color=color)
+                                )  
+                            carta.content.controls[2].controls.append(bottom_price)
 
                 page.update()   
 
