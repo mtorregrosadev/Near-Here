@@ -13,6 +13,10 @@ on:
   # Allows you to run this workflow manually from the Actions tab of the repository
   workflow_dispatch:
 
+permissions:
+  contents: write  # Permet escriptura als continguts del repositori
+  actions: read    # Permet lectura de les accions
+
 env:
   # https://flet.dev/docs/publish#versioning
   BUILD_NUMBER: 0
@@ -84,4 +88,4 @@ jobs:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
         asset_path: Near_Here-${{ env.BUILD_VERSION }}.ipa
         asset_name: Near_Here-${{ env.BUILD_VERSION }}.ipa
-        asset_content_type: application/zip
+        asset_content_type: application/octet-stream
