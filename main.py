@@ -1,5 +1,5 @@
 import flet 
-from flet import Page,Dropdown,TextField,DecorationImage,dropdown,Lottie,Offset,TextButton,Divider,View,border,Slider,Checkbox,RoundedRectangleBorder,TileAffinity,ExpansionTile,Geolocator,AnimatedSwitcherTransition,AppBar,Card,GridView,TextThemeStyle,ListTile, MainAxisAlignment,AnimatedSwitcher,Stack,Column,TextSpan,TextStyle,Paint,AlertDialog,IconButton, StrokeJoin,PaintingStyle,ShadowBlurStyle, BoxShadow, Image, ListTile,GestureDetector, FontWeight,ElevatedButton, SafeArea,Theme, animation, Container, transform, Icon, icons, colors, alignment, icons, Row, Text, ResponsiveRow, Chip, NavigationBarDestination, NavigationBar 
+from flet import Page,Dropdown,TextField,DecorationImage,dropdown,Lottie,InteractiveViewer,margin,TextButton,Divider,View,border,Slider,BorderRadius,border_radius,Checkbox,RoundedRectangleBorder,TileAffinity,ExpansionTile,Geolocator,AnimatedSwitcherTransition,AppBar,Card,GridView,TextThemeStyle,ListTile, MainAxisAlignment,AnimatedSwitcher,Stack,Column,TextSpan,TextStyle,Paint,AlertDialog,IconButton, StrokeJoin,PaintingStyle,ShadowBlurStyle, BoxShadow, Image, ListTile,GestureDetector, FontWeight,ElevatedButton, SafeArea,Theme, animation, Container, transform, Icon, icons, colors, alignment, icons, Row, Text, ResponsiveRow, Chip, NavigationBarDestination, NavigationBar 
 import asyncio
 import json
 import location
@@ -255,9 +255,9 @@ async def main(page: Page):
                     Text("No hem trobat més llocs D:", text_align="center", weight=FontWeight.W_900, theme_style=TextThemeStyle.TITLE_LARGE, width=page.width, color="#6b9e9f"),
                     Lottie(src="https://lottie.host/d6837472-c583-41b9-892e-f20114ad7046/sm0epJuEJM.json"),
                     Divider(),
-                    Text("Has seleccionat una categoria que no està disponible a la teva zona o no hem pogut trobar llocs a la teva zona o on has especificat!\n\n\nProva de canviar els km de distància, o cercar en un altre lloc específic i fes clic a refrescar la pàgina!")
+                    Text("Has seleccionat una categoria que no està disponible a la teva zona o no hem pogut trobar llocs a la teva zona o on has especificat!\n\nProva de canviar els km de distància, o cercar en un altre lloc específic i fes clic a refrescar la pàgina!")
 
-            ], height=page.height*0.73)
+            ], height=page.height*0.55)
             botons_not_found = Row( #Aqui van tots els botons junts 
                     vertical_alignment="end", width=page.width, alignment="center", height=page.height*0.15,
                     controls=[
@@ -416,7 +416,7 @@ async def main(page: Page):
             page.views.append(View(bgcolor = "#FFFCF1",controls=[
                 AppBar(title=Text("Sobre l'aplicació"), adaptive=True,bgcolor="#AAD7D9"),
                 SafeArea(content=Text("NEAR HERE...", text_align="center", weight=FontWeight.W_900, theme_style=TextThemeStyle.DISPLAY_SMALL, width=page.width, color="#6b9e9f")),
-                Text("Versió: 0.1.1", text_align="center", weight=FontWeight.W_300, theme_style=TextThemeStyle.BODY_SMALL, width=page.width),
+                Text("Versió: 0.1.3", text_align="center", weight=FontWeight.W_300, theme_style=TextThemeStyle.BODY_SMALL, width=page.width),
                 Divider(),
                 Text("Fet per: Marc Lumbreras Torregrosa \n Fet com a part pràctica del Treball de Recerca a Batxillerat, 2024-2025",text_align="center", weight=FontWeight.W_300, theme_style=TextThemeStyle.BODY_SMALL, width=page.width)
             ]))
@@ -553,7 +553,7 @@ async def main(page: Page):
             page.views.append(View(bgcolor = "#FFFCF1",controls=[
                 AppBar(title=Text("Cerca a un lloc"),adaptive=True, bgcolor="#AAD7D9"), 
                 SafeArea(content=Text("Vols cercar a un lloc el qual no sigui el teu? Posa aqui el lloc i retorna a l'app per cercar!\n", width=page.width, text_align="center")),
-                TextField(adaptive=True, on_change=lloc_especific, hint_text="Posa el lloc aqui", label="On vols cercar?", value=f"{page.session.get('lloc_especific')}" if page.session.contains_key('lloc_especific') else None)
+                TextField(on_change=lloc_especific, prefix_icon=icons.SEARCH_OUTLINED, hint_text="Posa el lloc aqui", label="On vols cercar?", border_radius=border_radius.all(30), value=f"{page.session.get('lloc_especific')}" if page.session.contains_key('lloc_especific') else None)
             ]))
         page.update()
     
@@ -798,7 +798,7 @@ async def main(page: Page):
                     Container(border=border.all(1, "#c4e4da"),border_radius=15.5,content=Chip(
                         selected_color="#6fa4a6",
                         bgcolor="#E8EEED",
-                        label=Text("   Cerca a un lloc     ",weight=FontWeight.W_100,opacity=0.3),
+                        label=Text("   Cerca a un lloc     ",weight=FontWeight.W_100),
                         leading=Icon(icons.SEARCH_OUTLINED),
                         on_select=categ_chip_sel,
                         shadow_color = "#9ebdbf",
@@ -1166,20 +1166,39 @@ async def main(page: Page):
     
                         print("images_request i", images_request[i])
                         print("index_photo_stack", index_photo_stack)
-
+                        async def ou(e):
+                            img_principal = stack_cards.controls[0].content.content.controls[1].content.controls[0].content.content
+                            dlg = AlertDialog(
+                                bgcolor=colors.with_opacity(0, '#ff6666'),
+                                content=InteractiveViewer(
+                                    min_scale=0.1,
+                                    max_scale=15,
+                                    boundary_margin=margin.all(20),
+                                    content=Image(src=img_principal.src)
+                                )
+                            )
+                            page.open(dlg)
                         if images_request[i] != []: 
                             print("Si té fotos")
                             if len(dadesLlocs[i]['photos']) == 1: 
                                 print("prova")
-                                img_principal = Row(alignment="center",controls=[AnimatedSwitcher(transition=AnimatedSwitcherTransition.FADE,duration=500,content=Image(
-                                        animate_opacity=150, 
-                                        border_radius=15,
-                                        src=images_request[i][0], #URL imatge
-                                        width = page.width * 0.8, 
-                                        height = page.height * 0.8 * 0.65, 
-                                        fit="COVER"
-                                        ))])
-                                img_esq =Image(
+                                img_principal = Container(
+                                    alignment=alignment.center,
+                                    on_click=ou,
+                                    content=InteractiveViewer(
+                                        min_scale=0.1,
+                                        max_scale=15,
+                                        content=Image(
+                                            animate_opacity=150, 
+                                            border_radius=15,
+                                            src=images_request[i][0],  # URL imatge
+                                            width=page.width * 0.8, 
+                                            height=page.height * 0.8 * 0.65, 
+                                            fit="COVER"
+                                        )
+                                    )
+                                )
+                                img_esq =InteractiveViewer(content=Image(
                                             animate_opacity=150,
                                             left=-page.width * 0.75,
                                             top=33,                                    
@@ -1187,7 +1206,7 @@ async def main(page: Page):
                                             width = page.width * 0.8, 
                                             height = page.height * 0.8 * 0.5, 
                                             fit="COVER",
-                                        )
+                                ))
                                 img_dret = Image(
                                             animate_opacity=150,
                                             right=-page.width * 0.75,
@@ -1198,14 +1217,22 @@ async def main(page: Page):
                                             fit="COVER",
                                         )
                             else: 
-                                    img_principal = Row(alignment="center",controls=[AnimatedSwitcher(transition=AnimatedSwitcherTransition.FADE,duration=500,content=Image(
-                                        animate_opacity=150,
-                                        border_radius=15,
-                                        src=images_request[i][0], #URL imatge
-                                        width = page.width * 0.8, 
-                                        height = page.height * 0.8 * 0.65, 
-                                        fit="COVER"
-                                        ))])
+                                    img_principal = Container(
+                                        alignment=alignment.center,
+                                        on_click=ou,
+                                        content=InteractiveViewer(
+                                            min_scale=0.1,
+                                            max_scale=15,
+                                            content=Image(
+                                                animate_opacity=150, 
+                                                border_radius=15,
+                                                src=images_request[i][0],  # URL imatge
+                                                width=page.width * 0.8, 
+                                                height=page.height * 0.8 * 0.65, 
+                                                fit="COVER"
+                                            )
+                                        )
+                                    )
                                     img_esq =Image(
                                             animate_opacity=150,
                                             left=-page.width * 0.75,
@@ -1227,13 +1254,16 @@ async def main(page: Page):
                                             fit="COVER",
                                         )
                         else:
-                            img_principal = Row(alignment="center",controls=[AnimatedSwitcher(transition=AnimatedSwitcherTransition.FADE,duration=500,content=Image(
-                                        animate_opacity=150,
+                            img_principal = Container(alignment=(0,0),content=InteractiveViewer(
+                                    min_scale=0.1,
+                                    max_scale=15,
+                                    content=Image(
+                                        animate_opacity=150, 
                                         border_radius=15,
                                         width = page.width * 0.8, 
                                         height = page.height * 0.8 * 0.65, 
                                         fit="COVER"
-                                        ))])
+                            )))
                             img_esq =Image(
                                             animate_opacity=150,
                                             left=-page.width * 0.75,
@@ -1257,7 +1287,7 @@ async def main(page: Page):
                         
                         async def esq(e): #Detecta que has fet click a l'esquerra 
                             global index_photo
-                            img_principal = stack_cards.controls[0].content.content.controls[1].content.controls[0].controls[0].content
+                            img_principal = stack_cards.controls[0].content.content.controls[1].content.controls[0].content.content
                             img_dret = stack_cards.controls[0].content.content.controls[1].content.controls[2]
                             img_esq = stack_cards.controls[0].content.content.controls[1].content.controls[1]
                             if index_photo <= 0:
@@ -1275,7 +1305,7 @@ async def main(page: Page):
                             page.update()
                         async def dret(e): #Mateixos comentaris pero al reves
                             global index_photo
-                            img_principal = stack_cards.controls[0].content.content.controls[1].content.controls[0].controls[0].content
+                            img_principal = stack_cards.controls[0].content.content.controls[1].content.controls[0].content.content
                             img_dret = stack_cards.controls[0].content.content.controls[1].content.controls[2]
                             img_esq = stack_cards.controls[0].content.content.controls[1].content.controls[1]
                             if index_photo >= (len(images_request[index_photo_stack])- 1):
@@ -1298,7 +1328,7 @@ async def main(page: Page):
                                     fit="FILL"
                                 ),
                                 shadow=BoxShadow(
-                                    blur_radius=6.5,
+                                    blur_radius=4.5,
                                     color=colors.BLACK
                                 ),
                                 offset=(0,0),
@@ -1389,7 +1419,7 @@ async def main(page: Page):
                     )
                 ) 
                 # :) Solucionat!
-                img_principal = stack_cards.controls[0].content.content.controls[1].content.controls[0].controls[0].content     
+                img_principal = stack_cards.controls[0].content.content.controls[1].content.controls[0].content.content     
                 img_principal_animate = stack_cards.controls[0].content.content.controls[1].content.controls[0]
                 img_dret = stack_cards.controls[0].content.content.controls[1].content.controls[2]
                 img_esq = stack_cards.controls[0].content.content.controls[1].content.controls[1]
