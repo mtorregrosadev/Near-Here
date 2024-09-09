@@ -1,4 +1,4 @@
-name: IPA Build
+name: IPA Build v${{ env.BUILD_VERSION }}
 
 on:
   # Runs on push to any of the below branches
