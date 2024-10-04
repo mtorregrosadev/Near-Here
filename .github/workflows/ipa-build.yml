@@ -1,4 +1,4 @@
-name: IPA Build v${{ inputs.BUILD_VERSION }}
+name: IPA Build
 
 on:
   # Runs on push to any of the below branches
@@ -17,6 +17,10 @@ on:
         description: 'Versió de la construcció'
         required: true
         default: '0.1.7'  # Valor per defecte
+      BUILD_NUMBER:
+        description: 'Build Number - Versió de la build'
+        required: true
+        default: '0'  # Valor per defecte
 
 permissions:
   contents: write  # Permet escriptura als continguts del repositori
@@ -24,8 +28,6 @@ permissions:
 
 env:
   # https://flet.dev/docs/publish#versioning
-  BUILD_NUMBER: 0
-  BUILD_VERSION: 0.1.7
   PYTHON_VERSION: 3.12.2
   FLUTTER_VERSION: 3.24.0
 
@@ -55,7 +57,7 @@ jobs:
     - name: Flet Build IPA
       run: |
         flutter config --no-analytics
-        flet build ipa --verbose --build-number=$BUILD_NUMBER --build-version=${{ inputs.BUILD_VERSION }} --include-packages flet_geolocator flet_lottie
+        flet build ipa --verbose --build-number=${{ inputs.BUILD_NUMBER }} --build-version=${{ inputs.BUILD_VERSION }} --include-packages flet_geolocator flet_lottie
 
     - name: Create Payload Directory
       run: mkdir Payload
