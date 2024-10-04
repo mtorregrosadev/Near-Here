@@ -1,5 +1,5 @@
 import flet 
-from flet import Page,Dropdown,TextField,DecorationImage,dropdown,Lottie,InteractiveViewer,margin,TextButton,Divider,View,border,Slider,BorderRadius,border_radius,Checkbox,RoundedRectangleBorder,TileAffinity,ExpansionTile,Geolocator,AnimatedSwitcherTransition,AppBar,Card,GridView,TextThemeStyle,ListTile, MainAxisAlignment,AnimatedSwitcher,Stack,Column,TextSpan,TextStyle,Paint,AlertDialog,IconButton, StrokeJoin,PaintingStyle,ShadowBlurStyle, BoxShadow, Image, ListTile,GestureDetector, FontWeight,ElevatedButton, SafeArea,Theme, animation, Container, transform, Icon, icons, colors, alignment, icons, Row, Text, ResponsiveRow, Chip, NavigationBarDestination, NavigationBar 
+from flet import Page,CircleAvatar,RadioGroup,Radio,LinearGradient,Alignment,GradientTileMode,Markdown,Dropdown,ListView,TextField,DecorationImage,dropdown,Lottie,InteractiveViewer,margin,TextButton,Divider,View,border,Slider,BorderRadius,border_radius,Checkbox,RoundedRectangleBorder,TileAffinity,ExpansionTile,Geolocator,AnimatedSwitcherTransition,AppBar,Card,GridView,TextThemeStyle,ListTile, MainAxisAlignment,AnimatedSwitcher,Stack,Column,TextSpan,TextStyle,Paint,AlertDialog,IconButton, StrokeJoin,PaintingStyle,ShadowBlurStyle, BoxShadow, Image, ListTile,GestureDetector, FontWeight,ElevatedButton, SafeArea,Theme, animation, Container, transform, Icon, icons, colors, alignment, icons, Row, Text, ResponsiveRow, Chip, NavigationBarDestination, NavigationBar 
 import asyncio
 import json
 import location
@@ -7,7 +7,9 @@ index_photo = 0
 import requests
 import random
 import math
+import google.generativeai as genai
 
+ai =0
 images_request = []
 index_photo_stack = -1
 canvi = False
@@ -155,6 +157,7 @@ async def main(page: Page):
     page.update()
     page.session.set("categories_sel", [])
     page.session.set("dadesLlocs", [])
+    page.session.set("Idioma", "")
     async def inicialitzar_configuracio():
         await page.client_storage.set_async("radius_sel", 1000)
         await page.client_storage.set_async("sort_sel", "RELEVANCE")
@@ -336,8 +339,20 @@ async def main(page: Page):
             page.views.append(View(bgcolor = "#FFFCF1",controls=[AppBar(title=Text("Tema"), adaptive=True,bgcolor="#AAD7D9")]))
 
         if page.route == '/configuracio/idioma':
+            async def idioma_canviat(e):
+                page.session.set("idioma", e.control.value)
             page.add(configuracio)
-            page.views.append(View(bgcolor = "#FFFCF1",controls=[AppBar(title=Text("Idioma"), adaptive=True,bgcolor="#AAD7D9")]))
+            page.views.append(View(bgcolor = "#FFFCF1",controls=[
+                AppBar(title=Text("Idioma"), adaptive=True,bgcolor="#AAD7D9"),
+                SafeArea(content=Text("Recorda que l'idioma de moment es només de la IA! No canvia l'idioma de l'app!!", width=page.width, text_align="center")),
+                RadioGroup(content=Column([
+                    Radio(value="Català", label="Català"),
+                    Radio(value="Castellano", label="Castellano"),
+                    Radio(value="English", label="English")]), 
+                    on_change=idioma_canviat
+                )
+            
+            ]))
 
         if page.route == "/configuracio/config_near":
             page.add(configuracio)
@@ -428,7 +443,6 @@ async def main(page: Page):
                     ElevatedButton("Tornar", on_click=view_pop, width=page.width)
                     
             ]))
-        
         if page.route == '/categories':
             categories_sel = page.session.get("categories_sel")
             page.add(Tags_amunt_safe,stack_cards,botons)
@@ -854,6 +868,7 @@ async def main(page: Page):
         page.go("/configuracio/sobre_app")
     async def ajuda(e):
         page.go("/configuracio/ajuda")
+
     configuracio =Card(color = "#AAD7D9", height=page.height * 0.8, expand=True,
             content=Container(
                 content=Column(
@@ -929,8 +944,120 @@ async def main(page: Page):
     configuracio = SafeArea(content=configuracio)
 
     async def changetab(e):
+        global ai
         index = e.control.selected_index
         if index == 1: #Llocs
+            ai+=1
+            if ai == 2:
+                page.overlay.append(splash)
+                page.update()
+                await asyncio.sleep(0.01)
+                async def send_message(e):
+                    ia_container_TextField = ia_container.controls[0].content.controls[2].controls[1].value
+                    ia_container.controls[0].content.controls[1].controls.append(
+                        Container(bgcolor="#d1ddff",content=Row([Text(""), CircleAvatar(content=Icon(icons.PERSON)), Markdown(f"{ia_container_TextField}",width=page.width*0.8)]))
+                    )
+                    ia_container.controls[0].content.controls[1].controls.append(Divider())
+                    page.update()
+                    ia_resposta = chat.send_message(ia_container_TextField)
+                    ia_container.controls[0].content.controls[1].controls.append(
+                        Container(bgcolor="#9796f0",content=Row([Text(""), CircleAvatar(content=Icon(icons.PIN_DROP)), Markdown(f"{ia_resposta.text}", width=page.width*0.8)]))
+                    )
+                    ia_container.controls[0].content.controls[1].controls.append(Divider())
+                    ia_container.controls[0].content.controls[2].controls[1].value = ""
+                    page.update()
+
+                
+                genai.configure(api_key="AIzaSyD3qvgtVXsWfhlYHZS_LErRZUHlcIcPgo8")
+                model = genai.GenerativeModel("gemini-1.5-flash")
+                dadesLlocs = page.session.get("dadesLlocs")
+                idioma = page.session.get("idioma")
+                user_categories = page.session.get("categories_sel")
+                chat = model.start_chat(history=[])
+                first_message = chat.send_message(f"""Hey! Imagine you are a trip advisor and someone comes to you with a lot of PDI (Points of Interest). So for this, I will pass you 3 things:
+
+
+
+1. Categories: The selected categories that this person has in their filters like Restaurants, Shopping... If it's None they are searching for everything. Please don't refer to this information about categories, 
+it's only an information between this first message and you.
+
+2. I'll pass you all the PDI that this person it's near and would like to visit in this moment. 
+
+3. I'll pass you they native language.
+
+
+
+Before answer you have to keep in mind this 3 factors, important the language! Speak them in their native language. Remember that you have to ask for more information or for things they are looking for. Put a list of things to do near to ask like this example: 
+Are you interested in something:
+
+   Active and outdoorsy? Like a park or a scenic lookout?
+
+   Historical and cultural? Maybe a museum or a monument?
+
+   Delicious and relaxing? Perhaps a restaurant or a coffee shop?
+
+   Something else entirely?
+                             
+Anyways don't use this example integritely, base your response in base of the PDI I'll give you and the information of every PDI.
+Please you are talking to a costumer be polite and also remember that you are the worker of a company named "Near Here...". DON'T ANSWER TO THE USER IF THEY TALK ABOUT ANYTHING NOT RELATED WITH PLACES, RETURN TO THE TOPIC OF PLACES, IT'S FORBIDDEN TO ANSWER ANYTHING ELSE, don't tell this to the user, like all the information I'll gave you.
+
+I'll pass you a list JSON of 50 or less PDI in one country, you need to choose the better for you arguing why it's the best. 
+                                  
+PDI: {dadesLlocs}
+Language: {idioma} if the language it's "" first of all ask them the language they would like to talk with you, translated in english, catalan and spanish. Like "Which language..." "//" "Quin idioma..." // "Que idioma..." but completed and asking them in diferent languages.
+Categories: {categories_list} this is to check all the categories, now it's the user categories: {user_categories}""")
+                   
+                ia_container = Stack(controls=[
+                        Container(
+                            height=page.height * 0.72, 
+                            width=page.width, 
+                            gradient=LinearGradient(
+                                    begin=alignment.top_left,
+                                    end=Alignment(0.8, 1),
+                                    colors=[
+                                        "#9796f0", # Blau pastel
+                                        "#fbc7d4", # Vermell pastel
+
+                                    ],
+                                    tile_mode=GradientTileMode.MIRROR,
+                                    rotation=math.pi / 3,
+                                ), 
+                            bottom=0, 
+                            border_radius=20,
+                            content=Column(
+                                height=page.height * 0.72,
+                                controls=[
+                                    Container(
+                                        height=page.height * 0.72 * 0.15, 
+                                        width=page.width,
+                                        bgcolor="#9796f0",
+                                        content=Column([Divider(opacity=0),Text("NEAR IA", style=TextStyle(size=24, color="white"), text_align="center", width=page.width)])
+                                    ),
+                                    ListView(
+                                        height=page.height * 0.72 * 0.65, 
+                                        controls=[
+                                            Container(bgcolor="#9796f0",content=Row([Text(""), CircleAvatar(content=Icon(icons.PIN_DROP)), Markdown(f"{first_message.text}", width=page.width*0.8)])),
+                                            Divider()
+                                        ]
+                                    ), 
+                                    Row(width=page.width, vertical_alignment="end", controls=[Text(""),TextField(width=page.width * 0.8, label="Parla amb la IA!"), IconButton(on_click=send_message,icon=icons.SEND,bgcolor="#9796f0", width=page.width * 0.13)])
+                                ]
+                            ),
+                            
+                        )
+                ])
+                
+                page.overlay.remove(splash)
+                page.update()
+                page.overlay.append(ia_container)
+                page.update()
+
+
+                
+            elif ai == 4:
+                ai=0
+                page.overlay.clear() 
+                page.update()
             page.go('/')
             await asyncio.sleep(0.001)
             selected_llocs.offset = transform.Offset(0, -0.25)
@@ -940,6 +1067,8 @@ async def main(page: Page):
             
             
         elif index == 0: #Favorits
+            ai=0
+            page.overlay.clear() 
             page.go('/favorits')
             while index == 0: #Animacions icones
                 await asyncio.sleep(1)
@@ -948,10 +1077,12 @@ async def main(page: Page):
                 index = e.control.selected_index #S'ha d'actualitzar a dins del codi la variable index, ja que sinó sempre sera True
 
         elif index == 2: #Configuració
+            ai=0
+            page.overlay.clear() 
             page.go('/configuracio')
-            await asyncio.sleep(0.001)
+            await asyncio.sleep(0.1)
             selected_configuracio.rotate.angle += (2*math.pi)
-            page.update()
+            
             
              
         page.update()
