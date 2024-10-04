@@ -1,4 +1,4 @@
-name: IPA Build v${{ env.BUILD_VERSION }}
+name: IPA Build v${{ inputs.BUILD_VERSION }}
 
 on:
   # Runs on push to any of the below branches
@@ -12,6 +12,11 @@ on:
 
   # Allows you to run this workflow manually from the Actions tab of the repository
   workflow_dispatch:
+    inputs:
+      BUILD_VERSION:
+        description: 'Versió de la construcció'
+        required: true
+        default: '0.1.7'  # Valor per defecte
 
 permissions:
   contents: write  # Permet escriptura als continguts del repositori
@@ -50,7 +55,7 @@ jobs:
     - name: Flet Build IPA
       run: |
         flutter config --no-analytics
-        flet build ipa --verbose --build-number=$BUILD_NUMBER --build-version=$BUILD_VERSION --include-packages flet_geolocator flet_lottie
+        flet build ipa --verbose --build-number=$BUILD_NUMBER --build-version=${{ inputs.BUILD_VERSION }} --include-packages flet_geolocator flet_lottie
 
     - name: Create Payload Directory
       run: mkdir Payload
@@ -59,13 +64,13 @@ jobs:
       run: mv build/ipa/Runner.xcarchive/Products/Applications/Runner.app Payload/
 
     - name: Package Payload Directory
-      run: zip -r Near_Here-${{ env.BUILD_VERSION }}.ipa Payload
+      run: zip -r Near_Here-${{ inputs.BUILD_VERSION }}.ipa Payload
 
     - name: Upload IPA Artifact
       uses: actions/upload-artifact@v4.3.4  # https://github.com/marketplace/actions/upload-a-build-artifact
       with:
         name: ipa-build-artifact  # the name of the artifact
-        path: Near_Here-${{ env.BUILD_VERSION }}.ipa  # location of Flet build output
+        path: Near_Here-${{ inputs.BUILD_VERSION }}.ipa  # location of Flet build output
         if-no-files-found: error  # Fail the action with an error message if no files are found
         overwrite: false  # If true, an artifact with a matching name will be deleted before a new one is uploaded. If false, the action will fail if an artifact for the given name already exists. Does not fail if the artifact does not exist.
 
@@ -75,8 +80,8 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        tag_name: v${{ env.BUILD_VERSION }}
-        release_name: Release ${{ env.BUILD_VERSION }}
+        tag_name: v${{ inputs.BUILD_VERSION }}
+        release_name: Release ${{ inputs.BUILD_VERSION }}
         draft: false
         prerelease: true
 
@@ -86,6 +91,6 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: Near_Here-${{ env.BUILD_VERSION }}.ipa
-        asset_name: Near_Here-${{ env.BUILD_VERSION }}.ipa
+        asset_path: Near_Here-${{ inputs.BUILD_VERSION }}.ipa
+        asset_name: Near_Here-${{ inputs.BUILD_VERSION }}.ipa
         asset_content_type: application/octet-stream
