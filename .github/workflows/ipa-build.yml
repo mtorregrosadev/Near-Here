@@ -16,7 +16,7 @@ on:
       BUILD_VERSION:
         description: 'Versió de la construcció'
         required: true
-        default: '0.1.7'  # Valor per defecte
+        default: '0.1.8'  # Valor per defecte
       BUILD_NUMBER:
         description: 'Build Number - Versió de la build'
         required: true
