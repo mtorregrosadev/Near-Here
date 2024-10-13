@@ -179,7 +179,7 @@ async def main(page: Page):
     page.update()
     page.session.set("categories_sel", [])
     page.session.set("dadesLlocs", [])
-    page.session.set("Idioma", "")
+    page.session.set("idioma", "")
     async def inicialitzar_configuracio():
         await page.client_storage.set_async("radius_sel", 1000)
         await page.client_storage.set_async("sort_sel", "RELEVANCE")
@@ -216,9 +216,101 @@ async def main(page: Page):
             page.views.pop()
             page.go("/configuracio")
     async def on_change_page(e):
+        async def send_message(e):
+            ia_container_TextField = ia_container.controls[0].content.controls[2].controls[1].value
+            if ia_container_TextField == "":
+                ia_container.controls[0].content.controls[2].controls[1].error_text = "Per enviar un missatge l'has d'escriure primer!"
+                page.update()
+            else:
+                ia_container.controls[0].content.controls[2].controls[1].error_text = None
+                ia_container.controls[0].content.controls[1].controls.append(
+                    Container(bgcolor="#d1ddff",content=Row([Text(""), CircleAvatar(content=Icon(icons.PERSON)), Markdown(f"{ia_container_TextField}",width=page.width*0.8)]))
+                )
+                ia_container.controls[0].content.controls[1].controls.append(Divider())
+                ia_container.controls[0].content.controls[2].controls[1].value = ""
+                ia_container.controls[0].content.controls[2].controls[2].focus()
+                page.update()
+                await asyncio.sleep(0.01)                      
+                ia_container.controls[0].content.controls[1].controls.append(anim_carrega)
+                page.update()
+                await asyncio.sleep(0.1)
+                history.append({"role": "user", "parts": [{"text": f"{ia_container_TextField}"}]})
+                async with httpx.AsyncClient() as client:  # Crea una sessió asíncrona
+                    response = await client.post(api, headers=headers, json=data)
+                    if response.status_code == 200: 
+                        resposta = response.json() 
+                        resposta_100 = resposta['candidates'][0]['content']['parts'][0]['text']
+                        ia_container.controls[0].content.controls[1].controls.append(
+                            Container(bgcolor="#9796f0",content=Row([Text(""), CircleAvatar(content=Icon(icons.PIN_DROP)), Markdown(f"{resposta_100}", width=page.width*0.8)]))
+                        )
+                        ia_container.controls[0].content.controls[1].controls.append(Divider())
+                        ia_container.controls[0].content.controls[1].controls.remove(anim_carrega)
+                        page.update()
+        async def first_message():
+            async with httpx.AsyncClient() as client:  # Crea una sessió asíncrona
+                response = await client.post(api, headers=headers, json=data)  # Utilitza client.post() per fer la petició
+                if response.status_code == 200:  # Comprova l'estat de la resposta
+                    api_response = response.json()  # Espera la resposta JSON
+                    chat_response = api_response['candidates'][0]['content']['parts'][0]['text']  # Accedeix al text de la resposta
+                    ia_container.controls[0].content.controls[1].controls.remove(anim_carrega)
+                    page.update()
+                    ia_container.controls[0].content.controls[1].controls.append(Container(bgcolor="#9796f0", content=Row([Text(""), CircleAvatar(content=Icon(icons.PIN_DROP)), Markdown(f"{chat_response}", width=page.width*0.8)]))) 
+                    ia_container.controls[0].content.controls[1].controls.append(Divider())                   
+                    page.update()
+        async def exit_e(e):
+            global ai 
+            ai = 0
+            page.overlay.remove(ia_container)
+            page.go('/')
+            page.update()
+        async def fullscreen(e):
+            ia_container.controls[0].content.controls[0].height = page.height * 0.83 * 0.13 if ia_container.controls[0].height == page.height * 0.72 else page.height * 0.72 * 0.15
+            ia_container.controls[0].content.controls[1].height = page.height * 0.83 * 0.65 if ia_container.controls[0].height == page.height * 0.72 else page.height * 0.72 * 0.65
+            ia_container.controls[0].content.controls[2].height = page.height * 0.83 * 0.1 if ia_container.controls[0].height == page.height * 0.72 else page.height * 0.72 * 0.1
+            ia_container.controls[0].height = page.height * 0.83 if ia_container.controls[0].height == page.height * 0.72 else page.height * 0.72
+            page.update()
+               
+        ia_container = Stack(controls=[
+                    Container(
+                        height=page.height * 0.72, 
+                        width=page.width, 
+                        gradient=LinearGradient(
+                                begin=alignment.top_left,
+                                end=Alignment(0.8, 1),
+                                colors=[
+                                    "#9796f0", # Blau pastel
+                                    "#fbc7d4", # Vermell pastel
+
+                                ],
+                                tile_mode=GradientTileMode.MIRROR,
+                                rotation=math.pi / 3,
+                            ), 
+                        bottom=0, 
+                        border_radius=20,
+                        content=Column(
+                            height=page.height * 0.72,
+                            controls=[
+                                Container(
+                                    height=page.height * 0.72 * 0.15, 
+                                    width=page.width,
+                                    bgcolor="#9796f0",
+                                    content=Row([IconButton(icons.OPEN_IN_FULL_ROUNDED, icon_color="d1ddff", on_click=fullscreen),Text("NEAR IA", style=TextStyle(size=24, color="white"), text_align="center"),IconButton(icons.CLOSE_ROUNDED, icon_color="#fbc7d4",on_click=exit_e)],alignment=MainAxisAlignment.SPACE_BETWEEN, width=page.width)
+                                ),
+                                ListView(
+                                    auto_scroll=True,
+                                    height=page.height * 0.72 * 0.65, 
+                                    controls=[
+                                    ]
+                                ), 
+                                Row(height=page.height*0.72*0.1,width=page.width, vertical_alignment="end", controls=[Text(""),TextField(width=page.width * 0.8, label="Parla amb la IA!", autocorrect=True,icon=icons.ACCOUNT_CIRCLE,multiline=True, on_submit=send_message), IconButton(on_click=send_message,icon=icons.SEND,bgcolor="#9796f0", width=page.width * 0.13)])
+                            ]
+                        ),
+                        
+                    )
+            ])
         global canvi 
         global ai 
-        if page.route != '/info' or page.route != '/' or page.route != '/ia':
+        if page.route != '/info':
             page.controls.clear()  
         def resize_image_url(url, width, height):
                         # Part invariable de l'URL
@@ -675,100 +767,7 @@ async def main(page: Page):
         if page.route == "/ia":
             page.go('/')
             ai = 2
-            anim_carrega = Lottie(src="src/ia_animation.json", repeat=True)  
-            async def send_message(e):
-                ia_container_TextField = ia_container.controls[0].content.controls[2].controls[1].value
-                if ia_container_TextField == "":
-                    ia_container.controls[0].content.controls[2].controls[1].error_text = "Per enviar un missatge l'has d'escriure primer!"
-                    page.update()
-                else:
-                    ia_container.controls[0].content.controls[2].controls[1].error_text = None
-                    ia_container.controls[0].content.controls[1].controls.append(
-                        Container(bgcolor="#d1ddff",content=Row([Text(""), CircleAvatar(content=Icon(icons.PERSON)), Markdown(f"{ia_container_TextField}",width=page.width*0.8)]))
-                    )
-                    ia_container.controls[0].content.controls[1].controls.append(Divider())
-                    ia_container.controls[0].content.controls[2].controls[1].value = ""
-                    ia_container.controls[0].content.controls[2].controls[2].focus()
-                    page.update()
-                    await asyncio.sleep(0.01)                      
-                    ia_container.controls[0].content.controls[1].controls.append(anim_carrega)
-                    page.update()
-                    await asyncio.sleep(0.1)
-                    history.append({"role": "user", "parts": [{"text": f"{ia_container_TextField}"}]})
-                    async with httpx.AsyncClient() as client:  # Crea una sessió asíncrona
-                        response = await client.post(api, headers=headers, json=data)
-                        if response.status_code == 200: 
-                            resposta = response.json() 
-                            resposta_100 = resposta['candidates'][0]['content']['parts'][0]['text']
-                            ia_container.controls[0].content.controls[1].controls.append(
-                                Container(bgcolor="#9796f0",content=Row([Text(""), CircleAvatar(content=Icon(icons.PIN_DROP)), Markdown(f"{resposta_100}", width=page.width*0.8)]))
-                            )
-                            ia_container.controls[0].content.controls[1].controls.append(Divider())
-                            ia_container.controls[0].content.controls[1].controls.remove(anim_carrega)
-                            page.update()
-
-            async def first_message():
-                async with httpx.AsyncClient() as client:  # Crea una sessió asíncrona
-                    response = await client.post(api, headers=headers, json=data)  # Utilitza client.post() per fer la petició
-                    if response.status_code == 200:  # Comprova l'estat de la resposta
-                        api_response = response.json()  # Espera la resposta JSON
-                        chat_response = api_response['candidates'][0]['content']['parts'][0]['text']  # Accedeix al text de la resposta
-                        ia_container.controls[0].content.controls[1].controls.remove(anim_carrega)
-                        page.update()
-                        ia_container.controls[0].content.controls[1].controls.append(Container(bgcolor="#9796f0", content=Row([Text(""), CircleAvatar(content=Icon(icons.PIN_DROP)), Markdown(f"{chat_response}", width=page.width*0.8)]))) 
-                        ia_container.controls[0].content.controls[1].controls.append(Divider())                   
-                        page.update()
-            async def exit_e(e):
-                global ai 
-                ai = 0
-                page.overlay.remove(ia_container)
-                page.go('/')
-                page.update()
-            async def fullscreen(e):
-                ia_container.controls[0].content.controls[0].height = page.height * 0.83 * 0.13 if ia_container.controls[0].height == page.height * 0.72 else page.height * 0.72 * 0.15
-                ia_container.controls[0].content.controls[1].height = page.height * 0.83 * 0.65 if ia_container.controls[0].height == page.height * 0.72 else page.height * 0.72 * 0.65
-                ia_container.controls[0].content.controls[2].height = page.height * 0.83 * 0.1 if ia_container.controls[0].height == page.height * 0.72 else page.height * 0.72 * 0.1
-                ia_container.controls[0].height = page.height * 0.83 if ia_container.controls[0].height == page.height * 0.72 else page.height * 0.72
-                page.update()
-                
-            ia_container = Stack(controls=[
-                    Container(
-                        height=page.height * 0.72, 
-                        width=page.width, 
-                        gradient=LinearGradient(
-                                begin=alignment.top_left,
-                                end=Alignment(0.8, 1),
-                                colors=[
-                                    "#9796f0", # Blau pastel
-                                    "#fbc7d4", # Vermell pastel
-
-                                ],
-                                tile_mode=GradientTileMode.MIRROR,
-                                rotation=math.pi / 3,
-                            ), 
-                        bottom=0, 
-                        border_radius=20,
-                        content=Column(
-                            height=page.height * 0.72,
-                            controls=[
-                                Container(
-                                    height=page.height * 0.72 * 0.15, 
-                                    width=page.width,
-                                    bgcolor="#9796f0",
-                                    content=Row([IconButton(icons.OPEN_IN_FULL_ROUNDED, icon_color="d1ddff", on_click=fullscreen),Text("NEAR IA", style=TextStyle(size=24, color="white"), text_align="center"),IconButton(icons.CLOSE_ROUNDED, icon_color="#fbc7d4",on_click=exit_e)],alignment=MainAxisAlignment.SPACE_BETWEEN, width=page.width)
-                                ),
-                                ListView(
-                                    auto_scroll=True,
-                                    height=page.height * 0.72 * 0.65, 
-                                    controls=[
-                                    ]
-                                ), 
-                                Row(height=page.height*0.72*0.1,width=page.width, vertical_alignment="end", controls=[Text(""),TextField(width=page.width * 0.8, label="Parla amb la IA!", autocorrect=True,icon=icons.ACCOUNT_CIRCLE,multiline=True, on_submit=send_message), IconButton(on_click=send_message,icon=icons.SEND,bgcolor="#9796f0", width=page.width * 0.13)])
-                            ]
-                        ),
-                        
-                    )
-            ])
+            anim_carrega = Lottie(src="src/ia_animation.json", repeat=True)   
             page.overlay.append(ia_container)
             page.update()
             ia_container.controls[0].content.controls[1].controls.append(anim_carrega)
@@ -896,8 +895,6 @@ Categories: {categories_list} this is to check all the categories, now it's the 
         page.go('/info')
 
 
-    
-    
     categories_list = {
         #* Tags_amunt
         "Restaurants": [13065],
@@ -954,7 +951,7 @@ Categories: {categories_list} this is to check all the categories, now it's the 
         "Menjar 🛒🍴": [17057]
     }
     
-    def categ_check_sel(e):
+    async def categ_check_sel(e):
         global canvi
         categories_sel = page.session.get("categories_sel")
         if e.control.value == True:
@@ -973,8 +970,9 @@ Categories: {categories_list} this is to check all the categories, now it's the 
                     canvi = True
         categories_sel = page.session.get("categories_sel")
         print(categories_sel)
-    def categ_chip_sel(e):
+    async def categ_chip_sel(e):
         global canvi
+        global ai 
         categories_sel = page.session.get("categories_sel")
         if e.control.selected:# El que fa es afegir en el cas de que estigui seleccionat i detecta la chip
             categories = categories_list.get(e.control.label.value, [])
@@ -993,12 +991,17 @@ Categories: {categories_list} this is to check all the categories, now it's the 
         if e.control.label.value == "   Cerca a un lloc     ":
             page.go('/lloc_especific')
             e.control.selected = False
-        elif e.control.label.value == "AI":
-            if e.control.selected:
-                page.go('/ia')
+        if e.control.label.value == "AI":
+            if e.control.selected and ai != 2:
+                ai = 2
+                page.go("/ia") 
+
             else:
                 page.go('/')
                 page.overlay.clear()
+                page.overlay.append(gl)
+
+                    
             page.update()
 
         
@@ -1250,16 +1253,15 @@ Categories: {categories_list} this is to check all the categories, now it's the 
     async def changetab(e):
         global ai
         index = e.control.selected_index
+
         if index == 1: #Llocs
             ai+=1
-            print("ai", ai)
             if ai == 2:
                 page.go("/ia")    
                 page.update()            
             elif ai == 4:
-                ai=0
-                page.overlay.clear() 
-                page.update()
+                page.overlay.clear()
+                page.overlay.append(gl)
             page.go('/')
             await asyncio.sleep(0.001)
             selected_llocs.offset = transform.Offset(0, -0.25)
@@ -1270,7 +1272,8 @@ Categories: {categories_list} this is to check all the categories, now it's the 
             
         elif index == 0: #Favorits
             ai=0
-            page.overlay.clear() 
+            page.overlay.clear()
+            page.overlay.append(gl)
             page.go('/favorits')
             while index == 0: #Animacions icones
                 await asyncio.sleep(1)
@@ -1280,7 +1283,8 @@ Categories: {categories_list} this is to check all the categories, now it's the 
 
         elif index == 2: #Configuració
             ai=0
-            page.overlay.clear() 
+            page.overlay.clear()
+            page.overlay.append(gl)
             page.go('/configuracio')
             await asyncio.sleep(0.1)
             selected_configuracio.rotate.angle += (2*math.pi)
@@ -1369,12 +1373,8 @@ Categories: {categories_list} this is to check all the categories, now it's the 
 
                 index_photo_stack = -1
                 #:) Cobren el mateix demanant 5, 10 que 50
-                if gl in page.controls:
-                    p = await gl.get_current_position_async()
-                else: 
-                    page.overlay.append(gl)
-                    page.update()
-                    p = await gl.get_current_position_async()
+                
+                p = await gl.get_current_position_async()
 
                 
                 if page.session.contains_key("lloc_especific"):
