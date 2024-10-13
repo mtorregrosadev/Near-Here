@@ -7,7 +7,7 @@ index_photo = 0
 import requests
 import random
 import math
-import aiohttp
+import httpx
 
 ai = 0
 images_request = []
@@ -143,11 +143,11 @@ class Llocs_info:
         params = {
             "fields": "description,tel,email,website,social_media,hours,hours_popular,rating,stats,popularity,price,menu,photos,tastes,features,venue_reality_bucket,related_places,timezone,distance"
         }
-        async with aiohttp.ClientSession() as session:  # Crea una sessió asíncrona
-            async with session.get(url, headers=headers, params=params) as response:  # Canviat a GET
-                if response.status == 200:
-                    api_response = await response.json()
-                    return api_response
+        async with httpx.AsyncClient() as client:  # Crea una sessió asíncrona amb httpx
+            response = await client.get(url, headers=headers, params=params)  # Utilitza client.get() per fer la petició
+            if response.status_code == 200:  # Comprova l'estat de la resposta
+                api_response = response.json()  # Espera la resposta JSON
+                return api_response
                        
         
 
@@ -540,11 +540,8 @@ async def main(page: Page):
 
             page.views.append(View(bgcolor = "#FFFCF1",controls=[
                     AppBar(bgcolor="#AAD7D9",adaptive=True),
-                    SafeArea(content=Text(f"{dadesLlocs[index_photo_stack]['name']}", text_align="center", weight=FontWeight.W_900, size=page.height*0.03, width=page.width, color="#6b9e9f", height=page.height * 0.03)),
-                    stack_info_contact,
-                    stack_social_media,
-                    Stack_info,
-                    ElevatedButton("Tornar", on_click=view_pop, width=page.width)
+                    Text(f"{dadesLlocs[index_photo_stack]['name']}", text_align="center", weight=FontWeight.W_900, size=page.height*0.03, width=page.width, color="#6b9e9f"),
+                    ListView(controls=[stack_info_contact,stack_social_media,Stack_info],auto_scroll=False, height=page.height*0.8)
                     
             ]))
         if page.route == '/categories':
@@ -698,29 +695,29 @@ async def main(page: Page):
                     page.update()
                     await asyncio.sleep(0.1)
                     history.append({"role": "user", "parts": [{"text": f"{ia_container_TextField}"}]})
-                    async with aiohttp.ClientSession() as session:  # Crea una sessió asíncrona
-                        async with session.post(api, headers=headers, json=data) as response:
-                            if response.status == 200: 
-                                resposta = await response.json() 
-                                resposta_100 = resposta['candidates'][0]['content']['parts'][0]['text']
-                                ia_container.controls[0].content.controls[1].controls.append(
-                                    Container(bgcolor="#9796f0",content=Row([Text(""), CircleAvatar(content=Icon(icons.PIN_DROP)), Markdown(f"{resposta_100}", width=page.width*0.8)]))
-                                )
-                                ia_container.controls[0].content.controls[1].controls.append(Divider())
-                                ia_container.controls[0].content.controls[1].controls.remove(anim_carrega)
-                                page.update()
-
-            async def first_message():
-                async with aiohttp.ClientSession() as session:  # Crea una sessió asíncrona
-                    async with session.post(api, headers=headers, json=data) as response:  # Utilitza session.post() per fer la petició
-                        if response.status == 200:  # Comprova l'estat de la resposta
-                            api_response = await response.json()  # Espera la resposta JSON
-                            chat_response = api_response['candidates'][0]['content']['parts'][0]['text']  # Accedeix al text de la resposta
+                    async with httpx.AsyncClient() as client:  # Crea una sessió asíncrona
+                        response = await client.post(api, headers=headers, json=data)
+                        if response.status_code == 200: 
+                            resposta = response.json() 
+                            resposta_100 = resposta['candidates'][0]['content']['parts'][0]['text']
+                            ia_container.controls[0].content.controls[1].controls.append(
+                                Container(bgcolor="#9796f0",content=Row([Text(""), CircleAvatar(content=Icon(icons.PIN_DROP)), Markdown(f"{resposta_100}", width=page.width*0.8)]))
+                            )
+                            ia_container.controls[0].content.controls[1].controls.append(Divider())
                             ia_container.controls[0].content.controls[1].controls.remove(anim_carrega)
                             page.update()
-                            ia_container.controls[0].content.controls[1].controls.append(Container(bgcolor="#9796f0", content=Row([Text(""), CircleAvatar(content=Icon(icons.PIN_DROP)), Markdown(f"{chat_response}", width=page.width*0.8)]))) 
-                            ia_container.controls[0].content.controls[1].controls.append(Divider())                   
-                            page.update()
+
+            async def first_message():
+                async with httpx.AsyncClient() as client:  # Crea una sessió asíncrona
+                    response = await client.post(api, headers=headers, json=data)  # Utilitza client.post() per fer la petició
+                    if response.status_code == 200:  # Comprova l'estat de la resposta
+                        api_response = response.json()  # Espera la resposta JSON
+                        chat_response = api_response['candidates'][0]['content']['parts'][0]['text']  # Accedeix al text de la resposta
+                        ia_container.controls[0].content.controls[1].controls.remove(anim_carrega)
+                        page.update()
+                        ia_container.controls[0].content.controls[1].controls.append(Container(bgcolor="#9796f0", content=Row([Text(""), CircleAvatar(content=Icon(icons.PIN_DROP)), Markdown(f"{chat_response}", width=page.width*0.8)]))) 
+                        ia_container.controls[0].content.controls[1].controls.append(Divider())                   
+                        page.update()
             async def exit_e(e):
                 global ai 
                 ai = 0
