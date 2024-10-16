@@ -217,21 +217,21 @@ async def main(page: Page):
             page.go("/configuracio")
     async def on_change_page(e):
         async def send_message(e):
-            ia_container_TextField = ia_container.controls[0].content.controls[2].controls[1].value
+            ia_container_TextField = ia_container.content.controls[0].content.controls[2].controls[1].value
             if ia_container_TextField == "":
-                ia_container.controls[0].content.controls[2].controls[1].error_text = "Per enviar un missatge l'has d'escriure primer!"
+                ia_container.content.controls[0].content.controls[2].controls[1].error_text = "Per enviar un missatge l'has d'escriure primer!"
                 page.update()
             else:
-                ia_container.controls[0].content.controls[2].controls[1].error_text = None
-                ia_container.controls[0].content.controls[1].controls.append(
+                ia_container.content.controls[0].content.controls[2].controls[1].error_text = None
+                ia_container.content.controls[0].content.controls[1].controls.append(
                     Container(bgcolor="#d1ddff",content=Row([Text(""), CircleAvatar(content=Icon(icons.PERSON)), Markdown(f"{ia_container_TextField}",width=page.width*0.8)]))
                 )
-                ia_container.controls[0].content.controls[1].controls.append(Divider())
-                ia_container.controls[0].content.controls[2].controls[1].value = ""
-                ia_container.controls[0].content.controls[2].controls[2].focus()
+                ia_container.content.controls[0].content.controls[1].controls.append(Divider())
+                ia_container.content.controls[0].content.controls[2].controls[1].value = ""
+                ia_container.content.controls[0].content.controls[2].controls[2].focus()
                 page.update()
                 await asyncio.sleep(0.01)                      
-                ia_container.controls[0].content.controls[1].controls.append(anim_carrega)
+                ia_container.content.controls[0].content.controls[1].controls.append(anim_carrega)
                 page.update()
                 await asyncio.sleep(0.1)
                 history.append({"role": "user", "parts": [{"text": f"{ia_container_TextField}"}]})
@@ -240,11 +240,11 @@ async def main(page: Page):
                     if response.status_code == 200: 
                         resposta = response.json() 
                         resposta_100 = resposta['candidates'][0]['content']['parts'][0]['text']
-                        ia_container.controls[0].content.controls[1].controls.append(
+                        ia_container.content.controls[0].content.controls[1].controls.append(
                             Container(bgcolor="#9796f0",content=Row([Text(""), CircleAvatar(content=Icon(icons.PIN_DROP)), Markdown(f"{resposta_100}", width=page.width*0.8)]))
                         )
-                        ia_container.controls[0].content.controls[1].controls.append(Divider())
-                        ia_container.controls[0].content.controls[1].controls.remove(anim_carrega)
+                        ia_container.content.controls[0].content.controls[1].controls.append(Divider())
+                        ia_container.content.controls[0].content.controls[1].controls.remove(anim_carrega)
                         page.update()
         async def first_message():
             async with httpx.AsyncClient() as client:  # Crea una sessió asíncrona
@@ -252,10 +252,10 @@ async def main(page: Page):
                 if response.status_code == 200:  # Comprova l'estat de la resposta
                     api_response = response.json()  # Espera la resposta JSON
                     chat_response = api_response['candidates'][0]['content']['parts'][0]['text']  # Accedeix al text de la resposta
-                    ia_container.controls[0].content.controls[1].controls.remove(anim_carrega)
+                    ia_container.content.controls[0].content.controls[1].controls.remove(anim_carrega)
                     page.update()
-                    ia_container.controls[0].content.controls[1].controls.append(Container(bgcolor="#9796f0", content=Row([Text(""), CircleAvatar(content=Icon(icons.PIN_DROP)), Markdown(f"{chat_response}", width=page.width*0.8)]))) 
-                    ia_container.controls[0].content.controls[1].controls.append(Divider())                   
+                    ia_container.content.controls[0].content.controls[1].controls.append(Container(bgcolor="#9796f0", content=Row([Text(""), CircleAvatar(content=Icon(icons.PIN_DROP)), Markdown(f"{chat_response}", width=page.width*0.8)]))) 
+                    ia_container.content.controls[0].content.controls[1].controls.append(Divider())                   
                     page.update()
         async def exit_e(e):
             global ai 
@@ -264,50 +264,65 @@ async def main(page: Page):
             page.go('/')
             page.update()
         async def fullscreen(e):
-            ia_container.controls[0].content.controls[0].height = page.height * 0.83 * 0.13 if ia_container.controls[0].height == page.height * 0.72 else page.height * 0.72 * 0.15
-            ia_container.controls[0].content.controls[1].height = page.height * 0.83 * 0.65 if ia_container.controls[0].height == page.height * 0.72 else page.height * 0.72 * 0.65
-            ia_container.controls[0].content.controls[2].height = page.height * 0.83 * 0.1 if ia_container.controls[0].height == page.height * 0.72 else page.height * 0.72 * 0.1
-            ia_container.controls[0].height = page.height * 0.83 if ia_container.controls[0].height == page.height * 0.72 else page.height * 0.72
+            ia_container.content.controls[0].content.controls[0].height = page.height * 0.83 * 0.13 if ia_container.content.controls[0].height == page.height * 0.72 else page.height * 0.72 * 0.15
+            ia_container.content.controls[0].content.controls[1].height = page.height * 0.83 * 0.65 if ia_container.content.controls[0].height == page.height * 0.72 else page.height * 0.72 * 0.65
+            ia_container.content.controls[0].content.controls[2].height = page.height * 0.83 * 0.1 if ia_container.content.controls[0].height == page.height * 0.72 else page.height * 0.72 * 0.1
+            ia_container.content.controls[0].height = page.height * 0.83 if ia_container.content.controls[0].height == page.height * 0.72 else page.height * 0.72
             page.update()
-               
-        ia_container = Stack(controls=[
-                    Container(
-                        height=page.height * 0.72, 
-                        width=page.width, 
-                        gradient=LinearGradient(
-                                begin=alignment.top_left,
-                                end=Alignment(0.8, 1),
-                                colors=[
-                                    "#9796f0", # Blau pastel
-                                    "#fbc7d4", # Vermell pastel
-
-                                ],
-                                tile_mode=GradientTileMode.MIRROR,
-                                rotation=math.pi / 3,
+        send_button =IconButton(on_click=send_message,icon=icons.SEND,bgcolor="#9796f0", width=page.width * 0.13)
+        async def vertical_drag(e):
+            data = json.loads(e.data)
+            print(data["pv"], data["vy"])
+            if data["pv"] > 1 and data["vy"] > 0:
+                send_button.focus()
+        ia_container = GestureDetector(
+            on_tap=lambda e: send_button.focus(),
+            on_vertical_drag_end=vertical_drag,
+            content=Stack(controls=[
+                Container(
+                    height=page.height * 0.72, 
+                    width=page.width, 
+                    gradient=LinearGradient(
+                        begin=alignment.top_left,
+                        end=Alignment(0.8, 1),
+                        colors=[
+                            "#9796f0", # Blau pastel
+                            "#fbc7d4", # Vermell pastel
+                        ],
+                        tile_mode=GradientTileMode.MIRROR,
+                        rotation=math.pi / 3,
+                    ), 
+                    bottom=0, 
+                    border_radius=20,
+                    content=Column(
+                        height=page.height * 0.72,
+                        controls=[
+                            Container(
+                                height=page.height * 0.72 * 0.15, 
+                                width=page.width,
+                                bgcolor="#9796f0",
+                                content=Row([
+                                    IconButton(icons.OPEN_IN_FULL_ROUNDED, icon_color="d1ddff", on_click=fullscreen),
+                                    Text("NEAR IA", style=TextStyle(size=24, color="white"), text_align="center"),
+                                    IconButton(icons.CLOSE_ROUNDED, icon_color="#fbc7d4", on_click=exit_e)
+                                ], alignment=MainAxisAlignment.SPACE_BETWEEN, width=page.width)
+                            ),
+                            ListView(
+                                auto_scroll=True,
+                                height=page.height * 0.72 * 0.65, 
+                                controls=[]
                             ), 
-                        bottom=0, 
-                        border_radius=20,
-                        content=Column(
-                            height=page.height * 0.72,
-                            controls=[
-                                Container(
-                                    height=page.height * 0.72 * 0.15, 
-                                    width=page.width,
-                                    bgcolor="#9796f0",
-                                    content=Row([IconButton(icons.OPEN_IN_FULL_ROUNDED, icon_color="d1ddff", on_click=fullscreen),Text("NEAR IA", style=TextStyle(size=24, color="white"), text_align="center"),IconButton(icons.CLOSE_ROUNDED, icon_color="#fbc7d4",on_click=exit_e)],alignment=MainAxisAlignment.SPACE_BETWEEN, width=page.width)
-                                ),
-                                ListView(
-                                    auto_scroll=True,
-                                    height=page.height * 0.72 * 0.65, 
-                                    controls=[
-                                    ]
-                                ), 
-                                Row(height=page.height*0.72*0.1,width=page.width, vertical_alignment="end", controls=[Text(""),TextField(width=page.width * 0.8, label="Parla amb la IA!", autocorrect=True,icon=icons.ACCOUNT_CIRCLE,multiline=True, on_submit=send_message), IconButton(on_click=send_message,icon=icons.SEND,bgcolor="#9796f0", width=page.width * 0.13)])
-                            ]
-                        ),
-                        
+                            Row(height=page.height * 0.72 * 0.1, width=page.width, vertical_alignment="end", controls=[
+                                Text(""),
+                                TextField(width=page.width * 0.8, label="Parla amb la IA!", autocorrect=True, icon=icons.ACCOUNT_CIRCLE, multiline=True, on_submit=send_message),
+                                send_button
+                            ])
+                        ]
                     )
+                )
             ])
+        )
+
         global canvi 
         global ai 
         if page.route != '/info':
@@ -770,13 +785,13 @@ async def main(page: Page):
             anim_carrega = Lottie(src="src/ia_animation.json", repeat=True)   
             page.overlay.append(ia_container)
             page.update()
-            ia_container.controls[0].content.controls[1].controls.append(anim_carrega)
+            ia_container.content.controls[0].content.controls[1].controls.append(anim_carrega)
             ia_container.update()
             await asyncio.sleep(0.1)
             dadesLlocs = page.session.get("dadesLlocs")
             idioma = page.session.get("idioma")
             user_categories = page.session.get("categories_sel")
-            system_instructions = f"""Hey! Imagine you are a cultural center worker and someone comes to you with a lot of PDI (Points of Interest). So for this, I will pass you 3 things:
+            system_instructions = f"""Hey! Imagine you are a cultural center worker and someone comes to you with a lot of PDI (Points of Interest). You don't have name, so don't present you with it. So for this, I will pass you 3 things:
 
 
 
