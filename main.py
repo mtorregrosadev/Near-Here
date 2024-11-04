@@ -10,6 +10,7 @@ import math
 import httpx
 
 ai = 0
+sostenible = True
 images_request = []
 index_photo_stack = -1
 canvi = False
@@ -149,7 +150,223 @@ class Llocs_info:
                 api_response = response.json()  # Espera la resposta JSON
                 return api_response
                        
+class Llocs_yelp:
+    def __init__(self, latitud, longitud, radius, limit, loc_visited,categories_sel, sort_sel, preu, near): #Definim totes les variables que hem donat a traves de la class
+        self.latitud = latitud 
+        self.longitud = longitud
+        self.radius = radius
+        self.limit = limit
+        self.loc_visited = loc_visited
+        self.categories_s = categories_sel
+        self.sort = sort_sel
+        self.preu = preu
+        self.near = near
+
+    def _randomize_coordinates(self, lat, lon):
+        # Afegeix un petit desplaçament a les coordenades perquè no sigui sempre igual
+        increment = len(self.loc_visited) / 10000
+        print("increment és:", increment)
+        if len(self.loc_visited) > 1 and len(self.loc_visited) < 100: #Aquest el que fa es detectar la longitud de les places ja visitades i depenent d'aquesta fa més variació o menys
+            randloc = (len(self.loc_visited) // 10) * increment
+        elif len(self.loc_visited) >= 100: 
+            self.limit += 2
+            randloc = (len(self.loc_visited) // 10) * increment
+        else:
+            return lat,lon 
+        new_lat = lat + random.uniform(-randloc, randloc)
+        new_lon = lon + random.uniform(-randloc, randloc)
+        return new_lat, new_lon #Retorna les localitzacions randomitzades
+    
+    def dades(self): #Aqui agafem totes les dades 
+        data=[]
+        #print(tcategories)
+        tcategories = ""
+        categories_yelp = {
+            # Tags_amunt
+            13065: "restaurants",
+            16020: "publicplazas",
+            16026: "castles",
+            16031: "museums",
+            16051: "culturalcenter",
+            16032: "parks",
+            13037: "coffee",
+            10000: "amusementparks",
+            12080: "arcades",
+            17018: "musicvenues",
+            17000: "shopping",
+            
+            # Tourism-related categories
+            10001: "amusementparks",
+            10003: "tours",
+            10004: "museums",
+            10009: "sailing",
+            10027: "museums",
+            16011: "historicalsites",
+            16034: "nationalparks",
+            16024: "gardens",
+            16014: "observatories",
+            16007: "beaches",
+
+            # General Categories
+            13000: "food",
+            16000: "outdooractivities",
+            10000: "artsentertainment",
+            19000: "travelservices",
+            
+            # Menjar (Food) Specific Categories
+            13002: "bakeries",
+            13003: "bars",
+            13041: "creperies",
+            13390: "glutenfree",
+
+            # Outdoor Categories
+            16003: "beaches",
+            16026: "landmarks",
+
+            # Entertainment Specific
+            10021: "karaoke",
+            10015: "escapegames",
+            10006: "bowling",
+            10024: "movietheaters",
+
+            # Travel Categories
+            19002: "bikerentals",
+            19003: "boatrentals",
+            19009: "hotels",
+            19020: "ecoparking",
+            19024: "reststops",
+            19055: "sustainabletourism",
+
+            # Shops
+            17039: "ecofashion",
+            17114: "shoppingcenters",
+            17018: "bookstores",
+            17029: "convenience",
+            17138: "vintage",
+            17056: "florists",
+            17135: "toys",
+            17057: "organic"
+        }
+        print("TCATEGORIES",tcategories)
+        if len(self.categories_s) > 0:
+            print("TCATEGORIES",tcategories)
+            for i in range(len(self.categories_s)):
+                category = categories_yelp.get(self.categories_s[i],[])
+                category_af = f"{category},"
+                tcategories = tcategories + category_af
+
+
+
+        randomized_lat, randomized_lon = self._randomize_coordinates(self.latitud, self.longitud) if self.near is None or self.near == "" else (self.latitud, self.longitud) #Rep les coordenades randomitzades 
+        url = "https://api.yelp.com/v3/businesses/search"
+        headers = {
+            "accept": "application/json",
+            "Authorization": "Bearer zPz4d3nX6KljciR5JivwE8YNeKXSZkwBn3cpFaSX_QQgYdrl0w8Kcb9BTCkdjsTjB74X-LEJuL4KEQ-Y4PUVfnQzuDoBHlqxYI5bY0zWJ1qJBKMSv83FYF7hwIMWZ3Yx"
+        }
+        if self.sort == "RATING":
+            self.sort.lower()
+        elif self.sort == "RELEVANCE":
+            self.sort = "best_match"
+        elif self.sort =="DISTANCE":
+            self.sort.lower()
+        elif self.sort == "POPULARITY":
+            self.sort = "review_count"
+        print(self.radius, self.limit, self.sort)
+        params = {
+            "latitude": f"{randomized_lat}",
+            "longitude": f"{randomized_lon}",
+            "radius": self.radius,
+            "limit": self.limit, # Tots aquests parametres serán obligatoris
+            "sort": self.sort,
+            "categories": "farmersmarket,organicstores,ethicalgrocery,csa,bikeparking,parks,beaches,gardens,streetvendors,hiking,publicplazas,playgrounds,wineries,salumerie,seafoodmarkets,culturalcenter,visitorcenters,recyclingcenter"
+        }
+
+        if self.preu != 0: # Comprova si és 0 per tal de no aplicar filtre ja que es del 1 al 4
+            params["price"] = self.preu
+        if tcategories != "":
+            print("TCATEGORIES",tcategories)
+            params['categories'] = tcategories + "farmersmarket,organicstores,ethicalgrocery,csa,bikeparking,parks,beaches,gardens,streetvendors,hiking,publicplazas,playgrounds,wineries,salumerie,seafoodmarkets,culturalcenter,visitorcenters,recyclingcenter"
+        if self.near is not None and self.near != "": #Elimina i canvia el lloc en el cas que hi hagi un lloc indicat
+            params["location"] = self.near
+            del params["latitude"]
+            del params["longitude"]
+            del params["radius"]
+            print("Params: ", params)
+
+        locations = requests.get(url, headers=headers, params=params)
         
+        #Detecta si l'API l'ha contestat 200 == Bé i després detecta que no sigui ja a la llista
+        if locations.status_code == 200:
+            locations = locations.json().get('businesses', [])
+            for i in range(len(locations)):
+                lloc = locations[i]
+                if 'price' in lloc:
+                    lloc['price'] = len(lloc['price'])
+                data_lloc = {
+                    "fsq_id": lloc.get('id', None),
+                    "alias": lloc.get('alias', None),
+                    "name": lloc.get('name', None),
+                    "photos": lloc.get('image_url', None),
+                    "is_closed": lloc.get('is_closed', None),
+                    "url": lloc.get('url', None),
+                    "review_count": lloc.get('review_count', None),
+                    "categories": lloc.get('categories', []),
+                    "closed_bucket": "Closed" if lloc.get("is_closed") else "Open",
+                    "rating": lloc.get('rating', None),
+                    "coordinates": lloc.get('coordinates', {}),
+                    "transactions": lloc.get('transactions', []),
+                    "price": lloc.get('price', None),
+                    "location": {
+                        "address": lloc.get("location", {}).get("address1", None),
+                        "address_extended": lloc.get("location", {}).get("address2", None),
+                        "locality": lloc.get("location", {}).get("city", None),
+                        "region": lloc.get("location", {}).get("state", None),
+                        "postcode": lloc.get("location", {}).get("zip_code", None),
+                        "country": lloc.get("location", {}).get("country", None)
+                    },
+                    "geocodes": {
+                        "main": {
+                            "latitude": lloc.get("coordinates", {}).get("latitude", None),
+                            "longitude": lloc.get("coordinates", {}).get("longitude", None)
+                        }
+                    },
+                    "phone": lloc.get('phone', None),
+                    "display_phone": lloc.get('display_phone', None),
+                    "distance": lloc.get('distance', None),
+                    "business_hours": lloc.get('hours', []),
+                    "attributes": lloc.get('attributes', {})
+                }
+                data.append(data_lloc)
+                print(data_lloc['name'])
+            #! He de posar sistema per treure els llocs visitats!!
+            else:
+                print("Error en la consulta de l'API")
+        elif locations.status_code == 400:
+            print("error 400")
+            return "error 400", []
+
+        self.data = data
+        return data, self.loc_visited
+    
+    def photos(self):
+        fotos = []
+        
+        for i in range(len(self.data)):
+            fotos_llocs = []
+            print(self.data[i]['photos'])
+            if 'photos' in self.data[i]:
+                fotos_llocs.append(self.data[i]['photos'])
+                fotos.append(fotos_llocs)
+            else:
+                fotos.append([])
+        print(fotos)
+        return fotos
+    def categories(self):
+        #! Per fer 
+        categories = []
+        for i in range(len(self.data)):
+            categories.append([])
+        return categories   
 
 async def main(page: Page):
     #crearem la splash screen
@@ -444,7 +661,11 @@ async def main(page: Page):
                 for i in range(len(loc_visited)):
                     if loc_visited_photos[i] != []:
                         url = loc_visited_photos[i][0]
-                        new_url = resize_image_url(url, 150, 150)
+                        invariant_part = "https://fastly.4sqi.net/img/general/"
+                        if url.startswith(invariant_part):
+                            new_url = resize_image_url(url, 150, 150)
+                        else:
+                            new_url = url
                         images_saved.controls.append(
                             Container(content=Column(spacing=0.5,horizontal_alignment="center", controls=[Image(
                                 src=new_url,
@@ -1355,6 +1576,7 @@ Categories: {categories_list} this is to check all the categories, now it's the 
         global images_request
         global canvi
         global cards
+        global sostenible
         if canvi == True:
             #crearem la splash screen
             splash = Container(
@@ -1382,6 +1604,7 @@ Categories: {categories_list} this is to check all the categories, now it's the 
                 #* Demanem les dades 
                 print("index_photo_Stack: ",index_photo_stack)
                 if canvi == True:
+                    sostenible = True
                     print(len(loc_visited))
                     dadesLlocs = []
                     cards.clear()
@@ -1390,19 +1613,27 @@ Categories: {categories_list} this is to check all the categories, now it's the 
                 #:) Cobren el mateix demanant 5, 10 que 50
                 
                 p = await gl.get_current_position_async()
-
-                
-                if page.session.contains_key("lloc_especific"):
-                    print("Entra")
-                    lloc_especific = page.session.get("lloc_especific")
-                
-                if page.session.contains_key("lloc_especific"): # Comprova si hi ha un lloc específic posat per l'usuari
-                    if lloc_especific != "":
-                        llocs = Llocs(None,None,radius_sel,50,loc_visited,categories_sel,sort_sel, preu, lloc_especific) 
-                    else: #En el cas que l'usuari no hagi posat cap lloc però ja sigui inicialitzada la variable
+                if sostenible == True:         
+                    if page.session.contains_key("lloc_especific"): # Comprova si hi ha un lloc específic posat per l'usuari
+                        lloc_especific = page.session.get("lloc_especific")
+                        if lloc_especific != "":
+                            llocs = Llocs_yelp(None,None,radius_sel,50,loc_visited,categories_sel,sort_sel, preu, lloc_especific) 
+                        else: #En el cas que l'usuari no hagi posat cap lloc però ja sigui inicialitzada la variable
+                            llocs = Llocs_yelp(p.latitude,p.longitude,radius_sel,50,loc_visited,categories_sel,sort_sel, preu, None) 
+                    else: #En el cas que no hi hagi cap lloc específic posat
+                        llocs = Llocs_yelp(p.latitude,p.longitude,radius_sel,50,loc_visited,categories_sel,sort_sel, preu, None) 
+                    sostenible = False
+                else:
+                    if page.session.contains_key("lloc_especific"): # Comprova si hi ha un lloc específic posat per l'usuari
+                        lloc_especific = page.session.get("lloc_especific")
+                        if lloc_especific != "":
+                            llocs = Llocs(None,None,radius_sel,50,loc_visited,categories_sel,sort_sel, preu, lloc_especific) 
+                        else: #En el cas que l'usuari no hagi posat cap lloc però ja sigui inicialitzada la variable
+                            llocs = Llocs(p.latitude,p.longitude,radius_sel,50,loc_visited,categories_sel,sort_sel, preu, None) 
+                    else: #En el cas que no hi hagi cap lloc específic posat
                         llocs = Llocs(p.latitude,p.longitude,radius_sel,50,loc_visited,categories_sel,sort_sel, preu, None) 
-                else: #En el cas que no hi hagi cap lloc específic posat
-                    llocs = Llocs(p.latitude,p.longitude,radius_sel,50,loc_visited,categories_sel,sort_sel, preu, None) 
+                    
+
                 dadesLlocs, loc_visited = llocs.dades()
                 if dadesLlocs == "error 400":
                     page.go("/error")
@@ -1451,10 +1682,11 @@ Categories: {categories_list} this is to check all the categories, now it's the 
                                 Text(f"Direcció: {None} | Distància: {distancia(i)}", color="white",weight=FontWeight.W_900),
                                 Row(alignment="center",width = page.width, controls=[])
                                 ]) 
-                        for j in range(len(categories[i])):
-                            subtitle_card.controls[1].controls.append(
-                                Image(src=categories[i][j], height=20)
-                        )
+                        if categories[i] != []:
+                            for j in range(len(categories[i])):
+                                subtitle_card.controls[1].controls.append(
+                                    Image(src=categories[i][j], height=20)
+                            )
                         
                         def get_dynamic_font_size(text, base_size, min_size, max_size):
                             text_length = len(text)
@@ -1542,7 +1774,7 @@ Categories: {categories_list} this is to check all the categories, now it's the 
                             page.open(dlg)
                         if images_request[i] != []: 
                             print("Si té fotos")
-                            if len(dadesLlocs[i]['photos']) == 1: 
+                            if len(images_request[i]) == 1: 
                                 print("prova")
                                 img_principal = Container(
                                     alignment=alignment.center,
@@ -1748,7 +1980,7 @@ Categories: {categories_list} this is to check all the categories, now it's the 
                         if 'rating' in dadesLlocs[i]: 
                             bottom_rating = Text(f"Valoració: {dadesLlocs[i]['rating']}", color="white", weight=FontWeight.W_900)
                             carta.content.controls[2].controls.append(bottom_rating)
-                        if 'price' in dadesLlocs[i]:
+                        if dadesLlocs[i].get('price') is not None: 
                             bottom_price = Row([Text(f"Preu:",color="white",weight=FontWeight.W_900)])
                             for c in range(round(dadesLlocs[i]['price'])):
                                 if dadesLlocs[i]['price'] == 1:
