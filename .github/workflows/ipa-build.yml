@@ -59,6 +59,14 @@ jobs:
         flutter config --no-analytics
         flet build ipa --verbose --build-number=${{ inputs.BUILD_NUMBER }} --build-version=${{ inputs.BUILD_VERSION }} --include-packages flet_geolocator flet_lottie
 
+    - name: Upload IPA Artifact
+      uses: actions/upload-artifact@v4.3.4  # https://github.com/marketplace/actions/upload-a-build-artifact
+      with:
+        name: ipa-build-artifact  # the name of the artifact
+        path: build/ipa  # location of Flet build output
+        if-no-files-found: error  # Fail the action with an error message if no files are found
+        overwrite: false  # If true, an artifact with a matching name will be deleted before a new one is uploaded. If false, the action will fail if an artifact for the given name already exists. Does not fail if the artifact does not exist.
+    
     - name: Create Payload Directory
       run: mkdir Payload
 
@@ -67,15 +75,7 @@ jobs:
 
     - name: Package Payload Directory
       run: zip -r Near_Here-${{ inputs.BUILD_VERSION }}.ipa Payload
-
-    - name: Upload IPA Artifact
-      uses: actions/upload-artifact@v4.3.4  # https://github.com/marketplace/actions/upload-a-build-artifact
-      with:
-        name: ipa-build-artifact  # the name of the artifact
-        path: Near_Here-${{ inputs.BUILD_VERSION }}.ipa  # location of Flet build output
-        if-no-files-found: error  # Fail the action with an error message if no files are found
-        overwrite: false  # If true, an artifact with a matching name will be deleted before a new one is uploaded. If false, the action will fail if an artifact for the given name already exists. Does not fail if the artifact does not exist.
-
+    
     - name: Create GitHub Release
       id: create_release
       uses: actions/create-release@v1
