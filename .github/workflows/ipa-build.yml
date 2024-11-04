@@ -54,15 +54,10 @@ jobs:
       with:
         flutter-version: ${{ env.FLUTTER_VERSION }}
 
-    - name: Install CocoaPods Dependencies
-      run: |
-        cd ios
-        pod install
-
     - name: Flet Build IPA
       run: |
         flutter config --no-analytics
-        flet build ipa --verbose --build-number=${{ inputs.BUILD_NUMBER }} --build-version=${{ inputs.BUILD_VERSION }} --include-packages flet_geolocator flet_lottie
+        flet build ipa --vv --build-number=${{ inputs.BUILD_NUMBER }} --build-version=${{ inputs.BUILD_VERSION }} --include-packages flet_geolocator flet_lottie
 
     - name: Upload IPA Artifact
       uses: actions/upload-artifact@v4.3.4  # https://github.com/marketplace/actions/upload-a-build-artifact
