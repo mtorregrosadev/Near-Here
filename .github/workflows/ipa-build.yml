@@ -54,6 +54,11 @@ jobs:
       with:
         flutter-version: ${{ env.FLUTTER_VERSION }}
 
+    - name: Install CocoaPods Dependencies
+      run: |
+        cd ios
+        pod install
+
     - name: Flet Build IPA
       run: |
         flutter config --no-analytics
