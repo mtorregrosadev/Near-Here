@@ -1613,7 +1613,7 @@ Categories: {categories_list} this is to check all the categories, now it's the 
                 #:) Cobren el mateix demanant 5, 10 que 50
                 
                 p = await gl.get_current_position_async()
-                if sostenible == True:         
+                if sostenible:  #Si es true entra    
                     if page.session.contains_key("lloc_especific"): # Comprova si hi ha un lloc específic posat per l'usuari
                         lloc_especific = page.session.get("lloc_especific")
                         if lloc_especific != "":
@@ -1622,8 +1622,10 @@ Categories: {categories_list} this is to check all the categories, now it's the 
                             llocs = Llocs_yelp(p.latitude,p.longitude,radius_sel,50,loc_visited,categories_sel,sort_sel, preu, None) 
                     else: #En el cas que no hi hagi cap lloc específic posat
                         llocs = Llocs_yelp(p.latitude,p.longitude,radius_sel,50,loc_visited,categories_sel,sort_sel, preu, None) 
-                    sostenible = False
-                else:
+                    
+                    dadesLlocs, loc_visited = llocs.dades()
+                    
+                if (sostenible and dadesLlocs == "error 400") or not sostenible: # Això fa que entri a l'altre en el cas que sigui error 400
                     if page.session.contains_key("lloc_especific"): # Comprova si hi ha un lloc específic posat per l'usuari
                         lloc_especific = page.session.get("lloc_especific")
                         if lloc_especific != "":
@@ -1632,7 +1634,7 @@ Categories: {categories_list} this is to check all the categories, now it's the 
                             llocs = Llocs(p.latitude,p.longitude,radius_sel,50,loc_visited,categories_sel,sort_sel, preu, None) 
                     else: #En el cas que no hi hagi cap lloc específic posat
                         llocs = Llocs(p.latitude,p.longitude,radius_sel,50,loc_visited,categories_sel,sort_sel, preu, None) 
-                    
+                sostenible = False
 
                 dadesLlocs, loc_visited = llocs.dades()
                 if dadesLlocs == "error 400":
