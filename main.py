@@ -16,7 +16,8 @@ index_photo_stack = -1
 canvi = False
 cards = []
 class Llocs:
-    def __init__(self, latitud, longitud, radius, limit, loc_visited,categories_sel, sort_sel, preu, near): #Definim totes les variables que hem donat a traves de la class
+    def __init__(self, latitud, longitud, radius, limit, loc_visited,categories_sel, sort_sel, preu, near): 
+        #Definim totes les variables que hem donat a traves de la class
         self.latitud = latitud 
         self.longitud = longitud
         self.radius = radius
@@ -31,17 +32,18 @@ class Llocs:
         # Afegeix un petit desplaçament a les coordenades perquè no sigui sempre igual
         increment = len(self.loc_visited) / 10000
         print("increment és:", increment)
-        if len(self.loc_visited) > 1 and len(self.loc_visited) < 100: #Aquest el que fa es detectar la longitud de les places ja visitades i depenent d'aquesta fa més variació o menys
+        if len(self.loc_visited) > 1 and len(self.loc_visited) < 100: 
+            # Aquest el que fa es detectar la longitud de les places ja visitades i depenent d'aquesta fa més variació o menys
             randloc = (len(self.loc_visited) // 10) * increment
         elif len(self.loc_visited) >= 100: 
-            self.limit += 2
-            randloc = (len(self.loc_visited) // 10) * increment
+            # Aquí fem que hi hagi més variació al segon que al primer
+            randloc = (len(self.loc_visited) // 5) * increment
+            # La variació màxima seria de 1,5Km
         else:
             return lat,lon 
         new_lat = lat + random.uniform(-randloc, randloc)
         new_lon = lon + random.uniform(-randloc, randloc)
         return new_lat, new_lon #Retorna les localitzacions randomitzades
-    
     def dades(self): #Aqui agafem totes les dades 
         data=[]
         tcategories = ""
@@ -50,7 +52,8 @@ class Llocs:
                 tcategories = ",".join(str(a) for a in self.categories_s)
 
         #print(tcategories)
-        randomized_lat, randomized_lon = self._randomize_coordinates(self.latitud, self.longitud) if self.near is None or self.near == "" else (self.latitud, self.longitud) #Rep les coordenades randomitzades 
+        randomized_lat, randomized_lon = self._randomize_coordinates(self.latitud, self.longitud) if not self.near or self.near == "" else (self.latitud, self.longitud)
+        #Rep les coordenades randomitzades 
         url = f"https://api.foursquare.com/v3/places/search"
         headers = {
             "accept": "application/json",
@@ -59,7 +62,8 @@ class Llocs:
         params = {
             "ll": f"{randomized_lat},{randomized_lon}",
             "radius": self.radius,
-            "limit": self.limit, # Tots aquests parametres serán obligatoris
+            "limit": self.limit, 
+            # Tots aquests parametres serán obligatoris
             "fields": "fsq_id,name,geocodes,location,categories,related_places,timezone,closed_bucket,social_media,rating,price,photos,menu,distance,chains", 
             "sort": self.sort,
         }
@@ -94,31 +98,18 @@ class Llocs:
         return data, self.loc_visited
 
     
-    def photos(self): #Cerca una foto per cada lloc
-        if self.limit > 1:
-            photos = []
-            for d in range(len(self.data)):
-                llocs_photos = []
-                if 'photos' in self.data[d]:
-                    for i in range(len(self.data[d]['photos'])):
-                        photo = self.data[d]['photos'][i]['prefix'] + str(self.data[d]['photos'][i]['width']) + "x" + str(self.data[d]['photos'][i]['height']) + self.data[d]['photos'][i]['suffix']
-                        llocs_photos.append(photo)
-                    photos.append(llocs_photos)
-                        # photo = "https://picsum.photos/300/400"
-                        # photos.append(photo)
-                else:
-                    llocs_photos.append()
-                    photos.append(llocs_photos)
-            return photos
-        elif self.limit == 1: 
+    def photos(self):
+        photos = []
+        for d in range(len(self.data)):
             llocs_photos = []
-            for d in range(len(self.data)):
+            if 'photos' in self.data[d]:
                 for i in range(len(self.data[d]['photos'])):
-                    photo = self.data[d]['photos'][i]['prefix'] + str(self.data[d]['photos'][i]['width']) + "x" +  str(self.data[d]['photos'][i]['height'])  + self.data[d]['photos'][i]['suffix']
+                    photo = self.data[d]['photos'][i]['prefix'] + str(self.data[d]['photos'][i]['width']) + "x" + str(self.data[d]['photos'][i]['height']) + self.data[d]['photos'][i]['suffix']
                     llocs_photos.append(photo)
-            return llocs_photos
-        else: 
-            print("error en les fotos")
+                photos.append(llocs_photos)
+            else:
+                photos.append([])
+        return photos
     def categories(self): #Recopila les categories per cada lloc 
         fsq_categories = []
         for i in range(len(self.data)):
