@@ -58,28 +58,6 @@
         ]
     },
     {
-        "id": 3,
-        "name": "A LA MENUDA",
-        "latitude": 41.9800859,
-        "longitude": 2.8229706,
-        "categories": [
-            "14",
-            "8",
-            "6",
-            "7"
-        ],
-        "details": {
-            "address": "Plaça Calvet i Rubalcaba, 2",
-            "postal_code": "17002",
-            "city": "Girona",
-            "website": "http://www.alamenuda.cat/contactar.php",
-            "type": "alimentacio",
-            "criteria": "ecologic, granel, proximitat",
-            "description": ""
-        },
-        "icon": "/wp-content/themes/comercverd/imgs/icon_punter_mapa2.png"
-    },
-    {
         "id": 4,
         "name": "A PES&#8230; NUTRICIÓ RESPONSABLE",
         "latitude": 41.414766,
@@ -97,7 +75,13 @@
             "criteria": "pam a pam",
             "description": "<p>Aquest comerç forma part de Pam a Pam.</p><p>Descobreix més del projecte <span style=\"text-decoration: underline;\"><a href=\"http://www.comercverd.cat/mapa-de-mapess\" target=\"_blank\" rel=\"noopener\">Mapa de MapESS</a></span>.</p><p>&nbsp;</p>"
         },
-        "icon": "https://comercverd.cat/wp-content/uploads/2024/05/icon_punter_mapa_taronja.png"
+        "icon": "https://comercverd.cat/wp-content/uploads/2024/05/icon_punter_mapa_taronja.png",
+        "photos": [
+            "https://lh3.googleusercontent.com/p/AF1QipPM3YlRMciA7ZMFV8cp90i2K6TYO588DS7XfR_i=s680-w680-h510",
+            "https://lh3.googleusercontent.com/p/AF1QipO_5xhWHJ3qIIwppg9C6VT5YUxTVYV9cXqSL9iE=s680-w680-h510",
+            "https://lh3.googleusercontent.com/p/AF1QipPdxPOZfxi-VTZWZcgNoh_ZSCM-oZDtH60247bY=s680-w680-h510",
+            "https://lh3.googleusercontent.com/p/AF1QipMcibt7G9wts6xCKuGARHJfJT7g503UCCWvtSvK=s680-w680-h510"
+        ]
     },
     {
         "id": 5,
@@ -119,7 +103,11 @@
             "criteria": "comerc just, ecologic, proximitat",
             "description": ""
         },
-        "icon": "/wp-content/themes/comercverd/imgs/icon_punter_mapa2.png"
+        "icon": "/wp-content/themes/comercverd/imgs/icon_punter_mapa2.png",
+        "photos": [
+            "https://lh3.googleusercontent.com/p/AF1QipOvzovkrfUrRxoIW1K5YW0wHausRTkMD7pNlMDk=s680-w680-h510",
+            "https://lh3.googleusercontent.com/p/AF1QipMFAF1IZHAORZrcsdXb9mpdFH2kOdoYHMAF0GHs=s680-w680-h510"
+        ]
     },
     {
         "id": 6,
@@ -143,7 +131,13 @@
             "criteria": "comerc just, ecologic, granel, productes reutilitzables, proximitat",
             "description": ""
         },
-        "icon": "/wp-content/themes/comercverd/imgs/icon_punter_mapa2.png"
+        "icon": "/wp-content/themes/comercverd/imgs/icon_punter_mapa2.png",
+        "photos": [
+            "https://lh3.googleusercontent.com/p/AF1QipOE-s2979gcCiM9HRFSw1zsiDsiyn7_Bn6Nh2jM=s680-w680-h510",
+            "https://lh3.googleusercontent.com/p/AF1QipOn7UJs_TZIzTwBIxaFC9sVbsza5T1WazTYh2SF=s680-w680-h510",
+            "https://lh3.googleusercontent.com/p/AF1QipMXblI7bv3v923iTeT5a2rS2G_V-k4AhchC_Tpz=s680-w680-h510",
+            "https://lh3.googleusercontent.com/p/AF1QipPQNZCMj2g_i4hf61UhVihBEyoPkVZcrP2tfbJt=s680-w680-h510"
+        ]
     },
     {
         "id": 7,
