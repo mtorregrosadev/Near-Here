@@ -2,9 +2,7 @@ import json
 import requests
 
 def is_image_url_valid(url):
-    """
-    Verifica si una URL és vàlida i serveix una imatge.
-    """
+    # Verifica si una URL és vàlida i serveix una imatge.
     try:
         response = requests.head(url, allow_redirects=True, timeout=5)
         content_type = response.headers.get("Content-Type", "")
@@ -13,10 +11,7 @@ def is_image_url_valid(url):
         print(f"Error verificant la URL: {e}")
         return False
 
-def interactive_photo_input(data):
-    """
-    Permet a l'usuari introduir fotos per a un nombre específic de llocs que no tenen fotos.
-    """
+def interactive_photo_input(data): #Permet a l'usuari introduir fotos per a un nombre específic de llocs que no tenen fotos.
     print("Hola! Quants llocs vols emplenar avui?")
     try:
         total_places = int(input("Escriu el nombre de llocs que vols processar avui: "))
@@ -50,14 +45,12 @@ def interactive_photo_input(data):
     
     return data
 
-# Camí al fitxer original
 file_path = 'llocs_sostenibles.json'
 
-# Carregar les dades existents
+# Carrega les dades existents
 with open(file_path, 'r', encoding='utf-8') as file:
     markers_data = json.load(file)
 
-# Passar les dades al procés interactiu
 updated_markers = interactive_photo_input(markers_data)
 
 # Sobreescriure el fitxer original amb les dades actualitzades
