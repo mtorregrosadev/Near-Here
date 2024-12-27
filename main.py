@@ -14,7 +14,103 @@ sostenible = True
 images_request = []
 index_photo_stack = -1
 canvi = False
+sostenible_2 = True
 cards = []
+import json 
+import math 
+class LLocs_sostenibles:
+    def __init__(self,latitud, longitud, radius, limit, loc_visited, categories_sel):
+        self.latitud = latitud 
+        self.longitud = longitud
+        self.radius = radius
+        self.limit = limit
+        self.loc_visited = loc_visited 
+        self.categories_s = categories_sel
+    def distancia(self, dada, bool): #La fórmula de Haversine
+        latitude_inicial = math.radians(self.latitud)
+        longitude_inicial = math.radians(self.longitud)
+        latitude_final = math.radians(dada['latitude'])
+        longitude_final = math.radians(dada['longitude'])
+        # Ara després de passar a radians el que fem és fer la diferencia entre latituds i longituds.
+        dif_1 = latitude_final  - latitude_inicial
+        dif_2 = longitude_final  - longitude_inicial
+        #Apliquem la formula ara 
+        a = math.sin(dif_1/2)**2 + math.cos(latitude_inicial) * math.cos(latitude_final) * math.sin(dif_2/2)**2
+        c = 2 * math.atan2(math.sqrt(a), math.sqrt(1-a))
+        R = 6371000 # I multipliquem pel radi de la terra
+        d = R * c
+        if not bool:
+            if d > self.radius:
+                return False
+            else:
+                print(d)
+                return True
+        if bool:
+            return d
+    def dades(self):
+        self.dades = []
+        with open('llocs_sostenibles.json', 'r', encoding='utf-8') as fitxer:
+            dades = json.load(fitxer)
+        for i in range(len(dades)):
+            distancia_t = self.distancia(dades[i], False)
+            if distancia_t:
+                self.dades.append(dades[i])
+        # Sort self.dades based on distance
+        self.dades.sort(key=lambda x: self.distancia(x, True))
+        if len(self.dades) > self.limit:
+            self.dades = self.dades[:self.limit]
+        if self.categories_s:
+            for i in range(len(self.dades) - 1, -1, -1):
+                # Convertir les categories a enters
+                categories_numeros = [int(num) for num in self.dades[i]['categories']]
+                # Comprovar si hi ha alguna coincidència
+                hi_es = any(num in self.categories_s for num in categories_numeros)
+                print(hi_es, self.dades[i]['name'])
+                if not hi_es:
+                    del self.dades[i]
+        self.data = []
+        for i in range(len(self.dades)):
+            lloc = self.dades[i]
+            data_lloc = {
+                "fsq_id": lloc.get('id', None),
+                "alias": lloc.get('alias', None),
+                "name": lloc.get('name', None),
+                "photos": lloc.get('photos', None),
+                "url": lloc.get('details', {}).get('website', None),
+                "categories": lloc.get('categories', []),
+                "coordinates": lloc.get('coordinates', {}),
+                "location": {
+                    "address": lloc.get("details", {}).get("address", None),
+                    "address_extended": lloc.get("details", {}).get("adress", None),
+                    "locality": lloc.get("details", {}).get("city", None),
+                    "region": lloc.get("details", {}).get("city", None),
+                    "postcode": lloc.get("details", {}).get("postal_code", None),
+                    "country": lloc.get("details", {}).get("city", None)
+                },
+                "geocodes": {
+                    "main": {
+                        "latitude": lloc.get('latitude', None),
+                        "longitude": lloc.get('longitude', None),
+                    }
+                },
+            }
+            self.data.append(data_lloc)
+        return self.data, self.loc_visited
+    
+    def photos(self):
+        fotos = []
+        for i in range(len(self.dades)):
+            if 'photos' in self.dades[i]:
+                fotos.append(self.dades[i]['photos'])
+            else:
+                fotos.append([])
+        return fotos
+    
+    def categories(self):
+        categories = []
+        for i in range(len(self.data)):
+            categories.append([])
+        return categories   
 class Llocs:
     def __init__(self, latitud, longitud, radius, limit, loc_visited,categories_sel, sort_sel, preu, near): 
         #Definim totes les variables que hem donat a traves de la class
@@ -424,6 +520,7 @@ async def main(page: Page):
             page.views.pop()
             page.go("/configuracio")
     async def on_change_page(e):
+        Tags_amunt_safe = SafeArea(content=Tags_amunt)
         async def send_message(e):
             ia_container_TextField = ia_container.content.controls[0].content.controls[2].controls[1].value
             if ia_container_TextField == "":
@@ -1568,6 +1665,7 @@ Categories: {categories_list} this is to check all the categories, now it's the 
         global canvi
         global cards
         global sostenible
+        global sostenible_2
         if canvi == True:
             #crearem la splash screen
             splash = Container(
@@ -1596,38 +1694,56 @@ Categories: {categories_list} this is to check all the categories, now it's the 
                 print("index_photo_Stack: ",index_photo_stack)
                 if canvi == True:
                     sostenible = True
+                    sostenible_2 = True
                     print(len(loc_visited))
                     dadesLlocs = []
                     cards.clear()
 
                 index_photo_stack = -1
                 #:) Cobren el mateix demanant 5, 10 que 50
-                
+                dadesLlocs = page.session.get("dadesLlocs")
                 p = await gl.get_current_position_async()
-                if sostenible:  #Si es true entra    
+                if sostenible_2:
                     if page.session.contains_key("lloc_especific"): # Comprova si hi ha un lloc específic posat per l'usuari
                         lloc_especific = page.session.get("lloc_especific")
                         if lloc_especific != "":
-                            llocs = Llocs_yelp(None,None,radius_sel,50,loc_visited,categories_sel,sort_sel, preu, lloc_especific) 
+                            dadesLlocs = "error 400"
+                        else: #En el cas que l'usuari no hagi posat cap lloc però ja sigui inicialitzada la variable
+                            llocs = LLocs_sostenibles(p.latitude,p.longitude,radius_sel,50,loc_visited,categories_sel) 
+                            dadesLlocs, loc_visited = llocs.dades()
+                    else: #En el cas que no hi hagi cap lloc específic posat
+                        llocs = LLocs_sostenibles(p.latitude,p.longitude,radius_sel,50,loc_visited,categories_sel)  
+                        dadesLlocs, loc_visited = llocs.dades()
+                
+                if dadesLlocs == "error 400" or not sostenible_2: # Això fa que entri a l'altre en el cas que sigui error 400:  #Si es true entra    
+                    if page.session.contains_key("lloc_especific"): # Comprova si hi ha un lloc específic posat per l'usuari
+                        lloc_especific = page.session.get("lloc_especific")
+                        if lloc_especific != "":
+                            llocs = Llocs_yelp(None,None,radius_sel,2,loc_visited,categories_sel,sort_sel, preu, lloc_especific) 
+                            dadesLlocs, loc_visited = llocs.dades()
                         else: #En el cas que l'usuari no hagi posat cap lloc però ja sigui inicialitzada la variable
                             llocs = Llocs_yelp(p.latitude,p.longitude,radius_sel,50,loc_visited,categories_sel,sort_sel, preu, None) 
+                            dadesLlocs, loc_visited = llocs.dades()
                     else: #En el cas que no hi hagi cap lloc específic posat
                         llocs = Llocs_yelp(p.latitude,p.longitude,radius_sel,50,loc_visited,categories_sel,sort_sel, preu, None) 
-                    
-                    dadesLlocs, loc_visited = llocs.dades()
-                    
-                if (sostenible and dadesLlocs == "error 400") or not sostenible: # Això fa que entri a l'altre en el cas que sigui error 400
+                        dadesLlocs, loc_visited = llocs.dades()
+                sostenible_2 = False
+               
+                if dadesLlocs == "error 400" or not sostenible: # Això fa que entri a l'altre en el cas que sigui error 400
                     if page.session.contains_key("lloc_especific"): # Comprova si hi ha un lloc específic posat per l'usuari
                         lloc_especific = page.session.get("lloc_especific")
                         if lloc_especific != "":
                             llocs = Llocs(None,None,radius_sel,50,loc_visited,categories_sel,sort_sel, preu, lloc_especific) 
+                            dadesLlocs, loc_visited = llocs.dades()
                         else: #En el cas que l'usuari no hagi posat cap lloc però ja sigui inicialitzada la variable
                             llocs = Llocs(p.latitude,p.longitude,radius_sel,50,loc_visited,categories_sel,sort_sel, preu, None) 
+                            dadesLlocs, loc_visited = llocs.dades()
                     else: #En el cas que no hi hagi cap lloc específic posat
                         llocs = Llocs(p.latitude,p.longitude,radius_sel,50,loc_visited,categories_sel,sort_sel, preu, None) 
+                        dadesLlocs, loc_visited = llocs.dades()
                 sostenible = False
 
-                dadesLlocs, loc_visited = llocs.dades()
+                #dadesLlocs, loc_visited = llocs.dades()
                 if dadesLlocs == "error 400":
                     page.go("/error")
                 else:
@@ -2070,12 +2186,13 @@ Categories: {categories_list} this is to check all the categories, now it's the 
             next_card.scale = 1
             page.update()
 
-    Tags_amunt_safe = SafeArea(content=Tags_amunt)
-    page.add(
-        Tags_amunt_safe,
-        stack_cards,
-        botons, 
-    )
+    # Tags_amunt_safe = SafeArea(content=Tags_amunt)
+    # page.add(
+    #     Tags_amunt_safe,
+    #     stack_cards,
+    #     botons, 
+    # )
+    page.go("/")
     page.overlay.remove(splash)
     page.update()
     await scale_next_card()

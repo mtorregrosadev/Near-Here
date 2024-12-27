@@ -28,6 +28,36 @@
             "https://lh5.googleusercontent.com/p/AF1QipNDw3IxcVUgoWLliV05-ZIyEbP4PKcbIL4-G2io=s387-k-no",
             "https://lh5.googleusercontent.com/p/AF1QipPfNf_BKd_-LKk6LQPSSEPssJX2HUjLFs5c6QBf=w203-h152-k-no"
         ]
+    },    
+    {
+        "id": 3,
+        "name": "A GRANEL",
+        "latitude": 41.9766167,
+        "longitude": 2.8229232,
+        "categories": [
+            "14",
+            "8",
+            "6",
+            "7"
+        ],
+        "details": {
+            "address": "Carrer de la Rutlla, 41",
+            "postal_code": "17002",
+            "city": "Girona",
+            "website": "http://agranelgirona.com/",
+            "type": "alimentacio",
+            "criteria": "ecologic, granel, proximitat",
+            "description": ""
+        },
+        "icon": "/wp-content/themes/comercverd/imgs/icon_punter_mapa2.png",
+        "photos": [
+            "https://lh5.googleusercontent.com/p/AF1QipPT8qRQQiJT0NGfiEqHSx0_Pz2ICSgWMotFSh0=w203-h360-k-no",
+            "https://lh5.googleusercontent.com/p/AF1QipNRkocM5HWfVmdioxq8VQnApHHiEMOe9Kr0L4_J=s508-k-no",
+            "https://lh5.googleusercontent.com/p/AF1QipMI-WuNANaeHnZbpj7ynLqlANNgN0iN0LGPIYKq=w203-h152-k-no",
+            "https://lh5.googleusercontent.com/p/AF1QipPd31InqzmGyobTRiJAERS5AfKH2jSaCT3nZsAx=w203-h152-k-no",
+            "https://lh5.googleusercontent.com/p/AF1QipNDw3IxcVUgoWLliV05-ZIyEbP4PKcbIL4-G2io=s387-k-no",
+            "https://lh5.googleusercontent.com/p/AF1QipPfNf_BKd_-LKk6LQPSSEPssJX2HUjLFs5c6QBf=w203-h152-k-no"
+        ]
     },
     {
         "id": 2,
@@ -59,7 +89,7 @@
     },
     {
         "id": 4,
-        "name": "A PES&#8230; NUTRICIÓ RESPONSABLE",
+        "name": "A PES; NUTRICIÓ RESPONSABLE",
         "latitude": 41.414766,
         "longitude": 2.1812931,
         "categories": [
@@ -111,7 +141,7 @@
     },
     {
         "id": 6,
-        "name": "ACTIVA&#8217;T ECO",
+        "name": "ACTIVA'T ECO",
         "latitude": 41.5395262,
         "longitude": 1.8678846,
         "categories": [
@@ -933,7 +963,7 @@
     },
     {
         "id": 44,
-        "name": "APROXIMA&#8217;T",
+        "name": "APROXIMA'T",
         "latitude": 41.38114,
         "longitude": 2.1625075,
         "categories": [
@@ -2996,7 +3026,7 @@
     },
     {
         "id": 141,
-        "name": "BOTIGA ENGRUNES L&#8217;HOSPITALET",
+        "name": "BOTIGA ENGRUNES L'HOSPITALET",
         "latitude": 41.3650795,
         "longitude": 2.1283851,
         "categories": [
@@ -3221,7 +3251,7 @@
     },
     {
         "id": 152,
-        "name": "CA L&#8217;ALBERT",
+        "name": "CA L'ALBERT",
         "latitude": 41.4511698,
         "longitude": 2.2521151,
         "categories": [
@@ -3241,7 +3271,7 @@
     },
     {
         "id": 153,
-        "name": "CA L&#8217;ARBUSSÉ PASTISSERIA",
+        "name": "CA L'ARBUSSÉ PASTISSERIA",
         "latitude": 41.8276256,
         "longitude": 2.8941598,
         "categories": [
@@ -3349,7 +3379,7 @@
     },
     {
         "id": 158,
-        "name": "CA&#8217;N BEÑO",
+        "name": "CA'N BEÑO",
         "latitude": 39.5619592,
         "longitude": 3.2090804,
         "categories": [
@@ -3370,7 +3400,7 @@
     },
     {
         "id": 159,
-        "name": "CA&#8217;N MARTÍ",
+        "name": "CA'N MARTÍ",
         "latitude": 39.5679703,
         "longitude": 3.212711,
         "categories": [
@@ -3391,7 +3421,7 @@
     },
     {
         "id": 160,
-        "name": "CA&#8217;N MARTÍ",
+        "name": "CA'N MARTÍ",
         "latitude": 39.574176,
         "longitude": 3.200183,
         "categories": [
@@ -4386,7 +4416,7 @@
     },
     {
         "id": 207,
-        "name": "CASA D&#8217;HERBES",
+        "name": "CASA D'HERBES",
         "latitude": 41.35772,
         "longitude": 2.07367,
         "categories": [
@@ -5886,7 +5916,7 @@
     },
     {
         "id": 280,
-        "name": "D&#8217;ALICAT",
+        "name": "D'ALICAT",
         "latitude": 41.60185,
         "longitude": 2.62274,
         "categories": [
@@ -6888,7 +6918,7 @@
     },
     {
         "id": 327,
-        "name": "EL CELLER DE L&#8217;AVI PERET",
+        "name": "EL CELLER DE L'AVI PERET",
         "latitude": 41.3530248,
         "longitude": 2.071892,
         "categories": [
@@ -7230,7 +7260,7 @@
     },
     {
         "id": 343,
-        "name": "EL RACÓ DE L&#8217;AVIRAM",
+        "name": "EL RACÓ DE L'AVIRAM",
         "latitude": 41.3406798,
         "longitude": 2.0431106,
         "categories": [
@@ -7251,7 +7281,7 @@
     },
     {
         "id": 344,
-        "name": "EL RACÓ DE L&#8217;AVIRAM",
+        "name": "EL RACÓ DE L'AVIRAM",
         "latitude": 41.3612504,
         "longitude": 2.07524,
         "categories": [
@@ -7362,7 +7392,7 @@
     },
     {
         "id": 349,
-        "name": "EL REBOST D&#8217;ORIENT",
+        "name": "EL REBOST D'ORIENT",
         "latitude": 41.4023081,
         "longitude": 2.1613903,
         "categories": [
@@ -7909,7 +7939,7 @@
     },
     {
         "id": 374,
-        "name": "EQUIPA&#8217;T",
+        "name": "EQUIPA'T",
         "latitude": 41.4311435,
         "longitude": 2.1806101,
         "categories": [
@@ -9306,7 +9336,7 @@
     },
     {
         "id": 442,
-        "name": "FERRETERIA L&#8217;EQUIP",
+        "name": "FERRETERIA L'EQUIP",
         "latitude": 41.5541464,
         "longitude": 2.404258,
         "categories": [
@@ -9371,7 +9401,7 @@
     },
     {
         "id": 445,
-        "name": "FERRETERIA S&#8217;AVINGUDA",
+        "name": "FERRETERIA S'AVINGUDA",
         "latitude": 39.572758,
         "longitude": 3.2001328,
         "categories": [
@@ -11066,7 +11096,7 @@
     },
     {
         "id": 526,
-        "name": "GUST D&#8217;HORT",
+        "name": "GUST D'HORT",
         "latitude": 41.399957,
         "longitude": 2.1574753,
         "categories": [
@@ -11172,7 +11202,7 @@
     },
     {
         "id": 531,
-        "name": "HERBES DE L&#8217;ALT PIRINEU",
+        "name": "HERBES DE L'ALT PIRINEU",
         "latitude": 42.5347042,
         "longitude": 1.2597811,
         "categories": [
@@ -12232,7 +12262,7 @@
     },
     {
         "id": 581,
-        "name": "L&#8217;AGROBOTIGA CERDANYA",
+        "name": "L'AGROBOTIGA CERDANYA",
         "latitude": 42.4333208,
         "longitude": 1.9255667,
         "categories": [
@@ -12252,7 +12282,7 @@
     },
     {
         "id": 582,
-        "name": "L&#8217;ANTONIA",
+        "name": "L'ANTONIA",
         "latitude": 41.5176802,
         "longitude": 1.8987814,
         "categories": [
@@ -12274,7 +12304,7 @@
     },
     {
         "id": 583,
-        "name": "L&#8217;ARBRE DE VIDA",
+        "name": "L'ARBRE DE VIDA",
         "latitude": 41.382506,
         "longitude": 2.1515919,
         "categories": [
@@ -12296,7 +12326,7 @@
     },
     {
         "id": 584,
-        "name": "L&#8217;ARESTA, COOPERATIVA AGROECOLÒGICA",
+        "name": "L'ARESTA, COOPERATIVA AGROECOLÒGICA",
         "latitude": 41.53177,
         "longitude": 1.38396,
         "categories": [
@@ -12316,7 +12346,7 @@
     },
     {
         "id": 585,
-        "name": "L&#8217;ARMARI",
+        "name": "L'ARMARI",
         "latitude": 42.0262695,
         "longitude": 2.8807767,
         "categories": [
@@ -12336,7 +12366,7 @@
     },
     {
         "id": 586,
-        "name": "L&#8217;ECOLÒGICA",
+        "name": "L'ECOLÒGICA",
         "latitude": 41.4813874,
         "longitude": 2.3169333,
         "categories": [
@@ -12361,7 +12391,7 @@
     },
     {
         "id": 587,
-        "name": "L&#8217;ECONOMAT SOCIAL DE ROQUETES",
+        "name": "L'ECONOMAT SOCIAL DE ROQUETES",
         "latitude": 41.4475463,
         "longitude": 2.1787233,
         "categories": [
@@ -12381,7 +12411,7 @@
     },
     {
         "id": 588,
-        "name": "L&#8217;ECONOMAT SOCIAL DE SANTS",
+        "name": "L'ECONOMAT SOCIAL DE SANTS",
         "latitude": 41.3694966,
         "longitude": 2.1347912,
         "categories": [
@@ -12401,7 +12431,7 @@
     },
     {
         "id": 589,
-        "name": "L&#8217;ECOTECA",
+        "name": "L'ECOTECA",
         "latitude": 41.4060414,
         "longitude": 2.1561407,
         "categories": [
@@ -12426,7 +12456,7 @@
     },
     {
         "id": 590,
-        "name": "L&#8217;ESPURNA LA CASETA DEL PA",
+        "name": "L'ESPURNA LA CASETA DEL PA",
         "latitude": 42.1816283,
         "longitude": 2.4835114,
         "categories": [
@@ -12446,7 +12476,7 @@
     },
     {
         "id": 591,
-        "name": "L&#8217;OBRADOR DE GRAMENET",
+        "name": "L'OBRADOR DE GRAMENET",
         "latitude": 41.4533889,
         "longitude": 2.2075418,
         "categories": [
@@ -12466,7 +12496,7 @@
     },
     {
         "id": 592,
-        "name": "L&#8217;OBRADOR DE PALLEJÀ",
+        "name": "L'OBRADOR DE PALLEJÀ",
         "latitude": 41.421619,
         "longitude": 1.998374,
         "categories": [
@@ -12486,7 +12516,7 @@
     },
     {
         "id": 593,
-        "name": "L&#8217;ORTIGA PRODUCCIÓ ECOLÒGICA",
+        "name": "L'ORTIGA PRODUCCIÓ ECOLÒGICA",
         "latitude": 41.4512524,
         "longitude": 2.032535,
         "categories": [
@@ -13512,7 +13542,7 @@
     },
     {
         "id": 641,
-        "name": "LA PASTISSERIA D&#8217;EN VICENÇ PUIG",
+        "name": "LA PASTISSERIA D'EN VICENÇ PUIG",
         "latitude": 41.3538931,
         "longitude": 2.0723837,
         "categories": [
@@ -13554,7 +13584,7 @@
     },
     {
         "id": 643,
-        "name": "LA PEIXATERIA D&#8217;ARGENTONA",
+        "name": "LA PEIXATERIA D'ARGENTONA",
         "latitude": 41.5533317,
         "longitude": 2.4027522,
         "categories": [
@@ -14746,7 +14776,7 @@
     },
     {
         "id": 699,
-        "name": "MENJA&#8217;M",
+        "name": "MENJA'M",
         "latitude": 42.1221462,
         "longitude": 2.4109908,
         "categories": [
@@ -14958,7 +14988,7 @@
     },
     {
         "id": 709,
-        "name": "MIRA&#8217;M",
+        "name": "MIRA'M",
         "latitude": 41.4526206,
         "longitude": 2.2513479,
         "categories": [
@@ -15363,7 +15393,7 @@
     },
     {
         "id": 728,
-        "name": "MOLSA. L&#8217;ESTEL",
+        "name": "MOLSA. L'ESTEL",
         "latitude": 41.4081761,
         "longitude": 2.1634248,
         "categories": [
@@ -17467,7 +17497,7 @@
     },
     {
         "id": 828,
-        "name": "RESID&#8217;ÚS",
+        "name": "RESID'ÚS",
         "latitude": 41.973539,
         "longitude": 2.8248552,
         "categories": [
@@ -17673,7 +17703,7 @@
     },
     {
         "id": 838,
-        "name": "S&#8217;ALTRA SENALLA",
+        "name": "S'ALTRA SENALLA",
         "latitude": 39.5693659,
         "longitude": 3.2107188,
         "categories": [
@@ -17695,7 +17725,7 @@
     },
     {
         "id": 839,
-        "name": "S&#8217;AVINGUDA CB",
+        "name": "S'AVINGUDA CB",
         "latitude": 39.5697353,
         "longitude": 3.2042726,
         "categories": [
@@ -17715,7 +17745,7 @@
     },
     {
         "id": 840,
-        "name": "S&#8217;ESPIGA",
+        "name": "S'ESPIGA",
         "latitude": 39.5742687,
         "longitude": 3.2124755,
         "categories": [
@@ -17735,7 +17765,7 @@
     },
     {
         "id": 841,
-        "name": "S&#8217;HORT D’EN CONIES",
+        "name": "S'HORT D’EN CONIES",
         "latitude": 39.5617601,
         "longitude": 3.2749573,
         "categories": [
@@ -19439,7 +19469,7 @@
     },
     {
         "id": 922,
-        "name": "UN MAR D&#8217;IDEES",
+        "name": "UN MAR D'IDEES",
         "latitude": 41.3819281,
         "longitude": 2.1306297,
         "categories": [
