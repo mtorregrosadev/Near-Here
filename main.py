@@ -8,6 +8,9 @@ import requests
 import random
 import math
 import httpx
+from dotenv import load_dotenv 
+import os 
+load_dotenv()
 
 ai = 0
 sostenible = True
@@ -156,7 +159,7 @@ class Llocs:
         url = f"https://api.foursquare.com/v3/places/search"
         headers = {
             "accept": "application/json",
-            "Authorization": "fsq3qcPa3WReZWK3a7h5flm4z4wKmecTbWUMl/Pot9hd1Bs="
+            "Authorization": os.getenv("FOURSQUARE_API_KEY")
         }
         params = {
             "ll": f"{randomized_lat},{randomized_lon}",
@@ -351,7 +354,7 @@ class Llocs_yelp:
         url = "https://api.yelp.com/v3/businesses/search"
         headers = {
             "accept": "application/json",
-            "Authorization": "Bearer zPz4d3nX6KljciR5JivwE8YNeKXSZkwBn3cpFaSX_QQgYdrl0w8Kcb9BTCkdjsTjB74X-LEJuL4KEQ-Y4PUVfnQzuDoBHlqxYI5bY0zWJ1qJBKMSv83FYF7hwIMWZ3Yx"
+            "Authorization": os.getenv("YELP_API_KEY")
         }
         if self.sort == "RATING":
             self.sort.lower()
@@ -721,7 +724,7 @@ async def main(page: Page):
             page.add(images_saved)
             if len(saved_cards) > 0:
                 for i in range(len(saved_cards)):
-                    if saved_cards_images[i] != []:
+                    if saved_cards_images[i] != []: 
                         url = saved_cards_images[i]
                         if url.startswith("https://fastly.4sqi.net/img/general/"):
                             new_url = resize_image_url(url, 150, 150)
@@ -1160,7 +1163,7 @@ PDI: {dadesLlocs}
 Language: {idioma} 
 Categories: {categories_list} this is to check all the categories, now it's the user categories: {user_categories}"""
             
-            google_api_key = "AIzaSyD3qvgtVXsWfhlYHZS_LErRZUHlcIcPgo8"
+            google_api_key = os.getenv("GOOGLE_API_KEY")
             
             api = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={google_api_key}"
             headers = {
@@ -1179,7 +1182,7 @@ Categories: {categories_list} this is to check all the categories, now it's the 
         
         page.update()
     
-    page.on_route_change = on_change_page #Aquest defineix que volem que faci el programa en el canvi de route 
+    page.on_route_change = on_change_page 
     page.on_view_pop = view_pop
     
     async def seguent(e):
@@ -1788,7 +1791,7 @@ Categories: {categories_list} this is to check all the categories, now it's the 
                             subtitle_card = Column(horizontal_alignment="center", controls=[
                                 Text(f"Direcció: {dadesLlocs[i]['location']['address']} | Distància: {distancia(i)}", color="white", weight=FontWeight.W_900),
                                 Row(alignment="center",width = page.width, controls=[])
-                                ]) #! Fer que sigui responsive row per si la pantalla es més petita
+                                ]) 
                         else: 
                             subtitle_card = Column(horizontal_alignment="center", controls=[
                                 Text(f"Direcció: {None} | Distància: {distancia(i)}", color="white",weight=FontWeight.W_900),
