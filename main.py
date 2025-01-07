@@ -95,7 +95,10 @@ class LLocs_sostenibles:
                 },
             }
             self.data.append(data_lloc)
-        return self.data, self.loc_visited
+        if self.data == []:
+            return "error 400", []
+        else:
+            return self.data, self.loc_visited
     
     def photos(self):
         fotos = []
@@ -431,9 +434,12 @@ class Llocs_yelp:
         elif locations.status_code == 400:
             print("error 400")
             return "error 400", []
-
         self.data = data
-        return data, self.loc_visited
+        
+        if self.data == []:
+            return "error 400", []
+        else:
+            return data, self.loc_visited
     
     def photos(self):
         fotos = []
@@ -513,7 +519,7 @@ async def main(page: Page):
     await configurar_ubicacio(gl)
 
     def view_pop(event): #Per anar enrere 
-        if page.route == '/categories' or page.route == '/info' or page.route == '/lloc_especific':
+        if page.route == '/categories' or page.route == '/info' or page.route == '/lloc_especific' or page.route == '/favorits':
             page.views.pop()
             page.go('/')
         else: 
@@ -681,6 +687,9 @@ async def main(page: Page):
                 page.go("/error")
         
         if page.route == '/error':
+            global sostenible
+            global sostenible_2
+                
             async def refresca(e):
                 await update_cards()
                 page.go("/")
@@ -714,7 +723,10 @@ async def main(page: Page):
                 for i in range(len(saved_cards)):
                     if saved_cards_images[i] != []:
                         url = saved_cards_images[i]
-                        new_url = resize_image_url(url, 150, 150)
+                        if url.startswith("https://fastly.4sqi.net/img/general/"):
+                            new_url = resize_image_url(url, 150, 150)
+                        else:
+                            new_url = url
                         images_saved.controls.append(
                             Container(content=Column(spacing=0.5,horizontal_alignment="center", controls=[Image(
                                 src=new_url,
@@ -865,7 +877,7 @@ async def main(page: Page):
                 Text("Vols cercar a un lloc el qual no sigui el teu? Fes click per seleccionar-lo!",weight=FontWeight.W_300), 
                 ElevatedButton("Cercar a...", on_click=event_lloc_especific, width=page.width, bgcolor="#c9d6d7", color="black")
             ],scroll="adaptive")
-            page.views.append(View(bgcolor = "#FFFCF1",controls=[AppBar(title=Text("Pàrametres cerca"), adaptive=True,bgcolor="#AAD7D9"),parametres_cerca]))
+            page.views.append(View(bgcolor = "#FFFCF1",controls=[AppBar(title=Text("Paràmetres de cerca"), adaptive=True,bgcolor="#AAD7D9"),parametres_cerca]))
             
         if page.route == '/configuracio/sobre_app':
             page.views.append(View(bgcolor = "#FFFCF1",controls=[
@@ -1101,17 +1113,12 @@ async def main(page: Page):
             idioma = page.session.get("idioma")
             user_categories = page.session.get("categories_sel")
             system_instructions = f"""Hey! Imagine you are a cultural center worker and someone comes to you with a lot of PDI (Points of Interest). You don't have name, so don't present you with it. So for this, I will pass you 3 things:
-
-
-
 1. Categories: The selected categories that this person has in their filters like Restaurants, Shopping... If it's [] they are searching for everything.
 
 2. I'll pass you all the PDI that this person it's near. 
 
 3. I'll pass you they native language.  Initially, respond to the user in their native language based on the provided information. If the user switches languages mid-conversation, follow their preference and continue the conversation in the new language. 
 Ensure the response is smooth and natural, without explicitly stating that you're switching languages. Maintain a polite and professional tone throughout the interaction.
-
-
 
 Before answer you have to keep in mind this 3 factors, remember that you have to ask for more information or for things they are looking for but don't ask a lot, if they say "I want something cultural" put examples and then ask questions. Put a list of things to do near to ask like this example, use spaces: 
 Are you interested in something:
@@ -1714,7 +1721,7 @@ Categories: {categories_list} this is to check all the categories, now it's the 
                     else: #En el cas que no hi hagi cap lloc específic posat
                         llocs = LLocs_sostenibles(p.latitude,p.longitude,radius_sel,50,loc_visited,categories_sel)  
                         dadesLlocs, loc_visited = llocs.dades()
-                
+                    
                 if dadesLlocs == "error 400" or not sostenible_2: # Això fa que entri a l'altre en el cas que sigui error 400:  #Si es true entra    
                     if page.session.contains_key("lloc_especific"): # Comprova si hi ha un lloc específic posat per l'usuari
                         lloc_especific = page.session.get("lloc_especific")
@@ -1728,7 +1735,7 @@ Categories: {categories_list} this is to check all the categories, now it's the 
                         llocs = Llocs_yelp(p.latitude,p.longitude,radius_sel,50,loc_visited,categories_sel,sort_sel, preu, None) 
                         dadesLlocs, loc_visited = llocs.dades()
                 sostenible_2 = False
-               
+
                 if dadesLlocs == "error 400" or not sostenible: # Això fa que entri a l'altre en el cas que sigui error 400
                     if page.session.contains_key("lloc_especific"): # Comprova si hi ha un lloc específic posat per l'usuari
                         lloc_especific = page.session.get("lloc_especific")
@@ -1742,19 +1749,15 @@ Categories: {categories_list} this is to check all the categories, now it's the 
                         llocs = Llocs(p.latitude,p.longitude,radius_sel,50,loc_visited,categories_sel,sort_sel, preu, None) 
                         dadesLlocs, loc_visited = llocs.dades()
                 sostenible = False
-
                 #dadesLlocs, loc_visited = llocs.dades()
                 if dadesLlocs == "error 400":
                     page.go("/error")
                 else:
-                    
                     page.session.set("dadesLlocs", dadesLlocs)
-
                     if dadesLlocs == []:
                         page.go("/error")
                     images_request = llocs.photos()
                     page.session.set("images_request", images_request)
-                    # print(images_request)
                     categories = llocs.categories()
                     categories_visited = await page.client_storage.get_async("categories_visited")
                     categories_visited.extend(categories)
@@ -1869,7 +1872,7 @@ Categories: {categories_list} this is to check all the categories, now it's the 
     
                         print("images_request i", images_request[i])
                         print("index_photo_stack", index_photo_stack)
-                        async def ou(e):
+                        async def imatge_en_gran(e):
                             img_principal = stack_cards.controls[0].content.content.controls[1].content.controls[0].content.content
                             dlg = AlertDialog(
                                 bgcolor=colors.with_opacity(0, '#ff6666'),
@@ -1887,7 +1890,7 @@ Categories: {categories_list} this is to check all the categories, now it's the 
                                 print("prova")
                                 img_principal = Container(
                                     alignment=alignment.center,
-                                    on_click=ou,
+                                    on_click=imatge_en_gran,
                                     content=InteractiveViewer(
                                         min_scale=0.1,
                                         max_scale=15,
@@ -1922,7 +1925,7 @@ Categories: {categories_list} this is to check all the categories, now it's the 
                             else: 
                                     img_principal = Container(
                                         alignment=alignment.center,
-                                        on_click=ou,
+                                        on_click=imatge_en_gran,
                                         content=InteractiveViewer(
                                             min_scale=0.1,
                                             max_scale=15,
@@ -2002,9 +2005,11 @@ Categories: {categories_list} this is to check all the categories, now it's the 
                             await asyncio.sleep(0.15) 
                             img_principal.src = images_request[index_photo_stack][index_photo] #Actualitza les fotos 
                             img_principal.opacity = 1
-                            img_esq.src = images_request[index_photo_stack][index_photo-1 if index_photo-1 >= 0 else (len(images_request[index_photo_stack])-1)]  #Resta un en el cas que sigui a dins de la llista, sinó posa el més gran (len) - 1, ja que contem des de 0
+                            #Resta un en el cas que sigui a dins de la llista, sinó posa el més gran (len) - 1, ja que contem des de 0
+                            img_esq.src = images_request[index_photo_stack][index_photo-1 if index_photo-1 >= 0 else (len(images_request[index_photo_stack])-1)]  
                             #Incís: Mai entendre perquè els programadors contem des de 0, i després quan fas la longitud d'una llista conta des de 1, en fi.
-                            img_dret.src = images_request[index_photo_stack][index_photo+1 if index_photo+1 <= (len(images_request[index_photo_stack])- 1) else 0] #El mateix, detecta que sigui a dins de la llista i no sigui negatiu, en el cas posa 0
+                            img_dret.src = images_request[index_photo_stack][index_photo+1 if index_photo+1 <= (len(images_request[index_photo_stack])- 1) else 0] 
+                            #El mateix, detecta que sigui a dins de la llista i no sigui negatiu, en el cas posa 0
                             page.update()
                         async def dret(e): #Mateixos comentaris pero al reves
                             global index_photo
