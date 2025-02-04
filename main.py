@@ -62,7 +62,7 @@ class LLocs_sostenibles:
         self.dades.sort(key=lambda x: self.distancia(x, True))
         if len(self.dades) > self.limit:
             self.dades = self.dades[:self.limit]
-        if self.categories_s:
+        if self.categories_s: # Si es [] no fa res, en canvi si conté algo serà True
             for i in range(len(self.dades) - 1, -1, -1):
                 # Convertir les categories a enters
                 categories_numeros = [int(num) for num in self.dades[i]['categories']]
@@ -99,7 +99,7 @@ class LLocs_sostenibles:
             }
             self.data.append(data_lloc)
         if self.data == []:
-            return "error 400", []
+            return "error 400", self.loc_visited
         else:
             return self.data, self.loc_visited
     
@@ -194,7 +194,7 @@ class Llocs:
                 print("Error en la consulta de l'API")
         elif locations.status_code == 400:
             print("error 400")
-            return "error 400", []
+            return "error 400", self.loc_visited
 
         self.data = data
         return data, self.loc_visited
@@ -436,11 +436,11 @@ class Llocs_yelp:
                 print("Error en la consulta de l'API")
         elif locations.status_code == 400:
             print("error 400")
-            return "error 400", []
+            return "error 400", self.loc_visited
         self.data = data
         
         if self.data == []:
-            return "error 400", []
+            return "error 400", self.loc_visited
         else:
             return data, self.loc_visited
     
@@ -1484,7 +1484,7 @@ Categories: {categories_list} this is to check all the categories, now it's the 
             vertical_alignment="end",
             controls=[
                 ElevatedButton(content=Text("Següent", size=size_botons, theme_style=TextThemeStyle.LABEL_LARGE),on_click=seguent, bgcolor="#d9acaa", color="black",col=4), 
-                ElevatedButton(content=Text("Més info",size=size_botons,theme_style=TextThemeStyle.LABEL_LARGE), on_click=mes_info,bgcolor="#FBF9F1",color="black",col=4),
+                ElevatedButton(content=Text("Més info", size=size_botons,theme_style=TextThemeStyle.LABEL_LARGE), disabled=True, on_click=mes_info,bgcolor="#FBF9F1",color="black",col=4), #! Disabled
                 ElevatedButton(content=Text("Guarda!",size=size_botons, theme_style=TextThemeStyle.LABEL_LARGE), on_click=guarda, bgcolor="#aad9c4",color="black",col=4), 
     ]) 
     stack_cards = Stack(alignment=alignment.center, offset=(0,0), expand = True)
@@ -1887,111 +1887,52 @@ Categories: {categories_list} this is to check all the categories, now it's the 
                                 )
                             )
                             page.open(dlg)
-                        if images_request[i] != []: 
-                            print("Si té fotos")
-                            if len(images_request[i]) == 1: 
-                                print("prova")
-                                img_principal = Container(
-                                    alignment=alignment.center,
-                                    on_click=imatge_en_gran,
-                                    content=InteractiveViewer(
-                                        min_scale=0.1,
-                                        max_scale=15,
-                                        content=Image(
-                                            animate_opacity=150, 
-                                            border_radius=15,
-                                            src=images_request[i][0],  # URL imatge
-                                            width=page.width * 0.8, 
-                                            height=page.height * 0.8 * 0.65, 
-                                            fit="COVER"
-                                        )
-                                    )
+
+                        async def check_image_url(url):
+                            async with httpx.AsyncClient() as client:
+                                try:
+                                    response = await client.head(url)
+                                    return response.status_code == 200
+                                except:
+                                    return False
+
+                        img_principal = Container(
+                            alignment=alignment.center,
+                            on_click=imatge_en_gran,
+                            content=InteractiveViewer(
+                                min_scale=0.1,
+                                max_scale=15,
+                                content=Image(
+                                    animate_opacity=150, 
+                                    border_radius=15,
+                                    # Use asyncio.run to run the async check in sync context
+                                    src=images_request[i][0] if len(images_request[i]) >= 1 and await check_image_url(images_request[i][0]) else None,
+                                    width=page.width * 0.8, 
+                                    height=page.height * 0.8 * 0.65, 
+                                    fit="COVER"
                                 )
-                                img_esq =InteractiveViewer(content=Image(
-                                            animate_opacity=150,
-                                            left=-page.width * 0.75,
-                                            top=33,                                    
-                                            border_radius=20,
-                                            width = page.width * 0.8, 
-                                            height = page.height * 0.8 * 0.5, 
-                                            fit="COVER",
-                                ))
-                                img_dret = Image(
-                                            animate_opacity=150,
-                                            right=-page.width * 0.75,
-                                            top=33,
-                                            border_radius=15,
-                                            width = page.width * 0.8, 
-                                            height = page.height * 0.8 * 0.5, 
-                                            fit="COVER",
-                                        )
-                            else: 
-                                    img_principal = Container(
-                                        alignment=alignment.center,
-                                        on_click=imatge_en_gran,
-                                        content=InteractiveViewer(
-                                            min_scale=0.1,
-                                            max_scale=15,
-                                            content=Image(
-                                                animate_opacity=150, 
-                                                border_radius=15,
-                                                src=images_request[i][0],  # URL imatge
-                                                width=page.width * 0.8, 
-                                                height=page.height * 0.8 * 0.65, 
-                                                fit="COVER"
-                                            )
-                                        )
-                                    )
-                                    img_esq =Image(
-                                            animate_opacity=150,
-                                            left=-page.width * 0.75,
-                                            top=33,                                     
-                                            src=images_request[i][len(images_request[i]) - 1],#URL imatge
-                                            border_radius=20,
-                                            width = page.width * 0.8, 
-                                            height = page.height * 0.8 * 0.5, 
-                                            fit="COVER",
-                                        )
-                                    img_dret = Image(
-                                            animate_opacity=150,
-                                            right=-page.width * 0.75,
-                                            top=33,
-                                            src=images_request[i][1],#URL imatge
-                                            border_radius=15,
-                                            width = page.width * 0.8, 
-                                            height = page.height * 0.8 * 0.5, 
-                                            fit="COVER",
-                                        )
-                        else:
-                            img_principal = Container(alignment=(0,0),content=InteractiveViewer(
-                                    min_scale=0.1,
-                                    max_scale=15,
-                                    content=Image(
-                                        animate_opacity=150, 
-                                        border_radius=15,
-                                        width = page.width * 0.8, 
-                                        height = page.height * 0.8 * 0.65, 
-                                        fit="COVER"
-                            )))
-                            img_esq =Image(
-                                            animate_opacity=150,
-                                            left=-page.width * 0.75,
-                                            top=33,                                     
-                                            border_radius=20,
-                                            width = page.width * 0.8, 
-                                            height = page.height * 0.8 * 0.5, 
-                                            fit="COVER",
-                                        )
-                            img_dret = Image(
-                                            animate_opacity=150,
-                                            right=-page.width * 0.75,
-                                            top=33,
-                                            border_radius=15,
-                                            width = page.width * 0.8, 
-                                            height = page.height * 0.8 * 0.5, 
-                                            fit="COVER",
-                                        )
-                            print("No té fotos")
+                            )
+                        )
+                        img_esq =Image(
+                                animate_opacity=150,
+                                left=-page.width * 0.75,
+                                top=33,                                     
+                                src=images_request[i][len(images_request[i]) - 1] if len(images_request[i]) > 1 and requests.get(images_request[i][len(images_request[i]) - 1]).status_code == 200 else None ,#URL imatge
+                                border_radius=20,
+                                width = page.width * 0.8, 
+                                height = page.height * 0.8 * 0.5, 
+                                fit="COVER"
+                            )
+                        img_dret = Image(
+                                animate_opacity=150,
+                                right=-page.width * 0.75,
+                                top=33,
+                                src=images_request[i][1] if len(images_request[i]) > 1  and requests.get(images_request[i][1]).status_code == 200 else None,#URL imatge
+                                border_radius=15,
+                                width = page.width * 0.8, 
+                                height = page.height * 0.8 * 0.5, 
+                                fit="COVER"
+                                )
     
                         
                         async def esq(e): #Detecta que has fet click a l'esquerra 
