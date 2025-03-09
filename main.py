@@ -1,5 +1,5 @@
 import flet 
-from flet import Page,CircleAvatar,RadioGroup,Radio,LinearGradient,Alignment,GradientTileMode,Markdown,Dropdown,ListView,TextField,DecorationImage,dropdown,Lottie,InteractiveViewer,margin,TextButton,Divider,View,border,Slider,BorderRadius,border_radius,Checkbox,RoundedRectangleBorder,TileAffinity,ExpansionTile,Geolocator,AnimatedSwitcherTransition,AppBar,Card,GridView,TextThemeStyle,ListTile, MainAxisAlignment,AnimatedSwitcher,Stack,Column,TextSpan,TextStyle,Paint,AlertDialog,IconButton, StrokeJoin,PaintingStyle,ShadowBlurStyle, BoxShadow, Image, ListTile,GestureDetector, FontWeight,ElevatedButton, SafeArea,Theme, animation, Container, transform, Icon, icons, colors, alignment, icons, Row, Text, ResponsiveRow, Chip, NavigationBarDestination, NavigationBar 
+from flet import Page,CircleAvatar,RadioGroup,Radio,LinearGradient,Alignment,GradientTileMode,Markdown,Dropdown,ListView,TextField,DecorationImage,dropdown,InteractiveViewer,margin,TextButton,Divider,View,border,Slider,BorderRadius,border_radius,Checkbox,RoundedRectangleBorder,TileAffinity,ExpansionTile,AnimatedSwitcherTransition,AppBar,Card,GridView,TextThemeStyle,ListTile, MainAxisAlignment,AnimatedSwitcher,Stack,Column,TextSpan,TextStyle,Paint,AlertDialog,IconButton, StrokeJoin,PaintingStyle,ShadowBlurStyle, BoxShadow, Image, ListTile,GestureDetector, FontWeight,ElevatedButton, SafeArea,Theme, animation, Container, transform, Icon, Icons, Colors, alignment, Row, Text, ResponsiveRow, Chip, NavigationBarDestination, NavigationBar 
 import asyncio
 import json
 import location
@@ -10,6 +10,9 @@ import math
 import httpx
 from dotenv import load_dotenv 
 import os 
+from flet_geolocator import Geolocator
+from flet_lottie import Lottie 
+
 load_dotenv()
 
 ai = 0
@@ -469,7 +472,7 @@ async def main(page: Page):
     splash = Container(
         content=Lottie(src='src/NearHere.json'),
         alignment=alignment.center,
-        bgcolor=colors.WHITE,
+        bgcolor=Colors.WHITE,
         expand=True,
     )
     page.overlay.append(splash)
@@ -538,7 +541,7 @@ async def main(page: Page):
             else:
                 ia_container.content.controls[0].content.controls[2].controls[1].error_text = None
                 ia_container.content.controls[0].content.controls[1].controls.append(
-                    Container(bgcolor="#d1ddff",content=Row([Text(""), CircleAvatar(content=Icon(icons.PERSON)), Markdown(f"{ia_container_TextField}",width=page.width*0.8)]))
+                    Container(bgcolor="#d1ddff",content=Row([Text(""), CircleAvatar(content=Icon(Icons.PERSON)), Markdown(f"{ia_container_TextField}",width=page.width*0.8)]))
                 )
                 ia_container.content.controls[0].content.controls[1].controls.append(Divider())
                 ia_container.content.controls[0].content.controls[2].controls[1].value = ""
@@ -555,7 +558,7 @@ async def main(page: Page):
                         resposta = response.json() 
                         resposta_100 = resposta['candidates'][0]['content']['parts'][0]['text']
                         ia_container.content.controls[0].content.controls[1].controls.append(
-                            Container(bgcolor="#9796f0",content=Row([Text(""), CircleAvatar(content=Icon(icons.PIN_DROP)), Markdown(f"{resposta_100}", width=page.width*0.8)]))
+                            Container(bgcolor="#9796f0",content=Row([Text(""), CircleAvatar(content=Icon(Icons.PIN_DROP)), Markdown(f"{resposta_100}", width=page.width*0.8)]))
                         )
                         ia_container.content.controls[0].content.controls[1].controls.append(Divider())
                         ia_container.content.controls[0].content.controls[1].controls.remove(anim_carrega)
@@ -568,7 +571,7 @@ async def main(page: Page):
                     chat_response = api_response['candidates'][0]['content']['parts'][0]['text']  # Accedeix al text de la resposta
                     ia_container.content.controls[0].content.controls[1].controls.remove(anim_carrega)
                     page.update()
-                    ia_container.content.controls[0].content.controls[1].controls.append(Container(bgcolor="#9796f0", content=Row([Text(""), CircleAvatar(content=Icon(icons.PIN_DROP)), Markdown(f"{chat_response}", width=page.width*0.8)]))) 
+                    ia_container.content.controls[0].content.controls[1].controls.append(Container(bgcolor="#9796f0", content=Row([Text(""), CircleAvatar(content=Icon(Icons.PIN_DROP)), Markdown(f"{chat_response}", width=page.width*0.8)]))) 
                     ia_container.content.controls[0].content.controls[1].controls.append(Divider())                   
                     page.update()
         async def exit_e(e):
@@ -583,7 +586,7 @@ async def main(page: Page):
             ia_container.content.controls[0].content.controls[2].height = page.height * 0.83 * 0.1 if ia_container.content.controls[0].height == page.height * 0.72 else page.height * 0.72 * 0.1
             ia_container.content.controls[0].height = page.height * 0.83 if ia_container.content.controls[0].height == page.height * 0.72 else page.height * 0.72
             page.update()
-        send_button =IconButton(on_click=send_message,icon=icons.SEND,bgcolor="#9796f0", width=page.width * 0.13)
+        send_button =IconButton(on_click=send_message,icon=Icons.SEND,bgcolor="#9796f0", width=page.width * 0.13)
         async def vertical_drag(e):
             data = json.loads(e.data)
             print(data["pv"], data["vy"])
@@ -616,9 +619,9 @@ async def main(page: Page):
                                 width=page.width,
                                 bgcolor="#9796f0",
                                 content=Row([
-                                    IconButton(icons.OPEN_IN_FULL_ROUNDED, icon_color="d1ddff", on_click=fullscreen),
+                                    IconButton(Icons.OPEN_IN_FULL_ROUNDED, icon_color="d1ddff", on_click=fullscreen),
                                     Text("NEAR IA", style=TextStyle(size=24, color="white"), text_align="center"),
-                                    IconButton(icons.CLOSE_ROUNDED, icon_color="#fbc7d4", on_click=exit_e)
+                                    IconButton(Icons.CLOSE_ROUNDED, icon_color="#fbc7d4", on_click=exit_e)
                                 ], alignment=MainAxisAlignment.SPACE_BETWEEN, width=page.width)
                             ),
                             ListView(
@@ -628,7 +631,7 @@ async def main(page: Page):
                             ), 
                             Row(height=page.height * 0.72 * 0.1, width=page.width, vertical_alignment="end", controls=[
                                 Text(""),
-                                TextField(width=page.width * 0.8, label="Parla amb la IA!", autocorrect=True, icon=icons.ACCOUNT_CIRCLE, multiline=True, on_submit=send_message),
+                                TextField(width=page.width * 0.8, label="Parla amb la IA!", autocorrect=True, icon=Icons.ACCOUNT_CIRCLE, multiline=True, on_submit=send_message),
                                 send_button
                             ])
                         ]
@@ -709,8 +712,8 @@ async def main(page: Page):
             botons_not_found = Row( #Aqui van tots els botons junts 
                     vertical_alignment="end", width=page.width, alignment="center", height=page.height*0.15,
                     controls=[
-                        ElevatedButton(content=Row([Icon(icons.SETTINGS_OUTLINED),Text("Obre la configuració",size=size_botons,theme_style=TextThemeStyle.LABEL_LARGE)]),on_click=config_near,bgcolor="#b2ccc6",color="black"),
-                        ElevatedButton(content=Row([Icon(icons.AUTORENEW_OUTLINED),Text("Refresca",size=size_botons,theme_style=TextThemeStyle.LABEL_LARGE)]),on_click=refresca,bgcolor="#b2ccc6",color="black")
+                        ElevatedButton(content=Row([Icon(Icons.SETTINGS_OUTLINED),Text("Obre la configuració",size=size_botons,theme_style=TextThemeStyle.LABEL_LARGE)]),on_click=config_near,bgcolor="#b2ccc6",color="black"),
+                        ElevatedButton(content=Row([Icon(Icons.AUTORENEW_OUTLINED),Text("Refresca",size=size_botons,theme_style=TextThemeStyle.LABEL_LARGE)]),on_click=refresca,bgcolor="#b2ccc6",color="black")
             ])
 
             page.add(Tags_amunt_safe,not_found,botons_not_found)
@@ -983,8 +986,8 @@ async def main(page: Page):
                             title=Text("Menjar",weight=FontWeight.W_600),
                             subtitle=Text("Restaurants, bars, cafeteries, etc.",weight=FontWeight.W_300),
                             affinity=TileAffinity.LEADING,
-                            collapsed_text_color=colors.BLACK,
-                            text_color=colors.BLACK,
+                            collapsed_text_color=Colors.BLACK,
+                            text_color=Colors.BLACK,
                             controls=[
                                 Checkbox(label="General Menjar 🍽️", adaptive=True, on_change=categ_check_sel),
                                 Checkbox(label="Panaderia 🥖", adaptive=True, on_change=categ_check_sel),
@@ -1000,8 +1003,8 @@ async def main(page: Page):
                             title=Text("Espais naturals",weight=FontWeight.W_600),
                             subtitle=Text("Parcs, muntanyes, platges, llacs, etc.",weight=FontWeight.W_300),
                             affinity=TileAffinity.LEADING, 
-                            collapsed_text_color=colors.BLACK,
-                            text_color=colors.BLACK,
+                            collapsed_text_color=Colors.BLACK,
+                            text_color=Colors.BLACK,
                             controls=[
                                 Checkbox(label="General espais naturals 🏔️", adaptive=True, on_change=categ_check_sel),
                                 Checkbox(label="Platja 🏖️", adaptive=True, on_change=categ_check_sel),
@@ -1013,8 +1016,8 @@ async def main(page: Page):
                             title=Text("Botigues",weight=FontWeight.W_600),
                             subtitle=Text("Botigues de roba, llibreries, centres comercials, etc.",weight=FontWeight.W_300),
                             affinity=TileAffinity.LEADING,
-                            collapsed_text_color=colors.BLACK,
-                            text_color=colors.BLACK,
+                            collapsed_text_color=Colors.BLACK,
+                            text_color=Colors.BLACK,
                             controls=[
                                 Checkbox(label="General Botigues 🛍️", adaptive=True, on_change=categ_check_sel),
                                 Checkbox(label="Roba i moda 👜", adaptive=True, on_change=categ_check_sel),
@@ -1031,8 +1034,8 @@ async def main(page: Page):
                             title=Text("Entreteniment", weight=FontWeight.W_600),
                             subtitle=Text("Inclou parcs d'atraccions, aquaris, arcades, galeries d'art, etc.", weight=FontWeight.W_300),
                             affinity=TileAffinity.LEADING,
-                            collapsed_text_color=colors.BLACK,
-                            text_color=colors.BLACK,
+                            collapsed_text_color=Colors.BLACK,
+                            text_color=Colors.BLACK,
                             controls=[
                                 Checkbox(label="General Entreteniment 🍿",adaptive=True, on_change=categ_check_sel),
                                 Checkbox(label="Museus 🖼️",adaptive=True, on_change=categ_check_sel),                                
@@ -1047,8 +1050,8 @@ async def main(page: Page):
                             title=Text("Viatges",weight=FontWeight.W_600),
                             subtitle=Text("Hotels, aeroports, estacions de tren, etc.",weight=FontWeight.W_300),
                             affinity=TileAffinity.LEADING,
-                            collapsed_text_color=colors.BLACK,
-                            text_color=colors.BLACK,
+                            collapsed_text_color=Colors.BLACK,
+                            text_color=Colors.BLACK,
                             controls=[
                                 Checkbox(label="General viatges 🛩️",adaptive=True, on_change=categ_check_sel),
                                 Checkbox(label="Lloguer bicis 🚲",adaptive=True, on_change=categ_check_sel),                                
@@ -1064,8 +1067,8 @@ async def main(page: Page):
                             title=Text("Turisme",weight=FontWeight.W_600),
                             subtitle=Text("Que puc veure aqui?",weight=FontWeight.W_300),
                             affinity=TileAffinity.LEADING,
-                            collapsed_text_color=colors.BLACK,
-                            text_color=colors.BLACK,
+                            collapsed_text_color=Colors.BLACK,
+                            text_color=Colors.BLACK,
                             controls=[
                                 Text("Quan fas click al apartat de turisme, l'algorisme et detecta els millors llocs per visitar a prop teu! 🧳🛩️🛌"),
                                 Text("Ideal per viatges :)"),
@@ -1083,7 +1086,7 @@ async def main(page: Page):
                             category.controls[i].value = True #Estic feliç, funciona :D
                             category.initially_expanded=True
             page.views.append(View(bgcolor = "#FFFCF1",controls=[AppBar(title=Text("Categories"),adaptive=True, bgcolor="#AAD7D9"), SafeArea(content=categ_info_add)]))
-            #page.add(AppBar(leading=IconButton(icons.ARROW_BACK_IOS,alignment="center",on_click=tornar),title=Text("Categories"), bgcolor="#AAD7D9"),categ_info_add)
+            #page.add(AppBar(leading=IconButton(Icons.ARROW_BACK_IOS,alignment="center",on_click=tornar),title=Text("Categories"), bgcolor="#AAD7D9"),categ_info_add)
         
         if page.route == "/configuracio/ajuda":
             page.views.append(View(bgcolor = "#FFFCF1",controls=[
@@ -1100,7 +1103,7 @@ async def main(page: Page):
             page.views.append(View(bgcolor = "#FFFCF1",controls=[
                 AppBar(title=Text("Cerca a un lloc"),adaptive=True, bgcolor="#AAD7D9"), 
                 SafeArea(content=Text("Vols cercar a un lloc el qual no sigui el teu? Posa aqui el lloc i retorna a l'app per cercar!\n", width=page.width, text_align="center")),
-                TextField(on_change=lloc_especific, prefix_icon=icons.SEARCH_OUTLINED, hint_text="Posa el lloc aqui", label="On vols cercar?", border_radius=border_radius.all(30), value=f"{page.session.get('lloc_especific')}" if page.session.contains_key('lloc_especific') else None)
+                TextField(on_change=lloc_especific, prefix_icon=Icons.SEARCH_OUTLINED, hint_text="Posa el lloc aqui", label="On vols cercar?", border_radius=border_radius.all(30), value=f"{page.session.get('lloc_especific')}" if page.session.contains_key('lloc_especific') else None)
             ]))
         
         if page.route == "/ia":
@@ -1358,7 +1361,7 @@ Categories: {categories_list} this is to check all the categories, now it's the 
                         selected_color="#6fa4a6",
                         bgcolor="#E8EEED",
                         label=Text("Restaurants",weight=FontWeight.W_400,),
-                        leading=Icon(icons.RESTAURANT_MENU_OUTLINED),
+                        leading=Icon(Icons.RESTAURANT_MENU_OUTLINED),
                         on_select=categ_chip_sel,
                         shadow_color = "#9ebdbf",
                         selected_shadow_color = "9ebdbf",
@@ -1370,7 +1373,7 @@ Categories: {categories_list} this is to check all the categories, now it's the 
                         selected_color="#6fa4a6",
                         bgcolor="#E8EEED",
                         label=Text("Llocs emblematics",weight=FontWeight.W_400,),
-                        leading=Icon(icons.MUSEUM_OUTLINED),
+                        leading=Icon(Icons.MUSEUM_OUTLINED),
                         on_select=categ_chip_sel,
                         shadow_color = "#9ebdbf",
                         selected_shadow_color = "9ebdbf",
@@ -1382,7 +1385,7 @@ Categories: {categories_list} this is to check all the categories, now it's the 
                         selected_color="#6fa4a6",
                         bgcolor="#E8EEED",
                         label=Text("Parcs",weight=FontWeight.W_400,),
-                        leading=Icon(icons.PARK_OUTLINED),
+                        leading=Icon(Icons.PARK_OUTLINED),
                         on_select=categ_chip_sel,
                         shadow_color = "#9ebdbf",
                         selected_shadow_color = "9ebdbf",
@@ -1394,7 +1397,7 @@ Categories: {categories_list} this is to check all the categories, now it's the 
                         selected_color="#6fa4a6",
                         bgcolor="#E8EEED",
                         label=Text("Cafeteries",weight=FontWeight.W_400,),
-                        leading=Icon(icons.LOCAL_CAFE_OUTLINED),
+                        leading=Icon(Icons.LOCAL_CAFE_OUTLINED),
                         on_select=categ_chip_sel,
                         shadow_color = "#9ebdbf",
                         selected_shadow_color = "9ebdbf",
@@ -1406,7 +1409,7 @@ Categories: {categories_list} this is to check all the categories, now it's the 
                         selected_color="#6fa4a6",
                         bgcolor="#E8EEED",
                         label=Text("Entreteniment",weight=FontWeight.W_400,),
-                        leading=Icon(icons.INSERT_EMOTICON_OUTLINED),
+                        leading=Icon(Icons.INSERT_EMOTICON_OUTLINED),
                         on_select=categ_chip_sel,
                         shadow_color = "#9ebdbf",
                         selected_shadow_color = "9ebdbf",
@@ -1418,7 +1421,7 @@ Categories: {categories_list} this is to check all the categories, now it's the 
                         selected_color="#6fa4a6",
                         bgcolor="#E8EEED",
                         label=Text("Botigues",weight=FontWeight.W_400,),
-                        leading=Icon(icons.SHOPPING_BAG_OUTLINED),
+                        leading=Icon(Icons.SHOPPING_BAG_OUTLINED),
                         on_select=categ_chip_sel,
                         shadow_color = "#9ebdbf",
                         selected_shadow_color = "9ebdbf",
@@ -1430,7 +1433,7 @@ Categories: {categories_list} this is to check all the categories, now it's the 
                         selected_color="#6fa4a6",
                         bgcolor="#E8EEED",
                         label=Text("Turisme",weight=FontWeight.W_400,),
-                        leading=Icon(icons.FLIGHT_OUTLINED),
+                        leading=Icon(Icons.FLIGHT_OUTLINED),
                         on_select=categ_chip_sel,
                         shadow_color = "#9ebdbf",
                         selected_shadow_color = "9ebdbf",
@@ -1442,7 +1445,7 @@ Categories: {categories_list} this is to check all the categories, now it's the 
                         selected_color="#6fa4a6",
                         bgcolor="#E8EEED",
                         label=Text("   Cerca a un lloc     ",weight=FontWeight.W_100),
-                        leading=Icon(icons.SEARCH_OUTLINED),
+                        leading=Icon(Icons.SEARCH_OUTLINED),
                         on_select=categ_chip_sel,
                         shadow_color = "#9ebdbf",
                         selected_shadow_color = "9ebdbf",
@@ -1454,7 +1457,7 @@ Categories: {categories_list} this is to check all the categories, now it's the 
                         selected_color="#9796f0",
                         bgcolor="#E8EEED",
                         label=Text("AI",weight=FontWeight.W_100),
-                        leading=Icon(icons.CIRCLE, color="#C8A2C8"),
+                        leading=Icon(Icons.CIRCLE, color="#C8A2C8"),
                         on_select=categ_chip_sel,
                         shadow_color = "#9796f0",
                         selected_shadow_color = "C8A2C8",
@@ -1466,7 +1469,7 @@ Categories: {categories_list} this is to check all the categories, now it's the 
                         selected_color="#6fa4a6",
                         bgcolor="#E8EEED",
                         label=Text("Més",weight=FontWeight.W_400,),
-                        leading=Icon(icons.READ_MORE_OUTLINED,color="black"),
+                        leading=Icon(Icons.READ_MORE_OUTLINED,color="black"),
                         on_select=mes_info_select,
                         shadow_color = "#9ebdbf",
                         selected_shadow_color = "9ebdbf",
@@ -1520,32 +1523,32 @@ Categories: {categories_list} this is to check all the categories, now it's the 
                         ),
                         ListTile(title=Text("General"), dense=True,height=(page.height * 0.8) / 10),
                         ListTile(
-                            leading=Icon(icons.PALETTE_OUTLINED, color="black"),
-                            trailing = Icon(icons.CHEVRON_RIGHT_OUTLINED),
+                            leading=Icon(Icons.PALETTE_OUTLINED, color="black"),
+                            trailing = Icon(Icons.CHEVRON_RIGHT_OUTLINED),
                             title=Text("Tema", color="black"),
                             selected=True,
                             height=(page.height * 0.8) / 13,
                             on_click=tema
                         ),
                         ListTile(
-                            leading=Icon(icons.LANGUAGE, color="black"),
-                            trailing = Icon(icons.CHEVRON_RIGHT_OUTLINED),
+                            leading=Icon(Icons.LANGUAGE, color="black"),
+                            trailing = Icon(Icons.CHEVRON_RIGHT_OUTLINED),
                             title=Text("Idioma", color="black"),
                             selected=True,
                             height=(page.height * 0.8) / 13,
                             on_click=Idioma
                         ),
                         ListTile(
-                            leading=Icon(icons.HISTORY, color="black"),
-                            trailing = Icon(icons.CHEVRON_RIGHT_OUTLINED),
+                            leading=Icon(Icons.HISTORY, color="black"),
+                            trailing = Icon(Icons.CHEVRON_RIGHT_OUTLINED),
                             title=Text("Historial de llocs", color="black"),
                             selected=True,
                             height=(page.height * 0.8) / 13,
                             on_click=Historial
                         ),
                         ListTile(
-                            leading=Icon(icons.NEAR_ME_OUTLINED, color="black"),
-                            trailing = Icon(icons.CHEVRON_RIGHT_OUTLINED),
+                            leading=Icon(Icons.NEAR_ME_OUTLINED, color="black"),
+                            trailing = Icon(Icons.CHEVRON_RIGHT_OUTLINED),
                             title=Text("Pàrametres cerca de llocs", color="black"),
                             selected=True,
                             height=(page.height * 0.8) / 13,
@@ -1553,24 +1556,24 @@ Categories: {categories_list} this is to check all the categories, now it's the 
                         ),
                         ListTile(title=Text("Jo i l'App"), dense=True,height=(page.height * 0.8) / 10),
                         ListTile(
-                            leading=Icon(icons.INFO_OUTLINED, color="black"),
-                            trailing = Icon(icons.CHEVRON_RIGHT_OUTLINED),
+                            leading=Icon(Icons.INFO_OUTLINED, color="black"),
+                            trailing = Icon(Icons.CHEVRON_RIGHT_OUTLINED),
                             title=Text("Sobre l'App", color="black"),
                             height=(page.height * 0.8) / 13,
                             selected=True,
                             on_click=sobre_app
                         ),
                         ListTile(
-                            leading=Icon(icons.PRIVACY_TIP_OUTLINED, color="black"),
-                            trailing = Icon(icons.CHEVRON_RIGHT_OUTLINED),
+                            leading=Icon(Icons.PRIVACY_TIP_OUTLINED, color="black"),
+                            trailing = Icon(Icons.CHEVRON_RIGHT_OUTLINED),
                             title=Text("Politica de privacitat", color="black"),
                             selected=True,
                             height=(page.height * 0.8) / 13,
                             # on_click=hey
                         ),
                         ListTile(
-                            leading=Icon(icons.HELP_OUTLINED, color="black"),
-                            trailing = Icon(icons.CHEVRON_RIGHT_OUTLINED),
+                            leading=Icon(Icons.HELP_OUTLINED, color="black"),
+                            trailing = Icon(Icons.CHEVRON_RIGHT_OUTLINED),
                             title=Text("Ajuda", color="black"),
                             selected=True,
                             height=(page.height * 0.8) / 13,
@@ -1627,9 +1630,9 @@ Categories: {categories_list} this is to check all the categories, now it's the 
              
         page.update()
     
-    selected_favorits =Icon(name=icons.FAVORITE_ROUNDED, color="#E78895", animate_size=200)
-    selected_llocs =Icon(name=icons.LOCATION_PIN, color=colors.BLACK, animate_offset=140, offset=transform.Offset(0,0)) 
-    selected_configuracio = Icon(name=icons.SETTINGS_ROUNDED, color=colors.BLACK, rotate=transform.Rotate(0, alignment=alignment.center), animate_rotation=animation.Animation(duration=1000, curve="bounceOut"))
+    selected_favorits =Icon(name=Icons.FAVORITE_ROUNDED, color="#E78895", animate_size=200)
+    selected_llocs =Icon(name=Icons.LOCATION_PIN, color=Colors.BLACK, animate_offset=140, offset=transform.Offset(0,0)) 
+    selected_configuracio = Icon(name=Icons.SETTINGS_ROUNDED, color=Colors.BLACK, rotate=transform.Rotate(0, alignment=alignment.center), animate_rotation=animation.Animation(duration=1000, curve="bounceOut"))
     
     page.navigation_bar=NavigationBar(
         bgcolor = "#6fa4a6",
@@ -1637,9 +1640,9 @@ Categories: {categories_list} this is to check all the categories, now it's the 
         indicator_color = "#FBF9F1",
         on_change=changetab,
         destinations=[
-            NavigationBarDestination(label="Favorits", icon="FAVORITE_BORDER_ROUNDED", selected_icon_content=selected_favorits),
-            NavigationBarDestination(label="Llocs", icon="LOCATION_ON_OUTLINED", selected_icon_content=selected_llocs), 
-            NavigationBarDestination(label="Configuració", icon="SETTINGS_OUTLINED", selected_icon_content=selected_configuracio),
+            NavigationBarDestination(label="Favorits", icon="FAVORITE_BORDER_ROUNDED", selected_icon=selected_favorits),
+            NavigationBarDestination(label="Llocs", icon="LOCATION_ON_OUTLINED", selected_icon=selected_llocs), 
+            NavigationBarDestination(label="Configuració", icon="SETTINGS_OUTLINED", selected_icon=selected_configuracio),
         ]
     )
     
@@ -1863,7 +1866,7 @@ Categories: {categories_list} this is to check all the categories, now it's the 
                                                         size=size_title,
                                                         weight=FontWeight.W_900,
                                                         font_family="WorkSans",
-                                                        color=colors.BLACK,
+                                                        color=Colors.BLACK,
                                                     ),
                                                 ),
                                             ],
@@ -1878,7 +1881,7 @@ Categories: {categories_list} this is to check all the categories, now it's the 
                         async def imatge_en_gran(e):
                             img_principal = stack_cards.controls[0].content.content.controls[1].content.controls[0].content.content
                             dlg = AlertDialog(
-                                bgcolor=colors.with_opacity(0, '#ff6666'),
+                                bgcolor=Colors.with_opacity(0, '#ff6666'),
                                 content=InteractiveViewer(
                                     min_scale=0.1,
                                     max_scale=15,
@@ -1981,7 +1984,7 @@ Categories: {categories_list} this is to check all the categories, now it's the 
                                 ),
                                 shadow=BoxShadow(
                                     blur_radius=4.5,
-                                    color=colors.BLACK
+                                    color=Colors.BLACK
                                 ),
                                 offset=(0,0),
                                 border_radius=15, 
@@ -2004,7 +2007,7 @@ Categories: {categories_list} this is to check all the categories, now it's the 
                                                                 img_esq,
                                                                 img_dret,
                                                                 IconButton(
-                                                                        icon=icons.CHEVRON_RIGHT,
+                                                                        icon=Icons.CHEVRON_RIGHT,
                                                                         icon_color = "black",
                                                                         bgcolor="#FBF9F1",
                                                                         on_click=lambda e: asyncio.run(esq(e)),
@@ -2014,7 +2017,7 @@ Categories: {categories_list} this is to check all the categories, now it's the 
                                                                         top=page.window.height * 0.8 * 0.7 / 2,
                                                                 ),
                                                                 IconButton(
-                                                                        icon=icons.CHEVRON_LEFT,
+                                                                        icon=Icons.CHEVRON_LEFT,
                                                                         icon_color = "black",
                                                                         bgcolor="#FBF9F1",
                                                                         on_click=lambda e: asyncio.run(dret(e)),
@@ -2050,7 +2053,7 @@ Categories: {categories_list} this is to check all the categories, now it's the 
                                 else:
                                     color = "#ff7b5a"
                                 bottom_price.controls.append(
-                                    Icon(icons.ATTACH_MONEY, color=color)
+                                    Icon(Icons.ATTACH_MONEY, color=color)
                                 )  
                             carta.content.controls[2].controls.append(bottom_price)
 
