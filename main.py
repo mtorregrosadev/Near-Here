@@ -640,8 +640,7 @@ async def main(page: Page):
             ])
         )
 
-        global canvi 
-        global ai 
+        global canvi, ai, Yelp, Sostenible_L, Foursquare
         if page.route != '/info':
             page.controls.clear()  
         def resize_image_url(url, width, height):
@@ -704,7 +703,7 @@ async def main(page: Page):
             print("Error!")
             not_found=Column([
                     Text("No hem trobat més llocs 😕", text_align="center", weight=FontWeight.W_900, theme_style=TextThemeStyle.TITLE_LARGE, width=page.width, color="#6b9e9f"),
-                    Lottie(src="https://lottie.host/d6837472-c583-41b9-892e-f20114ad7046/sm0epJuEJM.json"),
+                    Lottie(src="src/no_hem_trobat.json"),
                     Divider(),
                     Text("Has seleccionat una categoria que no està disponible a la teva zona o no hem pogut trobar llocs a la teva zona o on has especificat!\n\nProva de canviar els km de distància, o cercar en un altre lloc específic i fes clic a refrescar la pàgina!")
 
@@ -894,90 +893,98 @@ async def main(page: Page):
                 Text("Fet per: Marc Lumbreras Torregrosa \n Fet com a part pràctica del Treball de Recerca a Batxillerat, 2024-2025",text_align="center", weight=FontWeight.W_300, theme_style=TextThemeStyle.BODY_SMALL, width=page.width)
             ]))
         if page.route == '/info': 
-            dadesLlocs = page.session.get("dadesLlocs")
-            info = Llocs_info(dadesLlocs[index_photo_stack]['fsq_id'])
-            detalls = await info.search_data()
-            Stack_info = Column([])
-            stack_info_contact = Row([], width=page.width, alignment="center", wrap=True)
-            stack_social_media = Row([], width=page.width, alignment="center")
-            #* Tot el contacte
-            if 'tel' in detalls:
-                telefon = Markdown(f"**Telèfon:** {detalls['tel']}",auto_follow_links=True)
-                stack_info_contact.controls.append(telefon)
-            if 'website' in detalls:
-                web = Markdown(f"**Pàgina web:** [{detalls['website']}]({detalls['website']})",auto_follow_links=True)
-                stack_info_contact.controls.append(web)   
-            if 'email' in detalls:
-                email = Markdown(f"**Email:** [{detalls['email']}](mailto:{detalls['email']})",auto_follow_links=True)
-                stack_info_contact.controls.append(email)
-            
-            #* Social media
-            if 'social_media' in detalls and not {}:
-                # {'instagram': 'marariabeachclub', 'twitter': 'marariabeachcl'}
-                if 'instagram' in detalls['social_media']:
-                    stack_social_media.controls.append(Row([Image(src="src/info/instagram.png", height=20), Markdown(f"[{detalls['social_media']['instagram']}](https://instagram.com/{detalls['social_media']['instagram']})", auto_follow_links=True)]))
+            if Foursquare:
+                dadesLlocs = page.session.get("dadesLlocs")
+                info = Llocs_info(dadesLlocs[index_photo_stack]['fsq_id'])
+                detalls = await info.search_data()
+                Stack_info = Column([])
+                stack_info_contact = Row([], width=page.width, alignment="center", wrap=True)
+                stack_social_media = Row([], width=page.width, alignment="center")
+                #* Tot el contacte
+                if 'tel' in detalls:
+                    telefon = Markdown(f"**Telèfon:** {detalls['tel']}",auto_follow_links=True)
+                    stack_info_contact.controls.append(telefon)
+                if 'website' in detalls:
+                    web = Markdown(f"**Pàgina web:** [{detalls['website']}]({detalls['website']})",auto_follow_links=True)
+                    stack_info_contact.controls.append(web)   
+                if 'email' in detalls:
+                    email = Markdown(f"**Email:** [{detalls['email']}](mailto:{detalls['email']})",auto_follow_links=True)
+                    stack_info_contact.controls.append(email)
+                
+                #* Social media
+                if 'social_media' in detalls and not {}:
+                    # {'instagram': 'marariabeachclub', 'twitter': 'marariabeachcl'}
+                    if 'instagram' in detalls['social_media']:
+                        stack_social_media.controls.append(Row([Image(src="src/info/instagram.png", height=20), Markdown(f"[{detalls['social_media']['instagram']}](https://instagram.com/{detalls['social_media']['instagram']})", auto_follow_links=True)]))
 
-                if 'facebook' in detalls['social_media']:
-                    stack_social_media.controls.append(Row([Image(src="src/info/facebook.png", height=20), Markdown(f"[{detalls['social_media']['facebook']}](https://www.facebook.com/{detalls['social_media']['facebook']})", auto_follow_links=True)]))
+                    if 'facebook' in detalls['social_media']:
+                        stack_social_media.controls.append(Row([Image(src="src/info/facebook.png", height=20), Markdown(f"[{detalls['social_media']['facebook']}](https://www.facebook.com/{detalls['social_media']['facebook']})", auto_follow_links=True)]))
 
-                if 'twitter' in detalls['social_media']:
-                    stack_social_media.controls.append(Row([Image(src="src/info/twitter.png", height=20), Markdown(f"[{detalls['social_media']['twitter']}](https://www.x.com/{detalls['social_media']['twitter']})", auto_follow_links=True)]))
+                    if 'twitter' in detalls['social_media']:
+                        stack_social_media.controls.append(Row([Image(src="src/info/twitter.png", height=20), Markdown(f"[{detalls['social_media']['twitter']}](https://www.x.com/{detalls['social_media']['twitter']})", auto_follow_links=True)]))
 
-            #*Etc
-            if 'description' in detalls:
-                descripcio = Container(content=Text(f"{detalls['description']}"))
-                Stack_info.controls.append(descripcio)
-            #*! Per perfeccionar!
-            if 'hours' in detalls:
-                hores = Container(content=Text(f"hours: {detalls['hours']}"))
-                Stack_info.controls.append(hores)  
-            
-            if 'hours_popular' in detalls:
-                hores_populars = Container(content=Text(f"hours popular: {detalls['hours_popular']}"))
-                Stack_info.controls.append(hores_populars)
-            if 'menu' in detalls:
-                menu = Container(content=Text(f"menu: {detalls['menu']}"))
-                Stack_info.controls.append(menu)
-            if 'photos' in detalls and not []:
-                fotos = Container(content=Text(f"photos: {detalls['photos']}"))
-                Stack_info.controls.append(fotos)
-            if 'rating' in detalls:
-                valoracio = Container(content=Text(f"rating: {detalls['rating']}"))
-                Stack_info.controls.append(valoracio)
-            if 'stats' in detalls:
-                estadistiques = Container(content=Text(f"stats: {detalls['stats']}"))
-                Stack_info.controls.append(estadistiques)
-            if 'popularity' in detalls:
-                popularitat = Container(content=Text(f"popularity: {detalls['popularity']}"))
-                Stack_info.controls.append(popularitat)
-            if 'price' in detalls:
-                preu = Container(content=Text(f"price: {detalls['price']}"))
-                Stack_info.controls.append(preu)
-            if 'tastes' in detalls:
-                gustos = Container(content=Text(f"tastes: {detalls['tastes']}"))
-                Stack_info.controls.append(gustos)
-            if 'features' in detalls:
-                caracteristiques = Container(content=Text(f"features: {detalls['features']}"))
-                Stack_info.controls.append(caracteristiques)
-            if 'venue_reality_bucket' in detalls:
-                realitat_venue = Container(content=Text(f"venue reality bucket: {detalls['venue_reality_bucket']}"))
-                Stack_info.controls.append(realitat_venue)
-            if 'related_places' in detalls and not {}:
-                llocs_relacionats = Container(content=Text(f"related places: {detalls['related_places']}"))
-                Stack_info.controls.append(llocs_relacionats)
-            if 'timezone' in detalls:
-                zona_horaria = Container(content=Text(f"timezone: {detalls['timezone']}"))
-                Stack_info.controls.append(zona_horaria)
-            if 'distance' in detalls:
-                distancia = Container(content=Text(f"distance: {detalls['distance']}"))
-                Stack_info.controls.append(distancia)
+                #*Etc
+                if 'description' in detalls:
+                    descripcio = Container(content=Text(f"{detalls['description']}"))
+                    Stack_info.controls.append(descripcio)
+                #*! Per perfeccionar!
+                if 'hours' in detalls:
+                    hores = Container(content=Text(f"hours: {detalls['hours']}"))
+                    Stack_info.controls.append(hores)  
+                
+                if 'hours_popular' in detalls:
+                    hores_populars = Container(content=Text(f"hours popular: {detalls['hours_popular']}"))
+                    Stack_info.controls.append(hores_populars)
+                if 'menu' in detalls:
+                    menu = Container(content=Text(f"menu: {detalls['menu']}"))
+                    Stack_info.controls.append(menu)
+                if 'photos' in detalls and not []:
+                    fotos = Container(content=Text(f"photos: {detalls['photos']}"))
+                    Stack_info.controls.append(fotos)
+                if 'rating' in detalls:
+                    valoracio = Container(content=Text(f"rating: {detalls['rating']}"))
+                    Stack_info.controls.append(valoracio)
+                if 'stats' in detalls:
+                    estadistiques = Container(content=Text(f"stats: {detalls['stats']}"))
+                    Stack_info.controls.append(estadistiques)
+                if 'popularity' in detalls:
+                    popularitat = Container(content=Text(f"popularity: {detalls['popularity']}"))
+                    Stack_info.controls.append(popularitat)
+                if 'price' in detalls:
+                    preu = Container(content=Text(f"price: {detalls['price']}"))
+                    Stack_info.controls.append(preu)
+                if 'tastes' in detalls:
+                    gustos = Container(content=Text(f"tastes: {detalls['tastes']}"))
+                    Stack_info.controls.append(gustos)
+                if 'features' in detalls:
+                    caracteristiques = Container(content=Text(f"features: {detalls['features']}"))
+                    Stack_info.controls.append(caracteristiques)
+                if 'venue_reality_bucket' in detalls:
+                    realitat_venue = Container(content=Text(f"venue reality bucket: {detalls['venue_reality_bucket']}"))
+                    Stack_info.controls.append(realitat_venue)
+                if 'related_places' in detalls and not {}:
+                    llocs_relacionats = Container(content=Text(f"related places: {detalls['related_places']}"))
+                    Stack_info.controls.append(llocs_relacionats)
+                if 'timezone' in detalls:
+                    zona_horaria = Container(content=Text(f"timezone: {detalls['timezone']}"))
+                    Stack_info.controls.append(zona_horaria)
+                if 'distance' in detalls:
+                    distancia = Container(content=Text(f"distance: {detalls['distance']}"))
+                    Stack_info.controls.append(distancia)
 
-            page.views.append(View(bgcolor = "#FFFCF1",controls=[
-                    AppBar(bgcolor="#AAD7D9",adaptive=True),
-                    Text(f"{dadesLlocs[index_photo_stack]['name']}", text_align="center", weight=FontWeight.W_900, size=page.height*0.03, width=page.width, color="#6b9e9f"),
-                    ListView(controls=[stack_info_contact,stack_social_media,Stack_info],auto_scroll=False, height=page.height*0.8)
-                    
-            ]))
+                page.views.append(View(bgcolor = "#FFFCF1",controls=[
+                        AppBar(bgcolor="#AAD7D9",adaptive=True),
+                        Text(f"{dadesLlocs[index_photo_stack]['name']}", text_align="center", weight=FontWeight.W_900, size=page.height*0.03, width=page.width, color="#6b9e9f"),
+                        ListView(controls=[stack_info_contact,stack_social_media,Stack_info],auto_scroll=False, height=page.height*0.8)
+                        
+                ]))
+            else:
+                page.views.append(View(bgcolor = "#FFFCF1",controls=[
+                        AppBar(bgcolor="#AAD7D9",adaptive=True),
+                        Text(f"Estem treballant en això encara :(", text_align="center", weight=FontWeight.W_900, size=page.height*0.03, width=page.width, color="#6b9e9f"),
+                        Lottie(src="src/working.json", repeat=True)
+                        
+                ]))
         if page.route == '/categories':
             categories_sel = page.session.get("categories_sel")
             page.add(Tags_amunt_safe,stack_cards,botons)
@@ -1673,12 +1680,7 @@ Categories: {categories_list} this is to check all the categories, now it's the 
     # Aquest el que fa es convertir cada card individual en GestureDetector. Amb això, podem detectar cap a on es mou i com funciona. Es molt útil i ens ho serà en un futur.
     async def update_cards():
         stack_cards.controls.clear() 
-        global index_photo_stack
-        global images_request
-        global canvi
-        global cards
-        global sostenible
-        global sostenible_2
+        global index_photo_stack, images_request, canvi, cards, sostenible, sostenible_2, Yelp, Foursquare, Sostenible_L
         if canvi == True:
             #crearem la splash screen
             splash = Container(
@@ -1716,7 +1718,9 @@ Categories: {categories_list} this is to check all the categories, now it's the 
                 #:) Cobren el mateix demanant 5, 10 que 50
                 dadesLlocs = page.session.get("dadesLlocs")
                 p = await gl.get_current_position_async()
+                Foursquare, Yelp, Sostenible_L = False, False, False
                 if sostenible_2:
+                    Foursquare, Yelp, Sostenible_L = False, False, True # Per poder saber d'on prové la dada 
                     if page.session.contains_key("lloc_especific"): # Comprova si hi ha un lloc específic posat per l'usuari
                         lloc_especific = page.session.get("lloc_especific")
                         if lloc_especific != "":
@@ -1728,7 +1732,8 @@ Categories: {categories_list} this is to check all the categories, now it's the 
                         llocs = LLocs_sostenibles(p.latitude,p.longitude,radius_sel,50,loc_visited,categories_sel)  
                         dadesLlocs, loc_visited = llocs.dades()
                     
-                if dadesLlocs == "error 400" or not sostenible_2: # Això fa que entri a l'altre en el cas que sigui error 400:  #Si es true entra    
+                if dadesLlocs == "error 400" or not sostenible_2: # Això fa que entri a l'altre en el cas que sigui error 400:  #Si es true entra 
+                    Foursquare, Yelp, Sostenible_L = False, True, False    
                     if page.session.contains_key("lloc_especific"): # Comprova si hi ha un lloc específic posat per l'usuari
                         lloc_especific = page.session.get("lloc_especific")
                         if lloc_especific != "":
@@ -1743,6 +1748,7 @@ Categories: {categories_list} this is to check all the categories, now it's the 
                 sostenible_2 = False
 
                 if dadesLlocs == "error 400" or not sostenible: # Això fa que entri a l'altre en el cas que sigui error 400
+                    Foursquare, Yelp, Sostenible_L = True, False, False 
                     if page.session.contains_key("lloc_especific"): # Comprova si hi ha un lloc específic posat per l'usuari
                         lloc_especific = page.session.get("lloc_especific")
                         if lloc_especific != "":
@@ -1892,9 +1898,16 @@ Categories: {categories_list} this is to check all the categories, now it's the 
                             page.open(dlg)
 
                         async def check_image_url(url):
+                            # Skip check for URLs we know are good
+                            if url and (url.startswith("https://fastly.4sqi.net") or 
+                                      url.startswith("https://s3-media") or
+                                      url.startswith("https://static.openstreetmap.org")):
+                                return True
+                            
+                            # Only check other URLs
                             async with httpx.AsyncClient() as client:
                                 try:
-                                    response = await client.head(url)
+                                    response = await client.head(url, timeout=2.0) # Add timeout
                                     return response.status_code == 200
                                 except:
                                     return False
