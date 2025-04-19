@@ -24,6 +24,7 @@ sostenible_2 = True
 cards = []
 import json 
 import math 
+import datetime
 class LLocs_sostenibles:
     def __init__(self,latitud, longitud, radius, limit, loc_visited, categories_sel):
         self.latitud = latitud 
@@ -919,79 +920,94 @@ async def main(page: Page):
             content = ListView(
                 controls=[],
                 auto_scroll=False,
-                height=page.height*0.8
+                height=page.height*0.7,
             )
 
-            header = Text(
-                current_place['name'],
-                text_align="center",
-                weight=FontWeight.W_900,
-                size=page.height*0.05,
+            # Header amb auto-ajust de mida de lletra segons height disponible (5% de la pantalla)
+            def get_auto_font_size(text, height, min_size=18, max_size=36):
+                # Ajusta la mida de la font segons la llargada del text i l'alçada disponible
+                base = height * 0.7  # Augmenta el factor base per fer la lletra més gran
+                length_factor = max(1, len(text) / 18)
+                size = min(max(base / length_factor, min_size), max_size)
+                # Si el text és molt llarg, redueix encara més la mida
+                if len(text) > 22:
+                    size = max(size * 0.85, min_size)
+                return size
+
+            header_height = page.height * 0.07  
+            header = Container(
+                alignment=alignment.center,
+                height=page.height * 0.0725,
                 width=page.width,
-                color="#6b9e9f"
+                content=Text(
+                    current_place['name'],
+                    text_align="center",
+                    weight=FontWeight.W_900,
+                    size=get_auto_font_size(current_place['name'], header_height),
+                    color="#6b9e9f",
+                    max_lines=2,
+                    overflow="ellipsis"
+                ),
+                padding=10,
             )
             
             # Afegim enllaços a aplicacions de mapes
             map_links = Row(
                 alignment="center",
                 spacing=10,
-                controls=[]
+                controls=[],
+                height=page.height*0.05,
             )
+            obert_text =Text(
+                        "",
+                        width=page.width,
+                        size=10,
+                        text_align="center", # Add this to center the text
+                    )
             
-            # Obtenir coordenades
-            lat = None
-            lon = None
-            
-            if current_place.get("coordinates"):
-                lat = current_place["coordinates"].get("latitude")
-                lon = current_place["coordinates"].get("longitude")
-            elif current_place.get("geocodes", {}).get("main"):
+
+            if current_place.get("geocodes", {}).get("main"):
                 lat = current_place["geocodes"]["main"].get("latitude")
                 lon = current_place["geocodes"]["main"].get("longitude")
-            
-            if lat and lon:
-                # Google Maps
-                google_icon = Image(
-                    src="/mnt/data/8f137a5b-ff2f-4059-9934-88424760707a.png",  # Ruta local de la imatge
-                    width=24,
-                    height=24
-                )
 
-                map_links.controls.append(
-                    ElevatedButton(
-                        content=Image(
-                            src="src/info/googleMaps.png",  # Ensure the path to the image is correct
-                            width=24,
-                            height=24,
-                        ),
-                        tooltip="Google Maps",
-                        url=f"https://www.google.com/maps/search/?api=1&query={lat},{lon}",
-                    
-                    ))
-                
-                # Waze
-                map_links.controls.append(
-                    ElevatedButton(
-                        content=Image(
-                            src="src/info/WAZE.png",  # Ensure the path to the image is correct
-                            width=24,
-                            height=24,
-                        ),
-                        tooltip="Google Maps",
-                        url=f"https://waze.com/ul?ll={lat},{lon}&navigate=yes",
-                    ))
-        
-                
+            
+
+            # Google Maps
+            # Google Maps amb nom del lloc (si disponible)
+            map_links.controls.append(
+                ElevatedButton(
+                    content=Image(
+                        src="src/info/googleMaps.png",  
+                        width=24,
+                        height=24,
+                    ),
+                    tooltip="Google Maps",
+                    url=f"https://www.google.com/maps/search/?api=1&query={current_place['name'].replace(' ', '+')}&query_place_id=&query={lat},{lon}",
+                )
+            )
+            
+            # Waze
+            map_links.controls.append(
+                ElevatedButton(
+                    content=Image(
+                        src="src/info/WAZE.png",  
+                        width=24,
+                        height=24,
+                    ),
+                    tooltip="Waze",
+                    url=f"https://www.waze.com/ul?ll={lat}%2C{lon}&navigate=yes&zoom=17",
+                ))
+    
+            if page.platform == "iOS":
                 # Apple Maps (només per iOS)
                 map_links.controls.append(
                     ElevatedButton(
                         content=Image(
-                            src="src/info/AppleMaps.png",  # Ensure the path to the image is correct
+                            src="src/info/AppleMaps.png",  
                             width=24,
                             height=24,
                         ),
-                        tooltip="Google Maps",
-                        bgcolor="TRANSPARENT",
+                        tooltip="Apple Maps",
                         url=f"maps://?q={lat},{lon}", #! Només funciona a iOS
                     ))
                 
@@ -1015,10 +1031,7 @@ async def main(page: Page):
                 # Cas Yelp
                 elif isinstance(current_place["photos"], str):
                     photos.append(current_place["photos"])
-            elif current_place.get("image_url"):
-                # Cas alternatiu Yelp
-                photos.append(current_place["image_url"])
-                
+             
             if photos:
                 print(photos)
                 # Variable per seguir l'índex de la foto actual
@@ -1027,7 +1040,7 @@ async def main(page: Page):
                 # Imatge principal
                 main_image = Image(
                     src=photos[0],
-                    width=page.width*0.9,
+                    width=page.width,
                     height=250,
                     fit="cover",
                     border_radius=10,
@@ -1212,16 +1225,17 @@ async def main(page: Page):
                         margin=margin.only(bottom=10)
                     )
                 )
-            
+            print(current_place)
             # Add price level if available
             if current_place.get("price"):
-                price_text = current_place["price"]
-                # Convertir a text descriptiu en català
+                price_text = str(current_place["price"])
+                print(price_text)
                 price_desc = ""
                 if price_text == "$" or price_text == "1":
                     price_desc = "Econòmic"
                 elif price_text == "$$" or price_text == "2":
                     price_desc = "Moderat"
+                    print("Es 222")
                 elif price_text == "$$$" or price_text == "3":
                     price_desc = "Car"
                 elif price_text == "$$$$" or price_text == "4":
@@ -1231,12 +1245,13 @@ async def main(page: Page):
                     basic_info.controls.append(
                         Container(
                             content=Text(
-                                f"💰 Preu: {price_desc} ({price_text})",
+                                f"💰 Preu: {price_desc} ({price_text}/4)",
                                 size=14
                             ),
                             margin=margin.only(bottom=10)
                         )
                     )
+                    page.update()
             
             # Organitzem els elements en la vista principal
             content.controls.append(carousel)
@@ -1264,6 +1279,16 @@ async def main(page: Page):
                             url=f"tel:{details['tel']}"
                         )
                     )
+
+                # Add email 
+                if details.get('email'):
+                    contact.controls.append(
+                        ListTile(
+                            leading=Icon(Icons.EMAIL),
+                            title=Text(details['email']),
+                            url=f"mailto:{details['email']}"
+                        )
+                    )
                     
                 # Add website
                 if details.get('website'):
@@ -1285,30 +1310,155 @@ async def main(page: Page):
                     
                     if details['social_media'].get('instagram'):
                         social.controls.append(
-                            IconButton(
-                                icon=Icons.SOCIAL_INSTAGRAM,
-                                url=f"https://instagram.com/{details['social_media']['instagram']}"
+                            ElevatedButton(
+                                content=Image(
+                                    src="src/info/instagram.png",  
+                                    width=24,
+                                    height=24,
+                                ),
+                                tooltip="Instagram",
+                                url=f"https://instagram.com/{details['social_media']['instagram']}",
                             )
                         )
                     
                     if details['social_media'].get('twitter'):
                         social.controls.append(
-                            IconButton(
-                                icon=Icons.SOCIAL_TWITTER,
-                                url=f"https://twitter.com/{details['social_media']['twitter']}" 
+                           ElevatedButton(
+                                content=Image(
+                                    src="src/info/twitter.png",  
+                                    width=24,
+                                    height=24,
+                                ),
+                                tooltip="Twitter", 
+                                url=f"https://x.com/{details['social_media']['twitter']}",
                             )
                         )
                         
                     if details['social_media'].get('facebook'):
                         social.controls.append(
-                            IconButton(
-                                icon=Icons.SOCIAL_FACEBOOK,
-                                url=f"https://facebook.com/{details['social_media']['facebook']}"
+                           ElevatedButton(
+                                content=Image(
+                                    src="src/info/facebook.png",  
+                                    width=24,
+                                    height=24,
+                                ),
+                                tooltip="Facebook",
+                                url=f"https://facebook.com/{details['social_media']['facebook']}",
                             )
                         )
                         
-                ]))
+                    if social.controls:
                         contact.controls.append(social)
+
+                # Add hours if available
+                if details.get('hours'):
+                    print("Hours: ", details['hours'])
+                    hours_controls = []
+                    if details['hours'].get('regular'):
+                        # Dictionary to map day numbers to Catalan day names
+                        day_names = {
+                            1: 'Dilluns',
+                            2: 'Dimarts', 
+                            3: 'Dimecres',
+                            4: 'Dijous',
+                            5: 'Divendres',
+                            6: 'Dissabte',
+                            7: 'Diumenge'
+                        }
+
+                        # Get current day and time
+                        now = datetime.datetime.now()
+                        current_day = now.weekday() + 1  # weekday() returns 0-6, we need 1-7
+                        current_time = now.strftime('%H%M')
+
+                        # Check if place is open now
+                        is_open = False
+                        for day in details['hours']['regular']:
+                            if day['day'] == current_day:
+                                open_time = day['open'].replace(':', '')
+                                close_time = day['close'].replace(':', '')
+                                is_open = open_time <= current_time <= close_time
+                                break
+
+                        hours_controls.append(
+                            Text("Horari habitual:", weight=FontWeight.W_600)
+                        )
+                        for day in details['hours']['regular']:
+                            # Format open time with :
+                            open_time = f"{day['open'][:2]}:{day['open'][2:]}" if len(day['open']) == 4 else day['open']
+                            # Format close time with :  
+                            close_time = f"{day['close'][:2]}:{day['close'][2:]}" if len(day['close']) == 4 else day['close']
+                            # Convert day number to name
+                            day_name = day_names.get(day['day'], day['day'])
+                            hours_controls.append(
+                                Text(f"{day_name}: {open_time} - {close_time}")
+                            )
+                        content.controls.append(
+                            Container(
+                                content=Column(controls=hours_controls),
+                                margin=margin.only(top=20),
+                                padding=10,
+                                border_radius=10,
+                                bgcolor=Colors.BLACK12
+                            )
+                        )
+
+                    if details['hours'].get('open_now'):                 # Update obert_text based on open status
+                        obert_text.value = "OBERT" if is_open else "TANCAT"
+                        obert_text.color = "#4CAF50" if is_open else "#F44336" # Green if open, red if closed
+                        obert_text.weight = FontWeight.W_700
+                    elif details['hours'].get('regular'):
+                        # Si no tenim open_now, calculem si està obert segons l'horari regular
+                        now = datetime.datetime.now()
+                        current_day = now.weekday() + 1  # weekday() returns 0-6, we need 1-7
+                        current_time = now.strftime('%H%M')
+                        is_open = False
+                        for day in details['hours']['regular']:
+                            if day['day'] == current_day:
+                                open_time = day['open'].replace(':', '')
+                                close_time = day['close'].replace(':', '')
+                                if open_time <= current_time <= close_time:
+                                    is_open = True
+                                    break
+                        obert_text.value = "OBERT" if is_open else "TANCAT"
+                        obert_text.color = "#4CAF50" if is_open else "#F44336"
+                        obert_text.weight = FontWeight.W_700
+                # Add stats if available
+                if details.get('stats'):
+                    stats = Row(
+                        alignment="spaceAround",
+                        controls=[
+                            Column([
+                                Icon(Icons.STAR),
+                                Text(f"{current_place["rating"]}")
+                            ]),
+                            Column([
+                                Icon(Icons.PEOPLE), 
+                                Text(f"{details['stats'].get('total_ratings', 'N/A')}")
+                            ])
+                        ]
+                    )
+                    content.controls.append(
+                        Container(
+                            content=stats,
+                            margin=margin.only(top=10),
+                            padding=10
+                        )
+                    )
+
+                # Add menu if available
+                if details.get('menu'):
+                    content.controls.append(
+                        Container(
+                            content=ListTile(
+                                leading=Icon(Icons.MENU_BOOK),
+                                title=Text("Menú"),
+                                url=details['menu'].get('url', '')
+                            ),
+                            margin=margin.only(top=10)
+                        )
+                    )
+
                 # Add description if available
                 if details.get('description'):
                     content.controls.append(
@@ -1316,11 +1466,39 @@ async def main(page: Page):
                             content=Text(details['description']),
                             margin=margin.only(top=20, bottom=20),
                             padding=10,
+                            border_radius=10,
+                            bgcolor=Colors.BLACK12
                         )
+                    )
+
+                # Add features/amenities if available
+                if details.get('features'):
+                    features_list = Column([
+                        Text("Serveis disponibles:", weight=FontWeight.W_600)
+                    ])
+                    for feature, value in details['features'].items():
+                        if value:  # Only show enabled features
+                            features_list.controls.append(
+                                Text(f"✓ {feature.replace('_', ' ').title()}")
+                            )
+                    content.controls.append(
+                        Container(
+                            content=features_list,
+                            margin=margin.only(top=10),
+                            padding=10,
+                            border_radius=10,
+                            bgcolor=Colors.BLACK12
+                        )
+                    )
+
             elif Yelp:
+                # Add Yelp specific fields
+                if current_place.get('display_phone'):
                     contact.controls.append(
                         ListTile(
                             leading=Icon(Icons.PHONE),
+                            title=Text(current_place['display_phone']),
+                            url=f"tel:{current_place['phone']}"
                         )
                     )
                     
@@ -1368,17 +1546,25 @@ async def main(page: Page):
                     )
                 )
 
-            page.views.append(
-                View(
+            page.views.append(View(
                     bgcolor="#FFFCF1",
                     controls=[
                         AppBar(bgcolor="#AAD7D9", adaptive=True),
-                        header,
-                        map_links,
+                        Container(
+                            border_radius=10,
+                            # Use a semi-transparent background color (e.g., 80% opacity)
+                            bgcolor="#fff9f1",  # Add 'CC' for 80% opacity (hex: 0-FF)
+                            width=page.width,
+                            content=Column([
+                                header,
+                                obert_text,
+                                map_links,
+                                Text("")
+                            ])
+                        ),
                         content
                     ]
-                )
-            )
+                ))
         if page.route == '/categories':
             categories_sel = page.session.get("categories_sel")
             page.add(Tags_amunt_safe,stack_cards,botons)
@@ -1889,6 +2075,7 @@ Categories: {categories_list} this is to check all the categories, now it's the 
             controls=[
                 ElevatedButton(content=Text("Següent", size=size_botons, theme_style=TextThemeStyle.LABEL_LARGE),on_click=seguent, bgcolor="#d9acaa", color="black",col=4), 
                 ElevatedButton(content=Text("Més info", size=size_botons,theme_style=TextThemeStyle.LABEL_LARGE), disabled=True, on_click=mes_info,bgcolor="#FBF9F1",color="black",col=4), #! Disabled
+                ElevatedButton(content=Text("Més info", size=size_botons,theme_style=TextThemeStyle.LABEL_LARGE), on_click=mes_info,bgcolor="#FBF9F1",color="black",col=4),
                 ElevatedButton(content=Text("Guarda!",size=size_botons, theme_style=TextThemeStyle.LABEL_LARGE), on_click=guarda, bgcolor="#aad9c4",color="black",col=4), 
     ]) 
     stack_cards = Stack(alignment=alignment.center, offset=(0,0), expand = True)
