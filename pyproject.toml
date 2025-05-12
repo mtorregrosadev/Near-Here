@@ -1,0 +1,32 @@
+[project]
+name = "Near_Here"
+version = "0.2.0"
+description = "Aplicació de geolocalització per a la detecció de llocs propers"
+readme = "README.md"
+requires-python = ">=3.12"
+authors = [
+    { name = "Marc Lumbreras", email = "mtorregrosadev@gmail.com" }
+]
+dependencies = [
+    "flet==0.27.5",
+    "requests==2.32.3",
+    "httpx==0.27.2",
+    "flet_geolocator",
+    "flet_lottie",
+]
+
+[tool.flet]
+org = "com.makidev"
+product = "Near_Here"
+company = "MakiDev"
+copyright = "Copyright (C) 2025"
+
+[tool.flet.app]
+entrypoint = "main.py"  # El fitxer principal del teu projecte
+
+[tool.flet.flutter]
+sdk = "3.24.0"
+
+[tool.flet.flutter.dependencies]
+flet_geolocator = "*"
+flet_lottie = "*"

@@ -57,7 +57,7 @@ jobs:
     - name: Flet Build IPA
       run: |
         flutter config --no-analytics
-        flet build ipa -vv --build-number=${{ inputs.BUILD_NUMBER }} --build-version=${{ inputs.BUILD_VERSION }} --include-packages flet_geolocator flet_lottie
+        flet build ipa -vv --build-number=${{ inputs.BUILD_NUMBER }} --build-version=${{ inputs.BUILD_VERSION }}
 
     - name: Upload IPA Artifact
       uses: actions/upload-artifact@v4.3.4  # https://github.com/marketplace/actions/upload-a-build-artifact

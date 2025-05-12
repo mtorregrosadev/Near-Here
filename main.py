@@ -1,5 +1,5 @@
 import flet 
-from flet import Page,CircleAvatar,RadioGroup,Radio,ButtonStyle,LinearGradient,Alignment,GradientTileMode,Markdown,Dropdown,ListView,TextField,DecorationImage,dropdown,InteractiveViewer,margin,TextButton,Divider,View,border,Slider,BorderRadius,border_radius,Checkbox,RoundedRectangleBorder,TileAffinity,ExpansionTile,AnimatedSwitcherTransition,AppBar,Card,GridView,TextThemeStyle,ListTile, MainAxisAlignment,AnimatedSwitcher,Stack,Column,TextSpan,TextStyle,Paint,AlertDialog,IconButton, StrokeJoin,PaintingStyle,ShadowBlurStyle, BoxShadow, Image, ListTile,GestureDetector, FontWeight,ElevatedButton, SafeArea,Theme, animation, Container, transform, Icon, Icons, Colors, alignment, Row, Text, ResponsiveRow, Chip, NavigationBarDestination, NavigationBar 
+from flet import Page,CircleAvatar,RadioGroup,Radio,PagePlatform,LinearGradient,Alignment,GradientTileMode,Markdown,Dropdown,ListView,TextField,DecorationImage,dropdown,InteractiveViewer,margin,TextButton,Divider,View,border,Slider,BorderRadius,border_radius,Checkbox,RoundedRectangleBorder,TileAffinity,ExpansionTile,AnimatedSwitcherTransition,AppBar,Card,GridView,TextThemeStyle,ListTile, MainAxisAlignment,AnimatedSwitcher,Stack,Column,TextSpan,TextStyle,Paint,AlertDialog,IconButton, StrokeJoin,PaintingStyle,ShadowBlurStyle, BoxShadow, Image, ListTile,GestureDetector, FontWeight,ElevatedButton, SafeArea,Theme, animation, Container, transform, Icon, Icons, Colors, alignment, Row, Text, ResponsiveRow, Chip, NavigationBarDestination, NavigationBar,BlurTileMode,Blur 
 import asyncio
 import json
 import location
@@ -937,7 +937,7 @@ async def main(page: Page):
             header_height = page.height * 0.07  
             header = Container(
                 alignment=alignment.center,
-                height=page.height * 0.0725,
+                height=page.height * 0.085,
                 width=page.width,
                 content=Text(
                     current_place['name'],
@@ -997,8 +997,8 @@ async def main(page: Page):
                     tooltip="Waze",
                     url=f"https://www.waze.com/ul?ll={lat}%2C{lon}&navigate=yes&zoom=17",
                 ))
-    
-            if page.platform == "iOS":
+            print(page.platform)
+            if PagePlatform.IOS:
                 # Apple Maps (només per iOS)
                 map_links.controls.append(
                     ElevatedButton(
@@ -1031,20 +1031,38 @@ async def main(page: Page):
                 # Cas Yelp
                 elif isinstance(current_place["photos"], str):
                     photos.append(current_place["photos"])
-             
+            async def imatge_en_gran(e):
+                img_principal = main_image.content.content
+                dlg = AlertDialog(
+                    bgcolor=Colors.with_opacity(0, '#ff6666'),
+                    content=InteractiveViewer(
+                        min_scale=0.1,
+                        max_scale=15,
+                        boundary_margin=margin.all(20),
+                        content=Image(src=img_principal.src)
+                    )
+                )
+                page.open(dlg)
             if photos:
                 print(photos)
                 # Variable per seguir l'índex de la foto actual
                 current_photo_index = 0
-                
                 # Imatge principal
-                main_image = Image(
-                    src=photos[0],
-                    width=page.width,
-                    height=250,
-                    fit="cover",
-                    border_radius=10,
-                    animate_opacity=150
+                main_image = Container(
+                    alignment=alignment.center,
+                    on_click=imatge_en_gran,
+                    content=InteractiveViewer(
+                        min_scale=0.1,
+                        max_scale=15,
+                        content=Image(
+                            src=photos[0],
+                            width=page.width,
+                            height=250,
+                            fit="cover",
+                            border_radius=10,
+                            animate_opacity=150
+                        )
+                    )
                 )
                 
                 # Comptador de fotos
@@ -1063,11 +1081,11 @@ async def main(page: Page):
                     else:
                         current_photo_index = (current_photo_index - 1) % len(photos)
                     
-                    main_image.opacity = 0.1
+                    main_image.content.content.opacity = 0.1
                     page.update()
                     await asyncio.sleep(0.15)
-                    main_image.src = photos[current_photo_index]
-                    main_image.opacity = 1
+                    main_image.content.content.src = photos[current_photo_index]
+                    main_image.content.content.opacity = 1
                     photo_counter.value = f"{current_photo_index + 1}/{len(photos)}"
                     page.update()
                 
@@ -2070,14 +2088,50 @@ Categories: {categories_list} this is to check all the categories, now it's the 
     size_botons = page.width / 30
     if size_botons >= 14:
         size_botons = 14
-    botons = ResponsiveRow( #Aqui van tots els botons junts 
-            vertical_alignment="end",
-            controls=[
-                ElevatedButton(content=Text("Següent", size=size_botons, theme_style=TextThemeStyle.LABEL_LARGE),on_click=seguent, bgcolor="#d9acaa", color="black",col=4), 
-                ElevatedButton(content=Text("Més info", size=size_botons,theme_style=TextThemeStyle.LABEL_LARGE), disabled=True, on_click=mes_info,bgcolor="#FBF9F1",color="black",col=4), #! Disabled
-                ElevatedButton(content=Text("Més info", size=size_botons,theme_style=TextThemeStyle.LABEL_LARGE), on_click=mes_info,bgcolor="#FBF9F1",color="black",col=4),
-                ElevatedButton(content=Text("Guarda!",size=size_botons, theme_style=TextThemeStyle.LABEL_LARGE), on_click=guarda, bgcolor="#aad9c4",color="black",col=4), 
-    ]) 
+    botons = ResponsiveRow(
+        vertical_alignment="end",
+        controls=[
+            Container(
+                col=4,
+                border=border.all(2, "#eb4d46"),
+                border_radius=28,
+                bgcolor="#d9acaa",
+                alignment=alignment.center,
+                on_click=seguent,
+                width=page.width / 3.2,
+                height=page.height * 0.05,
+                content=Icon(Icons.CLOSE, color="black", size=32),
+                ink=True,
+                clip_behavior="antiAlias",
+            ),
+            Container(
+                col=4,
+                border=border.all(2, "#e6e3da"),
+                border_radius=28,
+                bgcolor="#FBF9F1",
+                alignment=alignment.center,
+                on_click=mes_info,
+                width=page.width / 3.2,
+                height=page.height * 0.05,
+                content=Icon(Icons.INFO_OUTLINE, color="black", size=32),
+                ink=True,
+                clip_behavior="antiAlias",
+            ),
+            Container(
+                col=4,
+                border=border.all(2, "#7bedba"),
+                border_radius=28,
+                bgcolor="#aad9c4",
+                alignment=alignment.center,
+                on_click=guarda,
+                width=page.width / 3.2,
+                height=page.height * 0.05,
+                content=Icon(Icons.FAVORITE_BORDER, color="black", size=32),
+                ink=True,
+                clip_behavior="antiAlias",
+            ),
+        ]
+    )
     stack_cards = Stack(alignment=alignment.center, offset=(0,0), expand = True)
     images_saved = GridView(
         expand=True,
@@ -2257,7 +2311,6 @@ Categories: {categories_list} this is to check all the categories, now it's the 
         if data["pv"] < 1 and data["vy"] < 0:
             await mes_info(e)
             
-    
     # Aquest el que fa es convertir cada card individual en GestureDetector. Amb això, podem detectar cap a on es mou i com funciona. Es molt útil i ens ho serà en un futur.
     async def update_cards():
         stack_cards.controls.clear() 
@@ -2406,7 +2459,18 @@ Categories: {categories_list} this is to check all the categories, now it's the 
                         base_size = page.height * 0.055
                         min_size = base_size - 25
                         max_size = base_size - 13
-
+                        async def imatge_en_gran(e):
+                            img_principal = stack_cards.controls[0].content.content.controls[1].content.controls[0].content.content 
+                            dlg = AlertDialog(
+                                bgcolor=Colors.with_opacity(0, '#ff6666'),
+                                content=InteractiveViewer(
+                                    min_scale=0.1,
+                                    max_scale=15,
+                                    boundary_margin=margin.all(20),
+                                    content=Image(src=img_principal.src)
+                                )
+                            )
+                            page.open(dlg)
                         # Adjust size_title based on the length of dadesLlocs[i]["name"]
                         size_title = get_dynamic_font_size(dadesLlocs[i]["name"], base_size, min_size, max_size) # :) Mig solucionat
                         #size_title = (page.height * 0.055) - 10 #! BUG-7
@@ -2465,18 +2529,6 @@ Categories: {categories_list} this is to check all the categories, now it's the 
     
                         print("images_request i", images_request[i])
                         print("index_photo_stack", index_photo_stack)
-                        async def imatge_en_gran(e):
-                            img_principal = stack_cards.controls[0].content.content.controls[1].content.controls[0].content.content
-                            dlg = AlertDialog(
-                                bgcolor=Colors.with_opacity(0, '#ff6666'),
-                                content=InteractiveViewer(
-                                    min_scale=0.1,
-                                    max_scale=15,
-                                    boundary_margin=margin.all(20),
-                                    content=Image(src=img_principal.src)
-                                )
-                            )
-                            page.open(dlg)
 
                         async def check_image_url(url):
                             # Skip check for URLs we know are good
@@ -2576,6 +2628,7 @@ Categories: {categories_list} this is to check all the categories, now it's the 
                                     src="src/fons.jpg",
                                     fit="FILL"
                                 ),
+                                blur=50,
                                 shadow=BoxShadow(
                                     blur_radius=4.5,
                                     color=Colors.BLACK
