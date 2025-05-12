@@ -59,7 +59,8 @@ jobs:
         echo "GOOGLE_API_KEY=${{ secrets.GOOGLE_API_KEY }}" >> .env
         echo "FOURSQUARE_API_KEY=${{ secrets.FOURSQUARE_API_KEY }}" >> .env
         echo "YELP_API_KEY=${{ secrets.YELP_API_KEY }}" >> .env
-  
+    - name: List files to verify .env location
+      run: ls -la
     - name: Flet Build IPA
       run: |
         flutter config --no-analytics
