@@ -16,7 +16,7 @@ on:
       BUILD_VERSION:
         description: 'Versió de la construcció'
         required: true
-        default: '0.2'  # Valor per defecte
+        default: '0.6.1'  # Valor per defecte
       BUILD_NUMBER:
         description: 'Build Number - Versió de la build'
         required: true
@@ -59,10 +59,11 @@ jobs:
         echo "GOOGLE_API_KEY=${{ secrets.GOOGLE_API_KEY }}" >> .env
         echo "FOURSQUARE_API_KEY=${{ secrets.FOURSQUARE_API_KEY }}" >> .env
         echo "YELP_API_KEY=${{ secrets.YELP_API_KEY }}" >> .env
-    - name: List files to verify .env location
-      run: ls -la
     - name: Flet Build IPA
       run: |
+        export GOOGLE_API_KEY="${{ secrets.GOOGLE_API_KEY }}"
+        export FOURSQUARE_API_KEY="${{ secrets.FOURSQUARE_API_KEY }}"
+        export YELP_API_KEY="${{ secrets.YELP_API_KEY }}"
         flutter config --no-analytics
         flet build ipa -vv --build-number=${{ inputs.BUILD_NUMBER }} --build-version=${{ inputs.BUILD_VERSION }}
 

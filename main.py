@@ -12,6 +12,7 @@ from dotenv import load_dotenv
 import os 
 from flet_geolocator import Geolocator
 from flet_lottie import Lottie 
+import sentry_sdk
 
 load_dotenv()
 
@@ -485,6 +486,13 @@ class Llocs_yelp:
         for i in range(len(self.data)):
             categories.append([])
         return categories   
+
+sentry_sdk.init(
+    dsn="https://4378a1c4b2f945caf77f65ff331360db@o4509508227825664.ingest.de.sentry.io/4509508234379344",
+    # Add data like request headers and IP for users,
+    # see https://docs.sentry.io/platforms/python/data-management/data-collected/ for more info
+    send_default_pii=True,
+)
 
 async def main(page: Page):
     #crearem la splash screen
