@@ -54,6 +54,12 @@ jobs:
       with:
         flutter-version: ${{ env.FLUTTER_VERSION }}
 
+    - name: Create .env file from secrets
+      run: |
+        echo "GOOGLE_API_KEY=${{ secrets.GOOGLE_API_KEY }}" >> .env
+        echo "FOURSQUARE_API_KEY=${{ secrets.FOURSQUARE_API_KEY }}" >> .env
+        echo "YELP_API_KEY=${{ secrets.YELP_API_KEY }}" >> .env
+  
     - name: Flet Build IPA
       run: |
         flutter config --no-analytics
