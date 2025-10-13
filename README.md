@@ -3,6 +3,7 @@
 <div align="center">
 
 <img src="assets/icon.png" alt="Near Here Logo" width="120"/>
+
 *Logo made by [lexgod91](https://www.instagram.com/lexarts91?igsh=aHpxa3Y5a3R2cXRs)*
 
 **Discover sustainable places near you with AI**
