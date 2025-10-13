@@ -4,6 +4,10 @@
 
 <img src="assets/icon.png" alt="Near Here Logo" width="120"/>
 
+<br>
+
+<img src="assets/readme/Aplicació.png" alt="Main Screen" style="display:block; margin:auto;" width="100%"/>
+
 *Logo made by [lexgod91](https://www.instagram.com/lexarts91?igsh=aHpxa3Y5a3R2cXRs)*
 
 **Discover sustainable places near you with AI**
@@ -20,6 +24,18 @@
 **Near Here** is a mobile app built with Python and Flet that helps you discover nearby sustainable places using AI. Part of my High School Research Project 2024-2025.
 
 ## ✨ Features
+
+<div align="center">
+  <img src="assets/readme/1.png" width="200" alt="Main Screen"/>
+  <img src="assets/readme/2.png" width="200" alt="Categories"/>
+  <img src="assets/readme/3.png" width="200" alt="Place Details"/>
+</div>
+
+<div align="center">
+  <img src="assets/readme/4.png" width="200" alt="AI Assistant"/>
+  <img src="assets/readme/5.png" width="200" alt="Favorites"/>
+  <img src="assets/readme/6.png" width="200" alt="Settings"/>
+</div>
 
 - 🗺️ **Real-time geolocation** with Foursquare & Yelp APIs
 - 🤖 **AI Assistant** powered by Google Gemini (multi-language)
@@ -43,5 +59,3 @@ cp .env.example .env
 # Run
 python main.py
 ```
-
-## Features
