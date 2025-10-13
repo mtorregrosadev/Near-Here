@@ -3,11 +3,10 @@
     Near Here...
 </h1>
 
-<br>
+*Logo made by [lexgod91](https://www.instagram.com/lexarts91?igsh=aHpxa3Y5a3R2cXRs)* 
 
 <img src="assets/readme/Aplicació.png" alt="Main Screen" style="display:block; margin:auto;" width="100%"/>
 
-*Logo made by [lexgod91](https://www.instagram.com/lexarts91?igsh=aHpxa3Y5a3R2cXRs)*
 
 **Discover sustainable places near you with AI**
 
