@@ -3,12 +3,7 @@
     Near Here...
 </h1>
 
-<br>
-
-<img src="assets/readme/Aplicació.png" alt="Main Screen" style="display:block; margin:auto;" width="100%"/>
-
-*Logo made by [lexgod91](https://www.instagram.com/lexarts91?igsh=aHpxa3Y5a3R2cXRs)*
-
+*Logo made by [lexgod91](https://www.instagram.com/lexarts91?igsh=aHpxa3Y5a3R2cXRs)* 
 **Discover sustainable places near you with AI**
 
 [![Python](https://img.shields.io/badge/Python-3.8+-blue.svg)](https://www.python.org/downloads/)
@@ -16,7 +11,9 @@
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Status](https://img.shields.io/badge/Status-Beta-orange.svg)]()
 
-</div>
+<p align="center" style="margin-top: -24px;">
+    <img src="assets/readme/Aplicació.png" alt="Main Screen" width="100%"/>
+</p>
 
 ## 🎯 About
 
