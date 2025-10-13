@@ -3,7 +3,7 @@
     Near Here...
 </h1>
 
-*Logo made by [lexgod91](https://www.instagram.com/lexarts91?igsh=aHpxa3Y5a3R2cXRs)* 
+*Logo made by [lexgod91](https://www.instagram.com/lexarts91?igsh=aHpxa3Y5a3R2cXRs)*  
 **Discover sustainable places near you with AI**
 
 [![Python](https://img.shields.io/badge/Python-3.8+-blue.svg)](https://www.python.org/downloads/)
@@ -17,7 +17,7 @@
 
 ## 🎯 About
 
-**Near Here** is a mobile app built with Python and Flet that helps you discover nearby sustainable places using AI. Part of my High School Research Project 2024-2025.
+**Near Here** is a mobile app built with Python and Flet that helps you discover nearby sustainable places using AI. I know it's not the best or most polished project, but it's a first step into programming as part of my High School Research Project 2024-2025.
 
 ## ✨ Features
 
