@@ -527,6 +527,7 @@ async def main(page: Page):
         await page.client_storage.set_async("radius_sel", 1000)
         await page.client_storage.set_async("sort_sel", "RELEVANCE")
         await page.client_storage.set_async("preu", 0)
+        await page.client_storage.set_async("preferred_data_source", "Sostenible")
 
     async def inicialitzar_llistes():
         await page.client_storage.set_async("loc_visited", [])
@@ -866,6 +867,18 @@ async def main(page: Page):
                 preu = await page.client_storage.get_async("preu") 
                 print(preu)
                 canvi = True
+            async def preferred_source(e):
+                global canvi 
+                print(e.control.value)
+                if e.control.value == "Sostenible (default)":
+                    await page.client_storage.set_async("preferred_data_source", "Sostenible")
+                elif e.control.value == "Yelp":
+                    await page.client_storage.set_async("preferred_data_source", "Yelp")
+                elif e.control.value == "Foursquare":
+                    await page.client_storage.set_async("preferred_data_source", "Foursquare")
+                preferred_data_source = await page.client_storage.get_async("preferred_data_source") 
+                print(f"preferred_data_source: {preferred_data_source}")
+                canvi = True
             async def event_lloc_especific(e):
                 page.go("/lloc_especific")
             sort_sel = await page.client_storage.get_async("sort_sel")
@@ -877,11 +890,33 @@ async def main(page: Page):
                 value_em = "Distància"
             if sort_sel == "POPULARITY":
                 value_em = "Popularitat"
+            preferred_data_source = await page.client_storage.get_async("preferred_data_source")
+            if preferred_data_source == "Sostenible":
+                value_preferred = "Sostenible (default)"
+            elif preferred_data_source == "Yelp":
+                value_preferred = "Yelp"
+            elif preferred_data_source == "Foursquare":
+                value_preferred = "Foursquare"
+            else:
+                value_preferred = "Sostenible (default)"
             radius_sel = await page.client_storage.get_async("radius_sel")
             print("radius_sel: ", radius_sel)
             preu = await page.client_storage.get_async("preu")
             print("preu: ", preu)
             parametres_cerca = Column([
+                Divider(),
+                Text("FONT DE DADES PREFERIDA",weight=FontWeight.W_600, size=18),
+                Text("Tria quina font de dades vols que s'utilitzi per cercar llocs. Si no troba llocs, provarà amb les altres fonts automàticament.",weight=FontWeight.W_300),
+                Dropdown(
+                        hint_text="Selecciona la font de dades",
+                        width=page.width,
+                        on_change=preferred_source,
+                        value=value_preferred,
+                        options=[
+                            dropdown.Option("Sostenible (default)"),
+                            dropdown.Option("Yelp"),
+                            dropdown.Option("Foursquare")]
+                ),
                 Divider(),
                 Text("RADI, DISTÀNCIA",weight=FontWeight.W_600, size=18),
                 Text("Configura la distància màxima la qual vols que cerqui l'algorisme!",weight=FontWeight.W_300),
@@ -2339,12 +2374,14 @@ Categories: {categories_list} this is to check all the categories, now it's the 
         sort_sel = await page.client_storage.get_async("sort_sel")
         radius_sel = await page.client_storage.get_async("radius_sel")
         preu = await page.client_storage.get_async("preu")
+        preferred_data_source = await page.client_storage.get_async("preferred_data_source")
         
         print(f"sort_sel: {sort_sel}")
         print(f"categories_sel: {categories_sel}")
         print(f"radius_sel: {radius_sel}")
         #print("loc_visited:",loc_visited)
         print(f"Preu:{preu}")
+        print(f"preferred_data_source: {preferred_data_source}")
         
         if len(cards) == 0 or canvi == True:
                 #* Demanem les dades 
@@ -2361,48 +2398,66 @@ Categories: {categories_list} this is to check all the categories, now it's the 
                 dadesLlocs = page.session.get("dadesLlocs")
                 p = await gl.get_current_position_async()
                 Foursquare, Yelp, Sostenible_L = False, False, False
-                if sostenible_2:
-                    Foursquare, Yelp, Sostenible_L = False, False, True # Per poder saber d'on prové la dada 
-                    if page.session.contains_key("lloc_especific"): # Comprova si hi ha un lloc específic posat per l'usuari
-                        lloc_especific = page.session.get("lloc_especific")
-                        if lloc_especific != "":
-                            dadesLlocs = "error 400"
-                        else: #En el cas que l'usuari no hagi posat cap lloc però ja sigui inicialitzada la variable
-                            llocs = LLocs_sostenibles(p.latitude,p.longitude,radius_sel,50,loc_visited,categories_sel) 
-                            dadesLlocs, loc_visited = llocs.dades()
-                    else: #En el cas que no hi hagi cap lloc específic posat
-                        llocs = LLocs_sostenibles(p.latitude,p.longitude,radius_sel,50,loc_visited,categories_sel)  
-                        dadesLlocs, loc_visited = llocs.dades()
+                
+                # Definir l'ordre de les fonts de dades segons la preferència
+                if preferred_data_source == "Foursquare":
+                    data_sources_order = ["Foursquare", "Yelp", "Sostenible"]
+                elif preferred_data_source == "Yelp":
+                    data_sources_order = ["Yelp", "Foursquare", "Sostenible"]
+                else:  # "Sostenible" or default
+                    data_sources_order = ["Sostenible", "Yelp", "Foursquare"]
+                
+                print(f"Ordre de fonts de dades: {data_sources_order}")
+                
+                # Intentar obtenir dades de cada font segons l'ordre preferit
+                for data_source in data_sources_order:
+                    if dadesLlocs and dadesLlocs != "error 400":
+                        break  # Ja tenim dades vàlides
                     
-                if dadesLlocs == "error 400" or not sostenible_2: # Això fa que entri a l'altre en el cas que sigui error 400:  #Si es true entra 
-                    Foursquare, Yelp, Sostenible_L = False, True, False    
-                    if page.session.contains_key("lloc_especific"): # Comprova si hi ha un lloc específic posat per l'usuari
-                        lloc_especific = page.session.get("lloc_especific")
-                        if lloc_especific != "":
-                            llocs = Llocs_yelp(None,None,radius_sel,2,loc_visited,categories_sel,sort_sel, preu, lloc_especific) 
+                    if data_source == "Sostenible":
+                        Foursquare, Yelp, Sostenible_L = False, False, True
+                        print("Intentant obtenir dades de: Llocs Sostenibles")
+                        if page.session.contains_key("lloc_especific"):
+                            lloc_especific = page.session.get("lloc_especific")
+                            if lloc_especific != "":
+                                dadesLlocs = "error 400"
+                            else:
+                                llocs = LLocs_sostenibles(p.latitude,p.longitude,radius_sel,50,loc_visited,categories_sel) 
+                                dadesLlocs, loc_visited = llocs.dades()
+                        else:
+                            llocs = LLocs_sostenibles(p.latitude,p.longitude,radius_sel,50,loc_visited,categories_sel)  
                             dadesLlocs, loc_visited = llocs.dades()
-                        else: #En el cas que l'usuari no hagi posat cap lloc però ja sigui inicialitzada la variable
+                    
+                    elif data_source == "Yelp":
+                        Foursquare, Yelp, Sostenible_L = False, True, False
+                        print("Intentant obtenir dades de: Yelp")
+                        if page.session.contains_key("lloc_especific"):
+                            lloc_especific = page.session.get("lloc_especific")
+                            if lloc_especific != "":
+                                llocs = Llocs_yelp(None,None,radius_sel,2,loc_visited,categories_sel,sort_sel, preu, lloc_especific) 
+                                dadesLlocs, loc_visited = llocs.dades()
+                            else:
+                                llocs = Llocs_yelp(p.latitude,p.longitude,radius_sel,50,loc_visited,categories_sel,sort_sel, preu, None) 
+                                dadesLlocs, loc_visited = llocs.dades()
+                        else:
                             llocs = Llocs_yelp(p.latitude,p.longitude,radius_sel,50,loc_visited,categories_sel,sort_sel, preu, None) 
                             dadesLlocs, loc_visited = llocs.dades()
-                    else: #En el cas que no hi hagi cap lloc específic posat
-                        llocs = Llocs_yelp(p.latitude,p.longitude,radius_sel,50,loc_visited,categories_sel,sort_sel, preu, None) 
-                        dadesLlocs, loc_visited = llocs.dades()
-                sostenible_2 = False
-
-                if dadesLlocs == "error 400" or not sostenible: # Això fa que entri a l'altre en el cas que sigui error 400
-                    Foursquare, Yelp, Sostenible_L = True, False, False 
-                    if page.session.contains_key("lloc_especific"): # Comprova si hi ha un lloc específic posat per l'usuari
-                        lloc_especific = page.session.get("lloc_especific")
-                        if lloc_especific != "":
-                            llocs = Llocs(None,None,radius_sel,50,loc_visited,categories_sel,sort_sel, preu, lloc_especific) 
-                            dadesLlocs, loc_visited = llocs.dades()
-                        else: #En el cas que l'usuari no hagi posat cap lloc però ja sigui inicialitzada la variable
+                    
+                    elif data_source == "Foursquare":
+                        Foursquare, Yelp, Sostenible_L = True, False, False
+                        print("Intentant obtenir dades de: Foursquare")
+                        if page.session.contains_key("lloc_especific"):
+                            lloc_especific = page.session.get("lloc_especific")
+                            if lloc_especific != "":
+                                llocs = Llocs(None,None,radius_sel,50,loc_visited,categories_sel,sort_sel, preu, lloc_especific) 
+                                dadesLlocs, loc_visited = llocs.dades()
+                            else:
+                                llocs = Llocs(p.latitude,p.longitude,radius_sel,50,loc_visited,categories_sel,sort_sel, preu, None) 
+                                dadesLlocs, loc_visited = llocs.dades()
+                        else:
                             llocs = Llocs(p.latitude,p.longitude,radius_sel,50,loc_visited,categories_sel,sort_sel, preu, None) 
                             dadesLlocs, loc_visited = llocs.dades()
-                    else: #En el cas que no hi hagi cap lloc específic posat
-                        llocs = Llocs(p.latitude,p.longitude,radius_sel,50,loc_visited,categories_sel,sort_sel, preu, None) 
-                        dadesLlocs, loc_visited = llocs.dades()
-                sostenible = False
+                
                 #dadesLlocs, loc_visited = llocs.dades()
                 if dadesLlocs == "error 400":
                     page.go("/error")
