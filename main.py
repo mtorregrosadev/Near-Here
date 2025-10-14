@@ -13,8 +13,29 @@ import os
 from flet_geolocator import Geolocator
 from flet_lottie import Lottie 
 import sentry_sdk
+import logging
+import sys
+from datetime import datetime
 
 load_dotenv()
+
+# Configuracio del sistema de logging
+logging.basicConfig(
+    level=logging.DEBUG,
+    format='%(asctime)s [%(levelname)s] %(name)s: %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S',
+    handlers=[
+        logging.StreamHandler(sys.stdout),
+        logging.FileHandler('near_here.log', encoding='utf-8')
+    ]
+)
+
+# Silenciar els logs de debug de Flet
+logging.getLogger('flet').setLevel(logging.WARNING)
+logging.getLogger('flet_core').setLevel(logging.WARNING)
+logging.getLogger('flet_runtime').setLevel(logging.WARNING)
+
+logger = logging.getLogger('NearHere')
 
 ai = 0
 sostenible = True
@@ -23,8 +44,7 @@ index_photo_stack = -1
 canvi = False
 sostenible_2 = True
 cards = []
-import json 
-import math 
+ 
 import datetime
 class LLocs_sostenibles:
     def __init__(self,latitud, longitud, radius, limit, loc_visited, categories_sel):
@@ -34,6 +54,8 @@ class LLocs_sostenibles:
         self.limit = limit
         self.loc_visited = loc_visited 
         self.categories_s = categories_sel
+        logger.info(f"LLocs_sostenibles inicialitzat - Lat: {latitud}, Long: {longitud}, Radius: {radius}m, Limit: {limit}, Categories: {categories_sel}")
+    
     def distancia(self, dada, bool): #La fórmula de Haversine
         latitude_inicial = math.radians(self.latitud)
         longitude_inicial = math.radians(self.longitud)
@@ -51,31 +73,51 @@ class LLocs_sostenibles:
             if d > self.radius:
                 return False
             else:
-                print(d)
+                logger.debug(f"Lloc dins el radi: {dada.get('name', 'Desconegut')} - Distancia: {d:.2f}m")
                 return True
         if bool:
             return d
+    
     def dades(self):
+        logger.info("Iniciant cerca de llocs sostenibles")
         self.dades = []
-        with open('llocs_sostenibles.json', 'r', encoding='utf-8') as fitxer:
-            dades = json.load(fitxer)
+        try:
+            with open('llocs_sostenibles.json', 'r', encoding='utf-8') as fitxer:
+                dades = json.load(fitxer)
+            logger.info(f"Fitxer JSON carregat correctament - Total llocs: {len(dades)}")
+        except FileNotFoundError:
+            logger.error("ERROR: Fitxer llocs_sostenibles.json no trobat")
+            return "error 400 de l'API sostenible", self.loc_visited
+        except json.JSONDecodeError as e:
+            logger.error(f"ERROR: Error llegint JSON - {str(e)}")
+            return "error 400 de l'API sostenible", self.loc_visited
+        
+        logger.info(f"Buscant llocs dins un radi de {self.radius}m des de ({self.latitud}, {self.longitud})")
         for i in range(len(dades)):
             distancia_t = self.distancia(dades[i], False)
             if distancia_t:
                 self.dades.append(dades[i])
+        logger.info(f"Llocs trobats dins el radi: {len(self.dades)}")
+        
         # Sort self.dades based on distance
         self.dades.sort(key=lambda x: self.distancia(x, True))
         if len(self.dades) > self.limit:
+            logger.debug(f"Limitant resultats de {len(self.dades)} a {self.limit}")
             self.dades = self.dades[:self.limit]
+        
         if self.categories_s: # Si es [] no fa res, en canvi si conté algo serà True
+            logger.info(f"Filtrant per categories: {self.categories_s}")
+            llocs_abans_filtrar = len(self.dades)
             for i in range(len(self.dades) - 1, -1, -1):
                 # Convertir les categories a enters
                 categories_numeros = [int(num) for num in self.dades[i]['categories']]
                 # Comprovar si hi ha alguna coincidència
                 hi_es = any(num in self.categories_s for num in categories_numeros)
-                print(hi_es, self.dades[i]['name'])
+                logger.debug(f"Lloc '{self.dades[i]['name']}' - Categories: {categories_numeros} - Coincideix: {hi_es}")
                 if not hi_es:
                     del self.dades[i]
+            logger.info(f"Llocs despres de filtrar per categories: {len(self.dades)} (abans: {llocs_abans_filtrar})")
+        
         self.data = []
         for i in range(len(self.dades)):
             lloc = self.dades[i]
@@ -103,9 +145,13 @@ class LLocs_sostenibles:
                 },
             }
             self.data.append(data_lloc)
+        
+        logger.info(f"Total llocs processats i retornats: {len(self.data)}")
         if self.data == []:
-            return "error 400", self.loc_visited
+            logger.warning("Cap lloc sostenible trobat amb els criteris actuals")
+            return "error 400 de l'API sostenible", self.loc_visited
         else:
+            logger.info(f"Retornant {len(self.data)} llocs sostenibles")
             return self.data, self.loc_visited
     
     def photos(self):
@@ -134,6 +180,7 @@ class Llocs:
         self.sort = sort_sel
         self.preu = preu
         self.near = near
+        logger.info(f"Llocs (Foursquare) inicialitzat - Lat: {latitud}, Long: {longitud}, Radius: {radius}m, Limit: {limit}, Sort: {sort_sel}, Preu: {preu}, Near: {near}")
 
     def _randomize_coordinates(self, lat, lon):
         # Afegeix un petit desplaçament a les coordenades perquè no sigui sempre igual
@@ -152,18 +199,23 @@ class Llocs:
         new_lon = lon + random.uniform(-randloc, randloc)
         return new_lat, new_lon #Retorna les localitzacions randomitzades
     def dades(self): #Aqui agafem totes les dades 
+        logger.info("Iniciant cerca de llocs amb Foursquare API")
         data=[]
         tcategories = ""
         if len(self.categories_s) > 0:
             for i in range(len(self.categories_s)): #Això el que fa es comprovar si tens categories per cercar i juntar-les amb una coma.
                 tcategories = ",".join(str(a) for a in self.categories_s)
+            logger.debug(f"Categories formatades per API: {tcategories}")
 
         #print(tcategories)
         randomized_lat, randomized_lon = self._randomize_coordinates(self.latitud, self.longitud) if not self.near or self.near == "" else (self.latitud, self.longitud)
         #Rep les coordenades randomitzades 
-        url = f"https://api.foursquare.com/v3/places/search"
+        logger.debug(f"Coordenades utilitzades: ({randomized_lat}, {randomized_lon})")
+        
+        url = "https://places-api.foursquare.com/places/search"
         headers = {
             "accept": "application/json",
+            "X-Places-Api-Version": "2025-06-17",
             "Authorization": os.getenv("FOURSQUARE_API_KEY")
         }
         params = {
@@ -177,31 +229,42 @@ class Llocs:
 
         if self.preu != 0:
             params["max_price"] = self.preu
+            logger.debug(f"Filtre de preu aplicat: max_price={self.preu}")
         if tcategories != "":
             params["categories"] = tcategories
         if self.near is not None and self.near != "":
             params["near"] = self.near
             del params["ll"]
             del params["radius"]
-            print("Params: ", params)
+            logger.info(f"Cerca amb lloc especific: {self.near}")
+            logger.debug(f"Parametres API: {params}")
 
+        logger.info(f"Enviant peticio a Foursquare API - Radius: {self.radius}m, Limit: {self.limit}")
         locations = requests.get(url, headers=headers, params=params)
         
         #Detecta si l'API l'ha contestat 200 == Bé i després detecta que no sigui ja a la llista
         if locations.status_code == 200:
+            logger.info(f"Resposta Foursquare API: Status 200 OK")
             locations = locations.json()
             if 'results' in locations:
+                total_results = len(locations['results'])
+                logger.info(f"Resultats rebuts: {total_results}")
                 for loc in locations['results']:
                     if loc['fsq_id'] not in [visited['fsq_id'] for visited in self.loc_visited]:
                         data.append(loc)
                         self.loc_visited.append(loc)
+                logger.info(f"Llocs nous (no visitats): {len(data)}")
             else:
-                print("Error en la consulta de l'API")
+                logger.error("ERROR: Camp 'results' no trobat a la resposta de l'API")
         elif locations.status_code == 400:
-            print("error 400")
+            logger.error(f"ERROR 400 Foursquare API - Resposta: {locations.text}")
+            return "error 400", self.loc_visited
+        else:
+            logger.error(f"ERROR {locations.status_code} Foursquare API - Resposta: {locations.text}")
             return "error 400", self.loc_visited
 
         self.data = data
+        logger.info(f"Retornant {len(data)} llocs de Foursquare")
         return data, self.loc_visited
 
     
@@ -277,6 +340,7 @@ class Llocs_yelp:
         self.sort = sort_sel
         self.preu = preu
         self.near = near
+        logger.info(f"Llocs_yelp inicialitzat - Lat: {latitud}, Long: {longitud}, Radius: {radius}m, Limit: {limit}, Sort: {sort_sel}, Preu: {preu}, Near: {near}")
 
     def _randomize_coordinates(self, lat, lon):
         # Afegeix un petit desplaçament a les coordenades perquè no sigui sempre igual
@@ -294,6 +358,7 @@ class Llocs_yelp:
         return new_lat, new_lon #Retorna les localitzacions randomitzades
     
     def dades(self): #Aqui agafem totes les dades 
+        logger.info("Iniciant cerca de llocs amb Yelp API")
         data=[]
         #print(tcategories)
         tcategories = ""
@@ -363,17 +428,20 @@ class Llocs_yelp:
             17135: "toys",
             17057: "organic"
         }
-        print("TCATEGORIES",tcategories)
+        logger.debug(f"Categories Yelp abans de processar: {tcategories}")
         if len(self.categories_s) > 0:
-            print("TCATEGORIES",tcategories)
+            logger.debug(f"Processant {len(self.categories_s)} categories seleccionades")
             for i in range(len(self.categories_s)):
                 category = categories_yelp.get(self.categories_s[i],[])
                 category_af = f"{category},"
                 tcategories = tcategories + category_af
+            logger.debug(f"Categories Yelp formatades: {tcategories}")
 
 
 
         randomized_lat, randomized_lon = self._randomize_coordinates(self.latitud, self.longitud) if self.near is None or self.near == "" else (self.latitud, self.longitud) #Rep les coordenades randomitzades 
+        logger.debug(f"Coordenades utilitzades: ({randomized_lat}, {randomized_lon})")
+        
         url = "https://api.yelp.com/v3/businesses/search"
         headers = {
             "accept": "application/json",
@@ -387,7 +455,7 @@ class Llocs_yelp:
             self.sort.lower()
         elif self.sort == "POPULARITY":
             self.sort = "review_count"
-        print(self.radius, self.limit, self.sort)
+        logger.debug(f"Parametres cerca: Radius={self.radius}, Limit={self.limit}, Sort={self.sort}")
         params = {
             "latitude": f"{randomized_lat}",
             "longitude": f"{randomized_lon}",
@@ -399,21 +467,26 @@ class Llocs_yelp:
 
         if self.preu != 0: # Comprova si és 0 per tal de no aplicar filtre ja que es del 1 al 4
             params["price"] = self.preu
+            logger.debug(f"Filtre de preu aplicat: {self.preu}")
         if tcategories != "":
-            print("TCATEGORIES",tcategories)
+            logger.debug(f"Afegint categories personalitzades: {tcategories}")
             params['categories'] = tcategories + "farmersmarket,organicstores,ethicalgrocery,csa,bikeparking,parks,beaches,gardens,streetvendors,hiking,publicplazas,playgrounds,wineries,salumerie,seafoodmarkets,culturalcenter,visitorcenters,recyclingcenter"
         if self.near is not None and self.near != "": #Elimina i canvia el lloc en el cas que hi hagi un lloc indicat
             params["location"] = self.near
             del params["latitude"]
             del params["longitude"]
             del params["radius"]
-            print("Params: ", params)
+            logger.info(f"Cerca amb lloc especific: {self.near}")
+            logger.debug(f"Parametres API: {params}")
 
+        logger.info(f"Enviant peticio a Yelp API - Radius: {self.radius}m, Limit: {self.limit}")
         locations = requests.get(url, headers=headers, params=params)
         
         #Detecta si l'API l'ha contestat 200 == Bé i després detecta que no sigui ja a la llista
         if locations.status_code == 200:
+            logger.info(f"Resposta Yelp API: Status 200 OK")
             locations = locations.json().get('businesses', [])
+            logger.info(f"Resultats rebuts de Yelp: {len(locations)}")
             for i in range(len(locations)):
                 lloc = locations[i]
                 if 'price' in lloc:
@@ -453,12 +526,13 @@ class Llocs_yelp:
                     "attributes": lloc.get('attributes', {})
                 }
                 data.append(data_lloc)
-                print(data_lloc['name'])
+                logger.debug(f"Lloc afegit: {data_lloc['name']}")
             #! He de posar sistema per treure els llocs visitats!!
+        else:
+            if locations.status_code == 400:
+                logger.error(f"ERROR 400 Yelp API - Resposta: {locations.text}")
             else:
-                print("Error en la consulta de l'API")
-        elif locations.status_code == 400:
-            print("error 400")
+                logger.error(f"ERROR {locations.status_code} Yelp API - Resposta: {locations.text}")
             return "error 400", self.loc_visited
         self.data = data
         
@@ -495,6 +569,10 @@ sentry_sdk.init(
 )
 
 async def main(page: Page):
+    logger.info("========================================")
+    logger.info("=== INICI DE L'APLICACIO NEAR HERE ===")
+    logger.info("========================================")
+    
     #crearem la splash screen
     splash = Container(
         content=Lottie(src='src/NearHere.json'),
@@ -505,7 +583,7 @@ async def main(page: Page):
     page.overlay.append(splash)
     page.update()
 
-    print("Iniciant l'aplicació...")
+    logger.info("Configurant pagina inicial...")
     page.bgcolor = "#FFFCF1"
     page.title = "Near here..."
     page.window.width = 390
@@ -517,16 +595,21 @@ async def main(page: Page):
            "WorkSans": "fonts/WorkSans-Black.ttf"
     }
     page.theme = Theme(font_family="Helvetica Neue")
+    logger.info(f"Finestra configurada: {page.window.width}x{page.window.height}")
+    
     gl = Geolocator()
     page.overlay.append(gl)
     page.update()
     page.session.set("categories_sel", [])
     page.session.set("dadesLlocs", [])
     page.session.set("idioma", "")
+    logger.info("Sessio inicialitzada amb valors per defecte")
+    
     async def inicialitzar_configuracio():
         await page.client_storage.set_async("radius_sel", 1000)
         await page.client_storage.set_async("sort_sel", "RELEVANCE")
         await page.client_storage.set_async("preu", 0)
+        logger.info("Configuracio inicialitzada: radius=1000m, sort=RELEVANCE, preu=0")
 
     async def inicialitzar_llistes():
         await page.client_storage.set_async("loc_visited", [])
@@ -534,15 +617,20 @@ async def main(page: Page):
         await page.client_storage.set_async("saved_cards_images", [])
         await page.client_storage.set_async("loc_visited_photos", [])  
         await page.client_storage.set_async("categories_visited", [])
+        logger.info("Llistes inicialitzades (loc_visited, saved_cards, etc.)")
 
     async def configurar_ubicacio(gl):
+        logger.info("Verificant permisos de geolocalitzacio...")
         status = await gl.get_permission_status_async()
+        logger.info(f"Estat permisos: {status}")
         if str(status) == "GeolocatorPermissionStatus.WHILE_IN_USE" or str(status) == "GeolocatorPermissionStatus.ALWAYS":
-            pass
+            logger.info("Permisos de geolocalitzacio ja concedits")
         else:
+            logger.warning("Permisos de geolocalitzacio no concedits - Sol·licitant...")
             await gl.request_permission_async()
             await location.handle_permission(gl, AlertDialog, page, Text, TextButton, MainAxisAlignment)
 
+    logger.info("Inicialitzant configuracio i llistes...")
     await asyncio.gather(
         inicialitzar_configuracio(),
         inicialitzar_llistes(),
@@ -550,6 +638,7 @@ async def main(page: Page):
 
     await asyncio.sleep(0.5)
     await configurar_ubicacio(gl)
+    logger.info("Configuracio inicial completada")
 
     def view_pop(event): #Per anar enrere 
         if page.route == '/categories' or page.route == '/info' or page.route == '/lloc_especific' or page.route == '/favorits':
@@ -707,8 +796,9 @@ async def main(page: Page):
             return '/'.join(parts)
         
         if page.route == '/':
-            print("Seleccionat llocs!")
+            logger.info("=== RUTA: / (Pantalla principal) ===")
             if len(cards) >= 1:
+                logger.info(f"Mostrant {len(cards)} cards")
                 selected_llocs.offset = transform.Offset(0,0)
                 cards[0].scale = 1
                 cards[0].opacity = 1
@@ -716,18 +806,21 @@ async def main(page: Page):
                 Tags_amunt.opacity = 1
                 page.add(Tags_amunt_safe,stack_cards,botons)
             else:
+                logger.warning("No hi ha cards disponibles - Redirigint a /error")
                 page.go("/error")
         
         if page.route == '/error':
+            logger.info("=== RUTA: /error (Pagina d'error) ===")
             global sostenible
             global sostenible_2
                 
             async def refresca(e):
+                logger.info("Boto refresca premut - Actualitzant cards")
                 await update_cards()
                 page.go("/")
                 await asyncio.sleep(0.01)
                 await scale_next_card()
-            print("Error!")
+            
             not_found=Column([
                     Text("No hem trobat més llocs 😕", text_align="center", weight=FontWeight.W_900, theme_style=TextThemeStyle.TITLE_LARGE, width=page.width, color="#6b9e9f"),
                     Lottie(src="src/no_hem_trobat.json"),
@@ -1781,6 +1874,9 @@ Categories: {categories_list} this is to check all the categories, now it's the 
             
             google_api_key = os.getenv("GOOGLE_API_KEY")
             
+            if not google_api_key:
+                raise ValueError("GOOGLE_API_KEY environment variable is not set or is empty.")
+            
             api = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={google_api_key}"
             headers = {
                 'Content-Type': 'application/json',
@@ -2321,9 +2417,12 @@ Categories: {categories_list} this is to check all the categories, now it's the 
             
     # Aquest el que fa es convertir cada card individual en GestureDetector. Amb això, podem detectar cap a on es mou i com funciona. Es molt útil i ens ho serà en un futur.
     async def update_cards():
+        logger.info("=== INICI UPDATE_CARDS ===")
         stack_cards.controls.clear() 
         global index_photo_stack, images_request, canvi, cards, sostenible, sostenible_2, Yelp, Foursquare, Sostenible_L
+        logger.debug(f"Variables globals - canvi: {canvi}, sostenible: {sostenible}, sostenible_2: {sostenible_2}")
         if canvi == True:
+            logger.info("Canvi activat - Mostrant splash screen")
             #crearem la splash screen
             splash = Container(
                 content=Lottie(src='src/NearHere.json'),
@@ -2335,37 +2434,40 @@ Categories: {categories_list} this is to check all the categories, now it's the 
         #:) Solucionat tot emmagatzemat!!!!!!!!
         loc_visited = await page.client_storage.get_async("loc_visited") 
         categories_sel = page.session.get("categories_sel")
-        print("categories_sel:",categories_sel)
+        logger.debug(f"Configuracio carregada - categories_sel: {categories_sel}")
         sort_sel = await page.client_storage.get_async("sort_sel")
         radius_sel = await page.client_storage.get_async("radius_sel")
         preu = await page.client_storage.get_async("preu")
         
-        print(f"sort_sel: {sort_sel}")
-        print(f"categories_sel: {categories_sel}")
-        print(f"radius_sel: {radius_sel}")
-        #print("loc_visited:",loc_visited)
-        print(f"Preu:{preu}")
+        logger.info(f"Parametres de cerca - Sort: {sort_sel}, Categories: {categories_sel}, Radius: {radius_sel}m, Preu: {preu}")
+        logger.debug(f"Llocs visitats: {len(loc_visited) if loc_visited else 0}")
         
         if len(cards) == 0 or canvi == True:
+                logger.info("Iniciant proces de demanar dades - Cards buides o canvi activat")
                 #* Demanem les dades 
-                print("index_photo_Stack: ",index_photo_stack)
+                logger.debug(f"index_photo_Stack: {index_photo_stack}")
                 if canvi == True:
                     sostenible = True
                     sostenible_2 = True
-                    print(len(loc_visited))
+                    logger.info(f"Reset variables - sostenible: {sostenible}, sostenible_2: {sostenible_2}")
+                    logger.info(f"Llocs visitats abans del reset: {len(loc_visited)}")
                     dadesLlocs = []
                     cards.clear()
 
                 index_photo_stack = -1
-                #:) Cobren el mateix demanant 5, 10 que 50
+                #:) Cobren el mateix demanant 5, 10 que 50º
                 dadesLlocs = page.session.get("dadesLlocs")
                 p = await gl.get_current_position_async()
+                logger.info(f"Posicio actual obtinguda: Lat={p.latitude}, Long={p.longitude}")
+                
                 Foursquare, Yelp, Sostenible_L = False, False, False
                 if sostenible_2:
+                    logger.info("Intent 1: Cercant llocs sostenibles")
                     Foursquare, Yelp, Sostenible_L = False, False, True # Per poder saber d'on prové la dada 
                     if page.session.contains_key("lloc_especific"): # Comprova si hi ha un lloc específic posat per l'usuari
                         lloc_especific = page.session.get("lloc_especific")
                         if lloc_especific != "":
+                            logger.warning("Llocs sostenibles no suporten cerca per lloc especific - Saltant a Yelp")
                             dadesLlocs = "error 400"
                         else: #En el cas que l'usuari no hagi posat cap lloc però ja sigui inicialitzada la variable
                             llocs = LLocs_sostenibles(p.latitude,p.longitude,radius_sel,50,loc_visited,categories_sel) 
@@ -2374,7 +2476,10 @@ Categories: {categories_list} this is to check all the categories, now it's the 
                         llocs = LLocs_sostenibles(p.latitude,p.longitude,radius_sel,50,loc_visited,categories_sel)  
                         dadesLlocs, loc_visited = llocs.dades()
                     
-                if dadesLlocs == "error 400" or not sostenible_2: # Això fa que entri a l'altre en el cas que sigui error 400:  #Si es true entra 
+                    logger.debug(f"Resultat llocs sostenibles: {type(dadesLlocs)}, {len(dadesLlocs) if isinstance(dadesLlocs, list) else dadesLlocs}")
+                    
+                if dadesLlocs == "error 400" or dadesLlocs == "error 400 de l'API sostenible" or not sostenible_2: # Això fa que entri a l'altre en el cas que sigui error 400:  #Si es true entra 
+                    logger.info("Intent 2: Cercant llocs amb Yelp API")
                     Foursquare, Yelp, Sostenible_L = False, True, False    
                     if page.session.contains_key("lloc_especific"): # Comprova si hi ha un lloc específic posat per l'usuari
                         lloc_especific = page.session.get("lloc_especific")
@@ -2388,8 +2493,10 @@ Categories: {categories_list} this is to check all the categories, now it's the 
                         llocs = Llocs_yelp(p.latitude,p.longitude,radius_sel,50,loc_visited,categories_sel,sort_sel, preu, None) 
                         dadesLlocs, loc_visited = llocs.dades()
                 sostenible_2 = False
+                logger.debug(f"Resultat Yelp: {type(dadesLlocs)}, {len(dadesLlocs) if isinstance(dadesLlocs, list) else dadesLlocs}")
 
                 if dadesLlocs == "error 400" or not sostenible: # Això fa que entri a l'altre en el cas que sigui error 400
+                    logger.info("Intent 3: Cercant llocs amb Foursquare API")
                     Foursquare, Yelp, Sostenible_L = True, False, False 
                     if page.session.contains_key("lloc_especific"): # Comprova si hi ha un lloc específic posat per l'usuari
                         lloc_especific = page.session.get("lloc_especific")
@@ -2402,16 +2509,22 @@ Categories: {categories_list} this is to check all the categories, now it's the 
                     else: #En el cas que no hi hagi cap lloc específic posat
                         llocs = Llocs(p.latitude,p.longitude,radius_sel,50,loc_visited,categories_sel,sort_sel, preu, None) 
                         dadesLlocs, loc_visited = llocs.dades()
+                    logger.debug(f"Resultat Foursquare: {type(dadesLlocs)}, {len(dadesLlocs) if isinstance(dadesLlocs, list) else dadesLlocs}")
                 sostenible = False
                 #dadesLlocs, loc_visited = llocs.dades()
-                if dadesLlocs == "error 400":
+                logger.info(f"Verificant resultats finals - Tipus: {type(dadesLlocs)}, Es llista: {isinstance(dadesLlocs, list)}")
+                if dadesLlocs == "error 400" or dadesLlocs == "error 400 de l'API sostenible" or not isinstance(dadesLlocs, list):
+                    logger.error(f"ERROR FINAL: Cap API ha retornat resultats valids - dadesLlocs: {dadesLlocs}")
                     page.go("/error")
                 else:
+                    logger.info(f"EXIT: Llocs trobats: {len(dadesLlocs)} - Origen: {'Sostenible' if Sostenible_L else 'Yelp' if Yelp else 'Foursquare'}")
                     page.session.set("dadesLlocs", dadesLlocs)
                     if dadesLlocs == []:
+                        logger.warning("Llista de llocs buida - Redirigint a pagina d'error")
                         page.go("/error")
                     images_request = llocs.photos()
                     page.session.set("images_request", images_request)
+                    logger.debug(f"Imatges sol·licitades: {len(images_request)}")
                     categories = llocs.categories()
                     categories_visited = await page.client_storage.get_async("categories_visited")
                     categories_visited.extend(categories)
@@ -2435,9 +2548,21 @@ Categories: {categories_list} this is to check all the categories, now it's the 
                         else:
                             return f"{round(d)} m"
                     
+                    # Verificació de seguretat: assegurem que dadesLlocs és una llista vàlida
+                    if not isinstance(dadesLlocs, list) or dadesLlocs == "error 400":
+                        logger.error(f"ERROR CRITIC: dadesLlocs no es una llista valida - Tipus: {type(dadesLlocs)}, Valor: {dadesLlocs}")
+                        page.go("/error")
+                        return
+                    
+                    logger.info(f"Iniciant creacio de {len(dadesLlocs)} cards")
                     for i in range(len(dadesLlocs)):
-                        print("dadesLlocs i", i)
+                        logger.debug(f"Processant card {i+1}/{len(dadesLlocs)} - Tipus dada: {type(dadesLlocs[i])}")
                         # Definim tots els components de la card
+                        if not isinstance(dadesLlocs[i], dict):
+                            logger.error(f"ERROR: dadesLlocs[{i}] no es un diccionari - Tipus: {type(dadesLlocs[i])}, Valor: {dadesLlocs[i]}")
+                            continue
+                        
+                        logger.debug(f"Card {i}: {dadesLlocs[i].get('name', 'Nom desconegut')}")
                         if 'address' in dadesLlocs[i]["location"]: 
                             subtitle_card = Column(horizontal_alignment="center", controls=[
                                 Text(f"Direcció: {dadesLlocs[i]['location']['address']} | Distància: {distancia(i)}", color="white", weight=FontWeight.W_900),
@@ -2777,8 +2902,9 @@ Categories: {categories_list} this is to check all the categories, now it's the 
                 break
 
  
-    
+    logger.info("Cridant update_cards() per primera vegada...")
     await update_cards()
+    logger.info("update_cards() completat")
     
     #L'iniciem només començar el programa per tal de fer apareixer tots els elements i escalem la primera a 1 per tal de mostrar-la
     
