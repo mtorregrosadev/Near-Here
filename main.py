@@ -1045,25 +1045,8 @@ async def main(page: Page):
                     ElevatedButton("Cercar a...", on_click=event_lloc_especific, width=page.width, bgcolor="#c9d6d7", color="black")
                     ],
                 ),
-<<<<<<< Updated upstream
-                Divider(),
-                Text("PREU",weight=FontWeight.W_600, size=18),
-                Text("Configura el preu màxim que vols pagar de l'1 al 4! 1 (barat), 4 (car). Si selecciones 0, no hi haura filtre i sortiran tots",weight=FontWeight.W_300),
-                Slider(min=0, max=4, divisions=4, label="{value}", on_change_end=preu_sel,active_color="#7A9A9C", inactive_color="#c9d6d7", value=preu),
-                Divider(),
-                Text("Lloc específic",weight=FontWeight.W_600, size=18),
-                Text("Vols cercar a un lloc el qual no sigui el teu? Fes click per seleccionar-lo!",weight=FontWeight.W_300), 
-                ElevatedButton("Cercar a...", on_click=event_lloc_especific, width=page.width, bgcolor="#c9d6d7", color="black")
-            ],scroll="adaptive")
-<<<<<<< HEAD
-            page.views.append(View(bgcolor = "#FFFCF1",controls=[AppBar(title=Text("Pàrametres cerca"), adaptive=True,bgcolor="#AAD7D9"),parametres_cerca]))
-=======
             )
             page.views.append(View(bgcolor = "#FFFCF1",controls=[AppBar(title=Text("Paràmetres de cerca"), adaptive=True,bgcolor="#AAD7D9"),Container(expand=True, content=parametres_cerca)]))
->>>>>>> Stashed changes
-=======
-            page.views.append(View(bgcolor = "#FFFCF1",controls=[AppBar(title=Text("Paràmetres de cerca"), adaptive=True,bgcolor="#AAD7D9"),parametres_cerca]))
->>>>>>> 2083f3081820903362d8f480ce3e7c17075281c6
             
         if page.route == '/configuracio/sobre_app':
             page.views.append(View(bgcolor = "#FFFCF1",controls=[
@@ -1128,15 +1111,6 @@ async def main(page: Page):
                     )
             
 
-<<<<<<< HEAD
-<<<<<<< Updated upstream
-            page.views.append(View(bgcolor = "#FFFCF1",controls=[
-                    AppBar(bgcolor="#AAD7D9",adaptive=True),
-                    Text(f"{dadesLlocs[index_photo_stack]['name']}", text_align="center", weight=FontWeight.W_900, size=page.height*0.03, width=page.width, color="#6b9e9f"),
-                    ListView(controls=[stack_info_contact,stack_social_media,Stack_info],auto_scroll=False, height=page.height*0.8)
-                    
-            ]))
-=======
             if current_place.get("geocodes", {}).get("main"):
                 lat = current_place["geocodes"]["main"].get("latitude")
                 lon = current_place["geocodes"]["main"].get("longitude")
@@ -1247,118 +1221,6 @@ async def main(page: Page):
                 async def change_photo(e, direction):
                     nonlocal current_photo_index, main_image, photo_counter
                     
-=======
-            if current_place.get("geocodes", {}).get("main"):
-                lat = current_place["geocodes"]["main"].get("latitude")
-                lon = current_place["geocodes"]["main"].get("longitude")
-
-            
-
-            # Google Maps
-            # Google Maps amb nom del lloc (si disponible)
-            map_links.controls.append(
-                ElevatedButton(
-                    content=Image(
-                        src="src/info/googleMaps.png",  
-                        width=24,
-                        height=24,
-                    ),
-                    tooltip="Google Maps",
-                    url=f"https://www.google.com/maps/search/?api=1&query={current_place['name'].replace(' ', '+')}&query_place_id=&query={lat},{lon}",
-                )
-            )
-            
-            # Waze
-            map_links.controls.append(
-                ElevatedButton(
-                    content=Image(
-                        src="src/info/WAZE.png",  
-                        width=24,
-                        height=24,
-                    ),
-                    tooltip="Waze",
-                    url=f"https://www.waze.com/ul?ll={lat}%2C{lon}&navigate=yes&zoom=17",
-                ))
-            print(page.platform)
-            if PagePlatform.IOS:
-                # Apple Maps (només per iOS)
-                map_links.controls.append(
-                    ElevatedButton(
-                        content=Image(
-                            src="src/info/AppleMaps.png",  
-                            width=24,
-                            height=24,
-                        ),
-                        tooltip="Apple Maps",
-                        url=f"maps://?q={lat},{lon}", #! Només funciona a iOS
-                    ))
-                
-            
-            # Photo Carousel
-            carousel = Column(
-                alignment="center",
-                controls=[]
-            )
-            
-            photos = []
-            # Obtenim les fotos depenent de la font de dades
-            if current_place.get("photos"):
-                # Cas Foursquare o Sostenible_L
-                if isinstance(current_place["photos"], list):
-                    for photo in current_place["photos"]:
-                        if isinstance(photo, dict) and photo.get("prefix") and photo.get("suffix"):
-                            photos.append(f"{photo['prefix']}original{photo['suffix']}")
-                        elif isinstance(photo, str):
-                            photos.append(photo)
-                # Cas Yelp
-                elif isinstance(current_place["photos"], str):
-                    photos.append(current_place["photos"])
-            async def imatge_en_gran(e):
-                img_principal = main_image.content.content
-                dlg = AlertDialog(
-                    bgcolor=Colors.with_opacity(0, '#ff6666'),
-                    content=InteractiveViewer(
-                        min_scale=0.1,
-                        max_scale=15,
-                        boundary_margin=margin.all(20),
-                        content=Image(src=img_principal.src)
-                    )
-                )
-                page.open(dlg)
-            if photos:
-                print(photos)
-                # Variable per seguir l'índex de la foto actual
-                current_photo_index = 0
-                # Imatge principal
-                main_image = Container(
-                    alignment=alignment.center,
-                    on_click=imatge_en_gran,
-                    content=InteractiveViewer(
-                        min_scale=0.1,
-                        max_scale=15,
-                        content=Image(
-                            src=photos[0],
-                            width=page.width,
-                            height=250,
-                            fit="cover",
-                            border_radius=10,
-                            animate_opacity=150
-                        )
-                    )
-                )
-                
-                # Comptador de fotos
-                photo_counter = Text(
-                    f"1/{len(photos)}",
-                    color="#7A9A9C",
-                    size=12
-                )
-                
-                # Funció per canviar la foto
-                async def change_photo(e, direction):
-                    nonlocal current_photo_index, main_image, photo_counter
-                    
->>>>>>> 2083f3081820903362d8f480ce3e7c17075281c6
                     if direction == "next":
                         current_photo_index = (current_photo_index + 1) % len(photos)
                     else:
@@ -1526,29 +1388,17 @@ async def main(page: Page):
                         margin=margin.only(bottom=10)
                     )
                 )
-<<<<<<< HEAD
             logger.debug(current_place)
             # Add price level if available
             if current_place.get("price"):
                 price_text = str(current_place["price"])
                 logger.debug(price_text)
-=======
-            print(current_place)
-            # Add price level if available
-            if current_place.get("price"):
-                price_text = str(current_place["price"])
-                print(price_text)
->>>>>>> 2083f3081820903362d8f480ce3e7c17075281c6
                 price_desc = ""
                 if price_text == "$" or price_text == "1":
                     price_desc = "Econòmic"
                 elif price_text == "$$" or price_text == "2":
                     price_desc = "Moderat"
-<<<<<<< HEAD
                     logger.debug("Es 222")
-=======
-                    print("Es 222")
->>>>>>> 2083f3081820903362d8f480ce3e7c17075281c6
                 elif price_text == "$$$" or price_text == "3":
                     price_desc = "Car"
                 elif price_text == "$$$$" or price_text == "4":
@@ -1665,11 +1515,7 @@ async def main(page: Page):
 
                 # Add hours if available
                 if details.get('hours'):
-<<<<<<< HEAD
                     logger.debug(f"Hours: {details['hours']}")
-=======
-                    print("Hours: ", details['hours'])
->>>>>>> 2083f3081820903362d8f480ce3e7c17075281c6
                     hours_controls = []
                     if details['hours'].get('regular'):
                         # Dictionary to map day numbers to Catalan day names
@@ -1882,10 +1728,6 @@ async def main(page: Page):
                         content
                     ]
                 ))
-<<<<<<< HEAD
->>>>>>> Stashed changes
-=======
->>>>>>> 2083f3081820903362d8f480ce3e7c17075281c6
         if page.route == '/categories':
             categories_sel = page.session.get("categories_sel")
             page.add(Tags_amunt_safe,stack_cards,botons)
@@ -2657,67 +2499,11 @@ Categories: {categories_list} this is to check all the categories, now it's the 
                     cards.clear()
 
                 index_photo_stack = -1
-<<<<<<< HEAD
-                #:) Cobren el mateix demanant 5, 10 que 50
-                
-<<<<<<< Updated upstream
-=======
                 #:) Cobren el mateix demanant 5, 10 que 50º
                 dadesLlocs = page.session.get("dadesLlocs")
->>>>>>> 2083f3081820903362d8f480ce3e7c17075281c6
                 p = await gl.get_current_position_async()
                 logger.info(f"Posicio actual obtinguda: Lat={p.latitude}, Long={p.longitude}")
                 
-                Foursquare, Yelp, Sostenible_L = False, False, False
-                if sostenible_2:
-                    logger.info("Intent 1: Cercant llocs sostenibles")
-                    Foursquare, Yelp, Sostenible_L = False, False, True # Per poder saber d'on prové la dada 
-                    if page.session.contains_key("lloc_especific"): # Comprova si hi ha un lloc específic posat per l'usuari
-                        lloc_especific = page.session.get("lloc_especific")
-                        if lloc_especific != "":
-                            logger.warning("Llocs sostenibles no suporten cerca per lloc especific - Saltant a Yelp")
-                            dadesLlocs = "error 400"
-                        else: #En el cas que l'usuari no hagi posat cap lloc però ja sigui inicialitzada la variable
-                            llocs = LLocs_sostenibles(p.latitude,p.longitude,radius_sel,50,loc_visited,categories_sel) 
-                            dadesLlocs, loc_visited = llocs.dades()
-                    else: #En el cas que no hi hagi cap lloc específic posat
-                        llocs = LLocs_sostenibles(p.latitude,p.longitude,radius_sel,50,loc_visited,categories_sel)  
-                        dadesLlocs, loc_visited = llocs.dades()
-                    
-                    logger.debug(f"Resultat llocs sostenibles: {type(dadesLlocs)}, {len(dadesLlocs) if isinstance(dadesLlocs, list) else dadesLlocs}")
-                    
-                if dadesLlocs == "error 400" or dadesLlocs == "error 400 de l'API sostenible" or not sostenible_2: # Això fa que entri a l'altre en el cas que sigui error 400:  #Si es true entra 
-                    logger.info("Intent 2: Cercant llocs amb Yelp API")
-                    Foursquare, Yelp, Sostenible_L = False, True, False    
-                    if page.session.contains_key("lloc_especific"): # Comprova si hi ha un lloc específic posat per l'usuari
-                        lloc_especific = page.session.get("lloc_especific")
-                        if lloc_especific != "":
-                            llocs = Llocs_yelp(None,None,radius_sel,2,loc_visited,categories_sel,sort_sel, preu, lloc_especific) 
-                            dadesLlocs, loc_visited = llocs.dades()
-                        else: #En el cas que l'usuari no hagi posat cap lloc però ja sigui inicialitzada la variable
-                            llocs = Llocs_yelp(p.latitude,p.longitude,radius_sel,50,loc_visited,categories_sel,sort_sel, preu, None) 
-                            dadesLlocs, loc_visited = llocs.dades()
-                    else: #En el cas que no hi hagi cap lloc específic posat
-                        llocs = Llocs_yelp(p.latitude,p.longitude,radius_sel,50,loc_visited,categories_sel,sort_sel, preu, None) 
-                        dadesLlocs, loc_visited = llocs.dades()
-                sostenible_2 = False
-                logger.debug(f"Resultat Yelp: {type(dadesLlocs)}, {len(dadesLlocs) if isinstance(dadesLlocs, list) else dadesLlocs}")
-
-                if dadesLlocs == "error 400" or not sostenible: # Això fa que entri a l'altre en el cas que sigui error 400
-                    logger.info("Intent 3: Cercant llocs amb Foursquare API")
-                    Foursquare, Yelp, Sostenible_L = True, False, False 
-                    if page.session.contains_key("lloc_especific"): # Comprova si hi ha un lloc específic posat per l'usuari
-                        lloc_especific = page.session.get("lloc_especific")
-                        if lloc_especific != "":
-                            llocs = Llocs(None,None,radius_sel,50,loc_visited,categories_sel,sort_sel, preu, lloc_especific) 
-                            dadesLlocs, loc_visited = llocs.dades()
-                        else: #En el cas que l'usuari no hagi posat cap lloc però ja sigui inicialitzada la variable
-                            llocs = Llocs(p.latitude,p.longitude,radius_sel,50,loc_visited,categories_sel,sort_sel, preu, None) 
-                            dadesLlocs, loc_visited = llocs.dades()
-                    else: #En el cas que no hi hagi cap lloc específic posat
-                        llocs = Llocs(p.latitude,p.longitude,radius_sel,50,loc_visited,categories_sel,sort_sel, preu, None) 
-<<<<<<< HEAD
-=======
                 # Respecta la preferència de font de dades amb alternatives
                 data_source_pref = await page.client_storage.get_async("data_source_pref") or "AUTO"
 
@@ -2789,11 +2575,6 @@ Categories: {categories_list} this is to check all the categories, now it's the 
 
                 # Reset flags heretats de l'estratègia anterior
                 sostenible_2 = False
->>>>>>> Stashed changes
-=======
-                        dadesLlocs, loc_visited = llocs.dades()
-                    logger.debug(f"Resultat Foursquare: {type(dadesLlocs)}, {len(dadesLlocs) if isinstance(dadesLlocs, list) else dadesLlocs}")
->>>>>>> 2083f3081820903362d8f480ce3e7c17075281c6
                 sostenible = False
                 #dadesLlocs, loc_visited = llocs.dades()
                 logger.info(f"Verificant resultats finals - Tipus: {type(dadesLlocs)}, Es llista: {isinstance(dadesLlocs, list)}")
@@ -2944,24 +2725,8 @@ Categories: {categories_list} this is to check all the categories, now it's the 
                                 ],
                             )
     
-<<<<<<< Updated upstream
-                        print("images_request i", images_request[i])
-                        print("index_photo_stack", index_photo_stack)
-<<<<<<< HEAD
-                        async def ou(e):
-                            img_principal = stack_cards.controls[0].content.content.controls[1].content.controls[0].content.content
-                            dlg = AlertDialog(
-                                bgcolor=colors.with_opacity(0, '#ff6666'),
-                                content=InteractiveViewer(
-                                    min_scale=0.1,
-                                    max_scale=15,
-                                    boundary_margin=margin.all(20),
-                                    content=Image(src=img_principal.src)
-=======
                         logger.debug(f"images_request i {images_request[i]}")
                         logger.debug(f"index_photo_stack {index_photo_stack}")
-=======
->>>>>>> 2083f3081820903362d8f480ce3e7c17075281c6
 
                         async def check_image_url(url):
                             # Skip check for URLs we know are good
@@ -2992,10 +2757,6 @@ Categories: {categories_list} this is to check all the categories, now it's the 
                                     width=page.width * 0.8, 
                                     height=page.height * 0.8 * 0.65, 
                                     fit="COVER"
-<<<<<<< HEAD
->>>>>>> Stashed changes
-=======
->>>>>>> 2083f3081820903362d8f480ce3e7c17075281c6
                                 )
                             )
                         )
