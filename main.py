@@ -31,7 +31,7 @@ class Llocs:
     def _randomize_coordinates(self, lat, lon):
         # Afegeix un petit desplaçament a les coordenades perquè no sigui sempre igual
         increment = len(self.loc_visited) / 10000
-        print("increment és:", increment)
+        logger.debug(f"increment és: {increment}")
         if len(self.loc_visited) > 1 and len(self.loc_visited) < 100: 
             # Aquest el que fa es detectar la longitud de les places ja visitades i depenent d'aquesta fa més variació o menys
             randloc = (len(self.loc_visited) // 10) * increment
@@ -156,7 +156,7 @@ class Llocs_yelp:
     def _randomize_coordinates(self, lat, lon):
         # Afegeix un petit desplaçament a les coordenades perquè no sigui sempre igual
         increment = len(self.loc_visited) / 10000
-        print("increment és:", increment)
+        logger.debug(f"increment és: {increment}")
         if len(self.loc_visited) > 1 and len(self.loc_visited) < 100: #Aquest el que fa es detectar la longitud de les places ja visitades i depenent d'aquesta fa més variació o menys
             randloc = (len(self.loc_visited) // 10) * increment
         elif len(self.loc_visited) >= 100: 
@@ -344,13 +344,13 @@ class Llocs_yelp:
         
         for i in range(len(self.data)):
             fotos_llocs = []
-            print(self.data[i]['photos'])
+            logger.debug(self.data[i]['photos'])
             if 'photos' in self.data[i]:
                 fotos_llocs.append(self.data[i]['photos'])
                 fotos.append(fotos_llocs)
             else:
                 fotos.append([])
-        print(fotos)
+        logger.debug(fotos)
         return fotos
     def categories(self):
         #! Per fer 
@@ -480,7 +480,7 @@ async def main(page: Page):
         send_button =IconButton(on_click=send_message,icon=icons.SEND,bgcolor="#9796f0", width=page.width * 0.13)
         async def vertical_drag(e):
             data = json.loads(e.data)
-            print(data["pv"], data["vy"])
+            logger.debug(f"Swipe data: pv={data['pv']}, vy={data['vy']}")
             if data["pv"] > 1 and data["vy"] > 0:
                 send_button.focus()
         ia_container = GestureDetector(
@@ -610,7 +610,7 @@ async def main(page: Page):
             saved_cards_images = await page.client_storage.get_async("saved_cards_images")   
             saved_cards = await page.client_storage.get_async("saved_cards")
             categories_visited = await page.client_storage.get_async("categories_visited")
-            print("Favorits seleccionat")
+            logger.info("Favorits seleccionat")
             images_saved.controls = []
             page.add(images_saved)
             if len(saved_cards) > 0:
@@ -637,14 +637,14 @@ async def main(page: Page):
 
         if page.route == '/configuracio':
             page.add(configuracio)
-            print("Configuració seleccionada")
+            logger.info("Configuració seleccionada")
 
         if page.route == '/configuracio/historial': 
             loc_visited = await page.client_storage.get_async("loc_visited")  
             loc_visited_photos = await page.client_storage.get_async("loc_visited_photos")  
             categories_visited = await page.client_storage.get_async("categories_visited")
             page.add(configuracio)    
-            print(len(loc_visited))
+            logger.debug(f"loc_visited len: {len(loc_visited)}")
             images_saved.height = page.height
             images_saved.controls = []
             if len(loc_visited) > 0: 
@@ -703,11 +703,11 @@ async def main(page: Page):
                 global canvi 
                 await page.client_storage.set_async("radius_sel", round(e.control.value) * 1000)
                 radius_sel = await page.client_storage.get_async("radius_sel") 
-                print(radius_sel)
+                logger.debug(radius_sel)
                 canvi = True
             async def sort(e):
                 global canvi 
-                print(e.control.value)
+                logger.debug(e.control.value)
                 if e.control.value == "Valoració":
                     await page.client_storage.set_async("sort_sel", "RATING")
                 if e.control.value == "Rellevancia (default)":
@@ -717,13 +717,13 @@ async def main(page: Page):
                 if e.control.value == "Popularitat":
                     await page.client_storage.set_async("sort_sel", "POPULARITY")
                 sort_sel = await page.client_storage.get_async("sort_sel") 
-                print(sort_sel)
+                logger.debug(sort_sel)
                 canvi = True
             async def preu_sel(e):
                 global canvi 
                 await page.client_storage.set_async("preu", round(e.control.value))
                 preu = await page.client_storage.get_async("preu") 
-                print(preu)
+                logger.debug(preu)
                 canvi = True
             async def event_lloc_especific(e):
                 page.go("/lloc_especific")
@@ -737,28 +737,81 @@ async def main(page: Page):
             if sort_sel == "POPULARITY":
                 value_em = "Popularitat"
             radius_sel = await page.client_storage.get_async("radius_sel")
-            print("radius_sel: ", radius_sel)
+            logger.debug(f"radius_sel: {radius_sel}")
             preu = await page.client_storage.get_async("preu")
-            print("preu: ", preu)
-            parametres_cerca = Column([
-                Divider(),
-                Text("RADI, DISTÀNCIA",weight=FontWeight.W_600, size=18),
-                Text("Configura la distància màxima la qual vols que cerqui l'algorisme!",weight=FontWeight.W_300),
-                Slider(min=1, max=10, divisions=10, label="{value} Km", value=int(radius_sel/1000), on_change_end=radius,active_color="#7A9A9C", inactive_color="#c9d6d7"),
-                Divider(), 
-                Text("RELLEVÀNCIA, ORDRE",weight=FontWeight.W_600, size=18),
-                Text("Quins llocs t'apareixeran primer?",weight=FontWeight.W_300),
-                Dropdown(
-                        hint_text="Pica la teva preferencia",
+            logger.debug(f"preu: {preu}")
+            async def data_source_change(e):
+                label = e.control.value
+                mapping = {
+                    "Automàtic (recomanat)": "AUTO",
+                    "Sostenibles": "SOSTENIBLE",
+                    "Yelp": "YELP",
+                    "Foursquare": "FOURSQUARE",
+                }
+                value = mapping.get(label, "AUTO")
+                await page.client_storage.set_async("data_source_pref", value)
+
+            # Recupera preferència font de dades o posa valor per defecte
+            data_source_pref = await page.client_storage.get_async("data_source_pref")
+            if data_source_pref is None:
+                data_source_pref = "AUTO"
+                await page.client_storage.set_async("data_source_pref", data_source_pref)
+            data_source_label = {
+                "AUTO": "Automàtic (recomanat)",
+                "SOSTENIBLE": "Sostenibles",
+                "YELP": "Yelp",
+                "FOURSQUARE": "Foursquare",
+            }.get(data_source_pref, "Automàtic (recomanat)")
+
+            parametres_cerca = Container(
+                expand=True,
+                content=ListView(
+                    expand=True,
+                    controls=[
+                    Divider(),
+                    Text("RADI, DISTÀNCIA",weight=FontWeight.W_600, size=18),
+                    Text("Configura la distància màxima la qual vols que cerqui l'algorisme!",weight=FontWeight.W_300),
+                    Slider(min=1, max=10, divisions=10, label="{value} Km", value=int(radius_sel/1000), on_change_end=radius,active_color="#7A9A9C", inactive_color="#c9d6d7"),
+                    Divider(), 
+                    Text("RELLEVÀNCIA, ORDRE",weight=FontWeight.W_600, size=18),
+                    Text("Quins llocs t'apareixeran primer?",weight=FontWeight.W_300),
+                    Dropdown(
+                            hint_text="Pica la teva preferencia",
+                            width=page.width,
+                            on_change=sort,
+                            value=value_em,
+                            options=[
+                                dropdown.Option("Rellevancia (default)"),
+                                dropdown.Option("Valoració"),
+                                dropdown.Option("Distància"),
+                                dropdown.Option("Popularitat")]
+                    ),
+                    Divider(),
+                    Text("FONT DE DADES",weight=FontWeight.W_600, size=18),
+                    Text("Selecciona la font de dades preferida. Mantindrem els canvis i farem servir altres fonts si cal.",weight=FontWeight.W_300),
+                    Dropdown(
+                        hint_text="Tria la font preferida",
                         width=page.width,
-                        on_change=sort,
-                        value=value_em,
+                        on_change=data_source_change,
+                        value=data_source_label,
                         options=[
-                            dropdown.Option("Rellevancia (default)"),
-                            dropdown.Option("Valoració"),
-                            dropdown.Option("Distància"),
-                            dropdown.Option("Popularitat")]
+                            dropdown.Option("Automàtic (recomanat)"),
+                            dropdown.Option("Sostenibles"),
+                            dropdown.Option("Yelp"),
+                            dropdown.Option("Foursquare")
+                        ],
+                    ),
+                    Divider(),
+                    Text("PREU",weight=FontWeight.W_600, size=18),
+                    Text("Configura el preu màxim que vols pagar de l'1 al 4! 1 (barat), 4 (car). Si selecciones 0, no hi haura filtre i sortiran tots",weight=FontWeight.W_300),
+                    Slider(min=0, max=4, divisions=4, label="{value}", on_change_end=preu_sel,active_color="#7A9A9C", inactive_color="#c9d6d7", value=preu),
+                    Divider(),
+                    Text("Lloc específic",weight=FontWeight.W_600, size=18),
+                    Text("Vols cercar a un lloc el qual no sigui el teu? Fes click per seleccionar-lo!",weight=FontWeight.W_300), 
+                    ElevatedButton("Cercar a...", on_click=event_lloc_especific, width=page.width, bgcolor="#c9d6d7", color="black")
+                    ],
                 ),
+<<<<<<< Updated upstream
                 Divider(),
                 Text("PREU",weight=FontWeight.W_600, size=18),
                 Text("Configura el preu màxim que vols pagar de l'1 al 4! 1 (barat), 4 (car). Si selecciones 0, no hi haura filtre i sortiran tots",weight=FontWeight.W_300),
@@ -769,6 +822,10 @@ async def main(page: Page):
                 ElevatedButton("Cercar a...", on_click=event_lloc_especific, width=page.width, bgcolor="#c9d6d7", color="black")
             ],scroll="adaptive")
             page.views.append(View(bgcolor = "#FFFCF1",controls=[AppBar(title=Text("Pàrametres cerca"), adaptive=True,bgcolor="#AAD7D9"),parametres_cerca]))
+=======
+            )
+            page.views.append(View(bgcolor = "#FFFCF1",controls=[AppBar(title=Text("Paràmetres de cerca"), adaptive=True,bgcolor="#AAD7D9"),Container(expand=True, content=parametres_cerca)]))
+>>>>>>> Stashed changes
             
         if page.route == '/configuracio/sobre_app':
             page.views.append(View(bgcolor = "#FFFCF1",controls=[
@@ -857,12 +914,632 @@ async def main(page: Page):
                 distancia = Container(content=Text(f"distance: {detalls['distance']}"))
                 Stack_info.controls.append(distancia)
 
+<<<<<<< Updated upstream
             page.views.append(View(bgcolor = "#FFFCF1",controls=[
                     AppBar(bgcolor="#AAD7D9",adaptive=True),
                     Text(f"{dadesLlocs[index_photo_stack]['name']}", text_align="center", weight=FontWeight.W_900, size=page.height*0.03, width=page.width, color="#6b9e9f"),
                     ListView(controls=[stack_info_contact,stack_social_media,Stack_info],auto_scroll=False, height=page.height*0.8)
                     
             ]))
+=======
+            if current_place.get("geocodes", {}).get("main"):
+                lat = current_place["geocodes"]["main"].get("latitude")
+                lon = current_place["geocodes"]["main"].get("longitude")
+
+            
+
+            # Google Maps
+            # Google Maps amb nom del lloc (si disponible)
+            map_links.controls.append(
+                ElevatedButton(
+                    content=Image(
+                        src="src/info/googleMaps.png",  
+                        width=24,
+                        height=24,
+                    ),
+                    tooltip="Google Maps",
+                    url=f"https://www.google.com/maps/search/?api=1&query={current_place['name'].replace(' ', '+')}&query_place_id=&query={lat},{lon}",
+                )
+            )
+            
+            # Waze
+            map_links.controls.append(
+                ElevatedButton(
+                    content=Image(
+                        src="src/info/WAZE.png",  
+                        width=24,
+                        height=24,
+                    ),
+                    tooltip="Waze",
+                    url=f"https://www.waze.com/ul?ll={lat}%2C{lon}&navigate=yes&zoom=17",
+                ))
+            logger.debug(page.platform)
+            if PagePlatform.IOS:
+                # Apple Maps (només per iOS)
+                map_links.controls.append(
+                    ElevatedButton(
+                        content=Image(
+                            src="src/info/AppleMaps.png",  
+                            width=24,
+                            height=24,
+                        ),
+                        tooltip="Apple Maps",
+                        url=f"maps://?q={lat},{lon}", #! Només funciona a iOS
+                    ))
+                
+            
+            # Photo Carousel
+            carousel = Column(
+                alignment="center",
+                controls=[]
+            )
+            
+            photos = []
+            # Obtenim les fotos depenent de la font de dades
+            if current_place.get("photos"):
+                # Cas Foursquare o Sostenible_L
+                if isinstance(current_place["photos"], list):
+                    for photo in current_place["photos"]:
+                        if isinstance(photo, dict) and photo.get("prefix") and photo.get("suffix"):
+                            photos.append(f"{photo['prefix']}original{photo['suffix']}")
+                        elif isinstance(photo, str):
+                            photos.append(photo)
+                # Cas Yelp
+                elif isinstance(current_place["photos"], str):
+                    photos.append(current_place["photos"])
+            async def imatge_en_gran(e):
+                img_principal = main_image.content.content
+                dlg = AlertDialog(
+                    bgcolor=Colors.with_opacity(0, '#ff6666'),
+                    content=InteractiveViewer(
+                        min_scale=0.1,
+                        max_scale=15,
+                        boundary_margin=margin.all(20),
+                        content=Image(src=img_principal.src)
+                    )
+                )
+                page.open(dlg)
+            if photos:
+                logger.debug(photos)
+                # Variable per seguir l'índex de la foto actual
+                current_photo_index = 0
+                # Imatge principal
+                main_image = Container(
+                    alignment=alignment.center,
+                    on_click=imatge_en_gran,
+                    content=InteractiveViewer(
+                        min_scale=0.1,
+                        max_scale=15,
+                        content=Image(
+                            src=photos[0],
+                            width=page.width,
+                            height=250,
+                            fit="cover",
+                            border_radius=10,
+                            animate_opacity=150
+                        )
+                    )
+                )
+                
+                # Comptador de fotos
+                photo_counter = Text(
+                    f"1/{len(photos)}",
+                    color="#7A9A9C",
+                    size=12
+                )
+                
+                # Funció per canviar la foto
+                async def change_photo(e, direction):
+                    nonlocal current_photo_index, main_image, photo_counter
+                    
+                    if direction == "next":
+                        current_photo_index = (current_photo_index + 1) % len(photos)
+                    else:
+                        current_photo_index = (current_photo_index - 1) % len(photos)
+                    
+                    main_image.content.content.opacity = 0.1
+                    page.update()
+                    await asyncio.sleep(0.15)
+                    main_image.content.content.src = photos[current_photo_index]
+                    main_image.content.content.opacity = 1
+                    photo_counter.value = f"{current_photo_index + 1}/{len(photos)}"
+                    page.update()
+                
+                # Funcions d'event handler sense async
+                async def prev_photo(e):
+                    await change_photo(e, "prev")
+                
+                async def next_photo(e):
+                    await change_photo(e, "next")
+                
+                # Contenidor pel carrusel
+                carousel_container = Container(
+                    width=page.width,
+                    height=250,
+                    content=Stack(
+                        [
+                            main_image,
+                            # Botó esquerra
+                            IconButton(
+                                icon=Icons.CHEVRON_LEFT,
+                                icon_color="black",
+                                bgcolor="#FBF9F1",
+                                on_click=prev_photo,
+                                left=5,
+                                top=100,
+                                visible=len(photos) > 1
+                            ),
+                            # Botó dreta
+                            IconButton(
+                                icon=Icons.CHEVRON_RIGHT,
+                                icon_color="black",
+                                bgcolor="#FBF9F1",
+                                on_click=next_photo,
+                                right=5,
+                                top=100,
+                                visible=len(photos) > 1
+                            ),
+                            # Comptador de fotos
+                            Container(
+                                content=photo_counter,
+                                bgcolor="#00000066",
+                                padding=5,
+                                border_radius=5,
+                                right=10,
+                                bottom=10,
+                                visible=len(photos) > 1
+                            )
+                        ]
+                    )
+                )
+                
+                carousel.controls.append(carousel_container)
+            else:
+                # Sense fotos
+                carousel.controls.append(
+                    Container(
+                        content=Icon(Icons.IMAGE_NOT_SUPPORTED_ROUNDED, size=100, color="#c9d6d7"),
+                        alignment=alignment.center,
+                        margin=margin.only(top=20, bottom=20)
+                    )
+                )
+                carousel.controls.append(
+                    Text("No hi ha imatges disponibles", text_align="center", color="#7A9A9C")
+                )
+
+            # Basic info section
+            basic_info = Column(controls=[])
+            
+            # Add address if available
+            if current_place.get("location", {}).get("address"):
+                addr_parts = []
+                if current_place["location"].get("address"): 
+                    addr_parts.append(current_place["location"]["address"])
+                if current_place["location"].get("locality"):
+                    addr_parts.append(current_place["location"]["locality"])
+                if current_place["location"].get("region"):
+                    addr_parts.append(current_place["location"]["region"])
+                if current_place["location"].get("postcode"):
+                    addr_parts.append(current_place["location"]["postcode"])
+                    
+                basic_info.controls.append(
+                    Container(
+                        content=Text(
+                            "📍 " + ", ".join(addr_parts),
+                            size=16,
+                            weight=FontWeight.W_500
+                        ),
+                        margin=margin.only(bottom=10)
+                    )
+                )
+            # Alternativa per a Yelp
+            elif current_place.get("location", {}).get("display_address"):
+                if isinstance(current_place["location"]["display_address"], list):
+                    addr_text = ", ".join(current_place["location"]["display_address"])
+                else:
+                    addr_text = current_place["location"]["display_address"]
+                    
+                basic_info.controls.append(
+                    Container(
+                        content=Text(
+                            "📍 " + addr_text,
+                            size=16,
+                            weight=FontWeight.W_500
+                        ),
+                        margin=margin.only(bottom=10)
+                    )
+                )
+
+            # Add categories if available
+            if current_place.get("categories"):
+                cats = []
+                for cat in current_place["categories"]:
+                    if isinstance(cat, dict):
+                        cats.append(cat.get("title", cat.get("name", "")))
+                    else:
+                        cats.append(str(cat))
+                        
+                basic_info.controls.append(
+                    Container(
+                        content=Text(
+                            "🏷️ " + ", ".join(cats),
+                            size=14
+                        ),
+                        margin=margin.only(bottom=10)
+                    )
+                )
+                
+            # Add rating if available
+            rating_row = Row(controls=[], alignment="center")
+            
+            if current_place.get("rating"):
+                rating_value = current_place["rating"]
+                # Normalitza la valoració a una escala 0-5 si és necessari
+                if rating_value > 5:
+                    normalized_rating = round(rating_value / 2, 1)
+                else:
+                    normalized_rating = rating_value
+                
+                stars = round(normalized_rating)
+                
+                for i in range(5):
+                    if i < stars:
+                        rating_row.controls.append(Icon(Icons.STAR_ROUNDED, color="#FFD700", size=20))
+                    else:
+                        rating_row.controls.append(Icon(Icons.STAR_OUTLINE_ROUNDED, color="#FFD700", size=20))
+                
+                rating_row.controls.append(Text(f" {normalized_rating}/5", weight=FontWeight.W_500))
+                
+                if current_place.get("review_count"):
+                    rating_row.controls.append(Text(f" ({current_place['review_count']} ressenyes)", size=12, color="grey"))
+                
+                basic_info.controls.append(
+                    Container(
+                        content=rating_row,
+                        margin=margin.only(bottom=10)
+                    )
+                )
+            logger.debug(current_place)
+            # Add price level if available
+            if current_place.get("price"):
+                price_text = str(current_place["price"])
+                logger.debug(price_text)
+                price_desc = ""
+                if price_text == "$" or price_text == "1":
+                    price_desc = "Econòmic"
+                elif price_text == "$$" or price_text == "2":
+                    price_desc = "Moderat"
+                    logger.debug("Es 222")
+                elif price_text == "$$$" or price_text == "3":
+                    price_desc = "Car"
+                elif price_text == "$$$$" or price_text == "4":
+                    price_desc = "Molt car"
+                
+                if price_desc:
+                    basic_info.controls.append(
+                        Container(
+                            content=Text(
+                                f"💰 Preu: {price_desc} ({price_text}/4)",
+                                size=14
+                            ),
+                            margin=margin.only(bottom=10)
+                        )
+                    )
+                    page.update()
+            
+            # Organitzem els elements en la vista principal
+            content.controls.append(carousel)
+            content.controls.append(
+                Container(
+                    content=basic_info,
+                    margin=margin.only(top=10)
+                )
+            )
+            
+            # Contact info section
+            contact = Column(controls=[])
+
+            if Foursquare:
+                # Get additional details for Foursquare
+                info = Llocs_info(current_place['fsq_id'])
+                details = await info.search_data()
+                
+                # Add phone
+                if details.get('tel'):
+                    contact.controls.append(
+                        ListTile(
+                            leading=Icon(Icons.PHONE),
+                            title=Text(details['tel']),
+                            url=f"tel:{details['tel']}"
+                        )
+                    )
+
+                # Add email 
+                if details.get('email'):
+                    contact.controls.append(
+                        ListTile(
+                            leading=Icon(Icons.EMAIL),
+                            title=Text(details['email']),
+                            url=f"mailto:{details['email']}"
+                        )
+                    )
+                    
+                # Add website
+                if details.get('website'):
+                    contact.controls.append(
+                        ListTile(
+                            leading=Icon(Icons.LANGUAGE),
+                            title=Text("Lloc web"),
+                            url=details['website']
+                        )
+                    )
+
+                # Add social media
+                if details.get('social_media'):
+                    social = Row(
+                        alignment="center",
+                        spacing=20,
+                        controls=[]
+                    )
+                    
+                    if details['social_media'].get('instagram'):
+                        social.controls.append(
+                            ElevatedButton(
+                                content=Image(
+                                    src="src/info/instagram.png",  
+                                    width=24,
+                                    height=24,
+                                ),
+                                tooltip="Instagram",
+                                url=f"https://instagram.com/{details['social_media']['instagram']}",
+                            )
+                        )
+                    
+                    if details['social_media'].get('twitter'):
+                        social.controls.append(
+                           ElevatedButton(
+                                content=Image(
+                                    src="src/info/twitter.png",  
+                                    width=24,
+                                    height=24,
+                                ),
+                                tooltip="Twitter", 
+                                url=f"https://x.com/{details['social_media']['twitter']}",
+                            )
+                        )
+                        
+                    if details['social_media'].get('facebook'):
+                        social.controls.append(
+                           ElevatedButton(
+                                content=Image(
+                                    src="src/info/facebook.png",  
+                                    width=24,
+                                    height=24,
+                                ),
+                                tooltip="Facebook",
+                                url=f"https://facebook.com/{details['social_media']['facebook']}",
+                            )
+                        )
+                        
+                    if social.controls:
+                        contact.controls.append(social)
+
+                # Add hours if available
+                if details.get('hours'):
+                    logger.debug(f"Hours: {details['hours']}")
+                    hours_controls = []
+                    if details['hours'].get('regular'):
+                        # Dictionary to map day numbers to Catalan day names
+                        day_names = {
+                            1: 'Dilluns',
+                            2: 'Dimarts', 
+                            3: 'Dimecres',
+                            4: 'Dijous',
+                            5: 'Divendres',
+                            6: 'Dissabte',
+                            7: 'Diumenge'
+                        }
+
+                        # Get current day and time
+                        now = datetime.datetime.now()
+                        current_day = now.weekday() + 1  # weekday() returns 0-6, we need 1-7
+                        current_time = now.strftime('%H%M')
+
+                        # Check if place is open now
+                        is_open = False
+                        for day in details['hours']['regular']:
+                            if day['day'] == current_day:
+                                open_time = day['open'].replace(':', '')
+                                close_time = day['close'].replace(':', '')
+                                is_open = open_time <= current_time <= close_time
+                                break
+
+                        hours_controls.append(
+                            Text("Horari habitual:", weight=FontWeight.W_600)
+                        )
+                        for day in details['hours']['regular']:
+                            # Format open time with :
+                            open_time = f"{day['open'][:2]}:{day['open'][2:]}" if len(day['open']) == 4 else day['open']
+                            # Format close time with :  
+                            close_time = f"{day['close'][:2]}:{day['close'][2:]}" if len(day['close']) == 4 else day['close']
+                            # Convert day number to name
+                            day_name = day_names.get(day['day'], day['day'])
+                            hours_controls.append(
+                                Text(f"{day_name}: {open_time} - {close_time}")
+                            )
+                        content.controls.append(
+                            Container(
+                                content=Column(controls=hours_controls),
+                                margin=margin.only(top=20),
+                                padding=10,
+                                border_radius=10,
+                                bgcolor=Colors.BLACK12
+                            )
+                        )
+
+                    if details['hours'].get('open_now'):                 # Update obert_text based on open status
+                        obert_text.value = "OBERT" if is_open else "TANCAT"
+                        obert_text.color = "#4CAF50" if is_open else "#F44336" # Green if open, red if closed
+                        obert_text.weight = FontWeight.W_700
+                    elif details['hours'].get('regular'):
+                        # Si no tenim open_now, calculem si està obert segons l'horari regular
+                        now = datetime.datetime.now()
+                        current_day = now.weekday() + 1  # weekday() returns 0-6, we need 1-7
+                        current_time = now.strftime('%H%M')
+                        is_open = False
+                        for day in details['hours']['regular']:
+                            if day['day'] == current_day:
+                                open_time = day['open'].replace(':', '')
+                                close_time = day['close'].replace(':', '')
+                                if open_time <= current_time <= close_time:
+                                    is_open = True
+                                    break
+                        obert_text.value = "OBERT" if is_open else "TANCAT"
+                        obert_text.color = "#4CAF50" if is_open else "#F44336"
+                        obert_text.weight = FontWeight.W_700
+                # Add stats if available
+                if details.get('stats'):
+                    stats = Row(
+                        alignment="spaceAround",
+                        controls=[
+                            Column([
+                                Icon(Icons.STAR),
+                                Text(f"{current_place["rating"]}")
+                            ]),
+                            Column([
+                                Icon(Icons.PEOPLE), 
+                                Text(f"{details['stats'].get('total_ratings', 'N/A')}")
+                            ])
+                        ]
+                    )
+                    content.controls.append(
+                        Container(
+                            content=stats,
+                            margin=margin.only(top=10),
+                            padding=10
+                        )
+                    )
+
+                # Add menu if available
+                if details.get('menu'):
+                    content.controls.append(
+                        Container(
+                            content=ListTile(
+                                leading=Icon(Icons.MENU_BOOK),
+                                title=Text("Menú"),
+                                url=details['menu'].get('url', '')
+                            ),
+                            margin=margin.only(top=10)
+                        )
+                    )
+
+                # Add description if available
+                if details.get('description'):
+                    content.controls.append(
+                        Container(
+                            content=Text(details['description']),
+                            margin=margin.only(top=20, bottom=20),
+                            padding=10,
+                            border_radius=10,
+                            bgcolor=Colors.BLACK12
+                        )
+                    )
+
+                # Add features/amenities if available
+                if details.get('features'):
+                    features_list = Column([
+                        Text("Serveis disponibles:", weight=FontWeight.W_600)
+                    ])
+                    for feature, value in details['features'].items():
+                        if value:  # Only show enabled features
+                            features_list.controls.append(
+                                Text(f"✓ {feature.replace('_', ' ').title()}")
+                            )
+                    content.controls.append(
+                        Container(
+                            content=features_list,
+                            margin=margin.only(top=10),
+                            padding=10,
+                            border_radius=10,
+                            bgcolor=Colors.BLACK12
+                        )
+                    )
+
+            elif Yelp:
+                # Add Yelp specific fields
+                if current_place.get('display_phone'):
+                    contact.controls.append(
+                        ListTile(
+                            leading=Icon(Icons.PHONE),
+                            title=Text(current_place['display_phone']),
+                            url=f"tel:{current_place['phone']}"
+                        )
+                    )
+                    
+                if current_place.get('url'):
+                    contact.controls.append(
+                        ListTile(
+                            leading=Icon(Icons.LANGUAGE),
+                            title=Text("Veure a Yelp"),
+                            url=current_place['url']
+                        )
+                    )
+
+            elif Sostenible_L:
+                # Add sustainable place specific fields
+                if current_place.get('details', {}).get('website'):
+                    contact.controls.append(
+                        ListTile(
+                            leading=Icon(Icons.LANGUAGE),
+                            title=Text("Lloc web"),
+                            url=current_place['details']['website']
+                        )
+                    )
+                    
+                if current_place.get('details', {}).get('type'):
+                    content.controls.append(
+                        Container(
+                            content=Text(f"Tipus: {current_place['details']['type']}"),
+                            margin=margin.only(top=10)
+                        )
+                    )
+                    
+                if current_place.get('details', {}).get('criteria'):
+                    content.controls.append(
+                        Container(
+                            content=Text(f"Criteris de sostenibilitat: {current_place['details']['criteria']}"),
+                            margin=margin.only(top=10)
+                        )
+                    )
+
+            if contact.controls:
+                content.controls.append(
+                    Container(
+                        content=contact,
+                        margin=margin.only(top=20)
+                    )
+                )
+
+            page.views.append(View(
+                    bgcolor="#FFFCF1",
+                    controls=[
+                        AppBar(bgcolor="#AAD7D9", adaptive=True),
+                        Container(
+                            border_radius=10,
+                            # Use a semi-transparent background color (e.g., 80% opacity)
+                            bgcolor="#fff9f1",  # Add 'CC' for 80% opacity (hex: 0-FF)
+                            width=page.width,
+                            content=Column([
+                                header,
+                                obert_text,
+                                map_links,
+                                Text("")
+                            ])
+                        ),
+                        content
+                    ]
+                ))
+>>>>>>> Stashed changes
         if page.route == '/categories':
             categories_sel = page.session.get("categories_sel")
             page.add(Tags_amunt_safe,stack_cards,botons)
@@ -982,7 +1659,7 @@ async def main(page: Page):
         if page.route == "/lloc_especific":
             def lloc_especific(e):
                 global canvi
-                print(e.control.value)
+                logger.debug(e.control.value)
                 page.session.set("lloc_especific", e.control.value)
                 canvi = True
             page.views.append(View(bgcolor = "#FFFCF1",controls=[
@@ -1083,7 +1760,7 @@ Categories: {categories_list} this is to check all the categories, now it's the 
         page.update()
         await asyncio.sleep(0.15)  
         cards.remove(cards[0])
-        print(f"Card {len(cards)} swiped left")
+        logger.debug(f"Card {len(cards)} swiped left")
         await update_cards()
         await scale_next_card()
     
@@ -1101,7 +1778,7 @@ Categories: {categories_list} this is to check all the categories, now it's the 
         page.update()
         await asyncio.sleep(0.15)  
         cards.remove(cards[0])
-        print(f"Card {len(cards)} swiped left")
+        logger.debug(f"Card {len(cards)} swiped left")
         await update_cards()
         await scale_next_card()
 
@@ -1196,7 +1873,7 @@ Categories: {categories_list} this is to check all the categories, now it's the 
                     page.session.set("categories_sel", categories_sel)
                     canvi = True
         categories_sel = page.session.get("categories_sel")
-        print(categories_sel)
+        logger.debug(categories_sel)
     async def categ_chip_sel(e):
         global canvi
         global ai 
@@ -1233,7 +1910,7 @@ Categories: {categories_list} this is to check all the categories, now it's the 
 
         
         categories_sel = page.session.get("categories_sel")
-        print(categories_sel)
+        logger.debug(categories_sel)
         
     
     def mes_info_select(e):
@@ -1546,7 +2223,7 @@ Categories: {categories_list} this is to check all the categories, now it's the 
    
     async def on_swipe(e):
         data = json.loads(e.data)
-        print(data["pv"])
+        logger.debug(data["pv"])
         if data["pv"] != 0:
             if data["pv"] < 1: #Esquerra
                 await seguent(e)
@@ -1555,7 +2232,7 @@ Categories: {categories_list} this is to check all the categories, now it's the 
 
     async def on_swipe_vertical(e):
         data = json.loads(e.data)
-        print(data["pv"])
+        logger.debug(data["pv"])
         if data["pv"] < 1 and data["vy"] < 0:
             await mes_info(e)
             
@@ -1603,6 +2280,7 @@ Categories: {categories_list} this is to check all the categories, now it's the 
                 index_photo_stack = -1
                 #:) Cobren el mateix demanant 5, 10 que 50
                 
+<<<<<<< Updated upstream
                 p = await gl.get_current_position_async()
                 if sostenible:  #Si es true entra    
                     if page.session.contains_key("lloc_especific"): # Comprova si hi ha un lloc específic posat per l'usuari
@@ -1625,6 +2303,79 @@ Categories: {categories_list} this is to check all the categories, now it's the 
                             llocs = Llocs(p.latitude,p.longitude,radius_sel,50,loc_visited,categories_sel,sort_sel, preu, None) 
                     else: #En el cas que no hi hagi cap lloc específic posat
                         llocs = Llocs(p.latitude,p.longitude,radius_sel,50,loc_visited,categories_sel,sort_sel, preu, None) 
+=======
+                # Respecta la preferència de font de dades amb alternatives
+                data_source_pref = await page.client_storage.get_async("data_source_pref") or "AUTO"
+
+                def ordre_per_preferencia(pref):
+                    if pref == "SOSTENIBLE":
+                        return ["SOSTENIBLE", "YELP", "FOURSQUARE"]
+                    if pref == "YELP":
+                        return ["YELP", "FOURSQUARE", "SOSTENIBLE"]
+                    if pref == "FOURSQUARE":
+                        return ["FOURSQUARE", "YELP", "SOSTENIBLE"]
+                    return ["SOSTENIBLE", "YELP", "FOURSQUARE"]  # AUTO
+
+                Foursquare, Yelp, Sostenible_L = False, False, False
+                dadesLlocs = "error 400"
+                llocs = None
+
+                ordre = ordre_per_preferencia(data_source_pref)
+
+                for origen in ordre:
+                    if origen == "SOSTENIBLE":
+                        logger.info("Intent: Cercant llocs sostenibles")
+                        Foursquare, Yelp, Sostenible_L = False, False, True
+                        if page.session.contains_key("lloc_especific"):
+                            lloc_especific = page.session.get("lloc_especific")
+                            if lloc_especific != "":
+                                logger.warning("Llocs sostenibles no suporten cerca per lloc especific - Saltant a següent font")
+                                dadesLlocs = "error 400"
+                            else:
+                                llocs = LLocs_sostenibles(p.latitude,p.longitude,radius_sel,50,loc_visited,categories_sel)
+                                dadesLlocs, loc_visited = llocs.dades()
+                        else:
+                            llocs = LLocs_sostenibles(p.latitude,p.longitude,radius_sel,50,loc_visited,categories_sel)
+                            dadesLlocs, loc_visited = llocs.dades()
+                        logger.debug(f"Resultat llocs sostenibles: {type(dadesLlocs)}, {len(dadesLlocs) if isinstance(dadesLlocs, list) else dadesLlocs}")
+                    elif origen == "YELP":
+                        logger.info("Intent: Cercant llocs amb Yelp API")
+                        Foursquare, Yelp, Sostenible_L = False, True, False
+                        if page.session.contains_key("lloc_especific"):
+                            lloc_especific = page.session.get("lloc_especific")
+                            if lloc_especific != "":
+                                llocs = Llocs_yelp(None,None,radius_sel,2,loc_visited,categories_sel,sort_sel, preu, lloc_especific)
+                                dadesLlocs, loc_visited = llocs.dades()
+                            else:
+                                llocs = Llocs_yelp(p.latitude,p.longitude,radius_sel,50,loc_visited,categories_sel,sort_sel, preu, None)
+                                dadesLlocs, loc_visited = llocs.dades()
+                        else:
+                            llocs = Llocs_yelp(p.latitude,p.longitude,radius_sel,50,loc_visited,categories_sel,sort_sel, preu, None)
+                            dadesLlocs, loc_visited = llocs.dades()
+                        logger.debug(f"Resultat Yelp: {type(dadesLlocs)}, {len(dadesLlocs) if isinstance(dadesLlocs, list) else dadesLlocs}")
+                    elif origen == "FOURSQUARE":
+                        logger.info("Intent: Cercant llocs amb Foursquare API")
+                        Foursquare, Yelp, Sostenible_L = True, False, False
+                        if page.session.contains_key("lloc_especific"):
+                            lloc_especific = page.session.get("lloc_especific")
+                            if lloc_especific != "":
+                                llocs = Llocs(None,None,radius_sel,50,loc_visited,categories_sel,sort_sel, preu, lloc_especific)
+                                dadesLlocs, loc_visited = llocs.dades()
+                            else:
+                                llocs = Llocs(p.latitude,p.longitude,radius_sel,50,loc_visited,categories_sel,sort_sel, preu, None)
+                                dadesLlocs, loc_visited = llocs.dades()
+                        else:
+                            llocs = Llocs(p.latitude,p.longitude,radius_sel,50,loc_visited,categories_sel,sort_sel, preu, None)
+                            dadesLlocs, loc_visited = llocs.dades()
+                        logger.debug(f"Resultat Foursquare: {type(dadesLlocs)}, {len(dadesLlocs) if isinstance(dadesLlocs, list) else dadesLlocs}")
+
+                    # Si hem obtingut una llista vàlida, parem de provar fonts
+                    if isinstance(dadesLlocs, list):
+                        break
+
+                # Reset flags heretats de l'estratègia anterior
+                sostenible_2 = False
+>>>>>>> Stashed changes
                 sostenible = False
 
                 dadesLlocs, loc_visited = llocs.dades()
@@ -1751,6 +2502,7 @@ Categories: {categories_list} this is to check all the categories, now it's the 
                                 ],
                             )
     
+<<<<<<< Updated upstream
                         print("images_request i", images_request[i])
                         print("index_photo_stack", index_photo_stack)
                         async def ou(e):
@@ -1762,6 +2514,40 @@ Categories: {categories_list} this is to check all the categories, now it's the 
                                     max_scale=15,
                                     boundary_margin=margin.all(20),
                                     content=Image(src=img_principal.src)
+=======
+                        logger.debug(f"images_request i {images_request[i]}")
+                        logger.debug(f"index_photo_stack {index_photo_stack}")
+
+                        async def check_image_url(url):
+                            # Skip check for URLs we know are good
+                            if url and (url.startswith("https://fastly.4sqi.net") or 
+                                      url.startswith("https://s3-media") or
+                                      url.startswith("https://static.openstreetmap.org")):
+                                return True
+                            
+                            # Only check other URLs
+                            async with httpx.AsyncClient() as client:
+                                try:
+                                    response = await client.head(url, timeout=2.0) # Add timeout
+                                    return response.status_code == 200
+                                except:
+                                    return False
+
+                        img_principal = Container(
+                            alignment=alignment.center,
+                            on_click=imatge_en_gran,
+                            content=InteractiveViewer(
+                                min_scale=0.1,
+                                max_scale=15,
+                                content=Image(
+                                    animate_opacity=150, 
+                                    border_radius=15,
+                                    # Use asyncio.run to run the async check in sync context
+                                    src=images_request[i][0] if len(images_request[i]) >= 1 and await check_image_url(images_request[i][0]) else None,
+                                    width=page.width * 0.8, 
+                                    height=page.height * 0.8 * 0.65, 
+                                    fit="COVER"
+>>>>>>> Stashed changes
                                 )
                             )
                             page.open(dlg)
@@ -1908,7 +2694,7 @@ Categories: {categories_list} this is to check all the categories, now it's the 
                             img_dret.src = images_request[index_photo_stack][index_photo+1 if index_photo+1 <= (len(images_request[index_photo_stack])- 1) else 0]  
                             page.update()
                         
-                        print("Carta creada")
+                        logger.debug("Carta creada")
                         carta = Container(
                                 image=DecorationImage(
                                     src="src/fons.jpg",
@@ -1998,9 +2784,9 @@ Categories: {categories_list} this is to check all the categories, now it's the 
 
         for card in cards:
             if not first_card_added:
-                print("Carta insertada")
+                logger.debug("Carta insertada")
                 index_photo_stack += 1
-                print("index_photo_stack", index_photo_stack)
+                logger.debug(f"index_photo_stack {index_photo_stack}")
                 stack_cards.controls.append(
                     GestureDetector(
                         content=card,
@@ -2035,7 +2821,7 @@ Categories: {categories_list} this is to check all the categories, now it's the 
                     img_esq.src = images_request[index_photo_stack][len(images_request[index_photo_stack]) - 1]
                     page.update()
                 elif len(images_request[index_photo_stack]) == 1:
-                    print("es 1")
+                    logger.debug("es 1")
                     img_principal.src = images_request[index_photo_stack][0]
                     img_dret.visible = False
                     img_esq.visible = False
