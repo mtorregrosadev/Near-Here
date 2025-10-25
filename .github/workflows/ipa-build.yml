@@ -72,8 +72,23 @@ jobs:
     - name: Install Python Dependencies
       run: pip install -r requirements.txt
 
+    - name: Create .env file with secrets
+      run: |
+        echo "GOOGLE_API_KEY=${{ secrets.GOOGLE_API_KEY }}" > .env
+        echo "FOURSQUARE_API_KEY=${{ secrets.FOURSQUARE_API_KEY }}" >> .env
+        echo "YELP_API_KEY=${{ secrets.YELP_API_KEY }}" >> .env
+        echo "DSN_SENTRY=${{ secrets.SENTRY_DSN }}" >> .env
+        echo ".env file created with secrets"
+
     - name: Flet Build IPA
       run: |
+        # Export environment variables for build process
+        export GOOGLE_API_KEY="${{ secrets.GOOGLE_API_KEY }}"
+        export FOURSQUARE_API_KEY="${{ secrets.FOURSQUARE_API_KEY }}"
+        export YELP_API_KEY="${{ secrets.YELP_API_KEY }}"
+        export DSN_SENTRY="${{ secrets.SENTRY_DSN }}"
+        
+        # Run flet build with environment variables available
         flet build ipa --verbose --build-number=${{ github.event.inputs.BUILD_NUMBER || '1' }} --build-version=${{ github.event.inputs.BUILD_VERSION || '1.0.0' }}
 
     - name: Create Payload Directory

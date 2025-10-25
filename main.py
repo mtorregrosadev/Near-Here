@@ -562,7 +562,7 @@ class Llocs_yelp:
         return categories   
 
 sentry_sdk.init(
-    dsn=f"{os.getenv("DSN_SENTRY")}",
+    dsn=f"{os.getenv('DSN_SENTRY')}",
     # Add data like request headers and IP for users,
     # see https://docs.sentry.io/platforms/python/data-management/data-collected/ for more info
     send_default_pii=True,
