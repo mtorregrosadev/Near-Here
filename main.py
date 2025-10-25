@@ -1,5 +1,5 @@
 import flet 
-from flet import Page,CircleAvatar,RadioGroup,Radio,PagePlatform,LinearGradient,Alignment,GradientTileMode,Markdown,Dropdown,ListView,TextField,DecorationImage,dropdown,InteractiveViewer,margin,TextButton,Divider,View,border,Slider,BorderRadius,border_radius,Checkbox,RoundedRectangleBorder,TileAffinity,ExpansionTile,AnimatedSwitcherTransition,AppBar,Card,GridView,TextThemeStyle,ListTile, MainAxisAlignment,AnimatedSwitcher,Stack,Column,TextSpan,TextStyle,Paint,AlertDialog,IconButton, StrokeJoin,PaintingStyle,ShadowBlurStyle, BoxShadow, Image, ListTile,GestureDetector, FontWeight,ElevatedButton, SafeArea,Theme, animation, Container, transform, Icon, Icons, Colors, alignment, Row, Text, ResponsiveRow, Chip, NavigationBarDestination, NavigationBar,BlurTileMode,Blur 
+from flet import Page,CircleAvatar,RadioGroup,Radio,PagePlatform,LinearGradient,Alignment,GradientTileMode,Markdown,Dropdown,ListView,TextField,DecorationImage,dropdown,InteractiveViewer,margin,TextButton,Divider,View,border,Slider,BorderRadius,border_radius,Checkbox,RoundedRectangleBorder,TileAffinity,ExpansionTile,AnimatedSwitcherTransition,AppBar,Card,GridView,TextThemeStyle,ListTile, MainAxisAlignment,AnimatedSwitcher,Stack,Column,TextSpan,TextStyle,Paint,AlertDialog,IconButton, StrokeJoin,PaintingStyle,ShadowBlurStyle, BoxShadow, Image, ListTile,GestureDetector, FontWeight,ElevatedButton, SafeArea,Theme, Animation, Container, Icon, Icons, Colors, alignment, Row, Text, ResponsiveRow, Chip, NavigationBarDestination, NavigationBar,BlurTileMode,Blur, Offset, Rotate
 import asyncio
 import json
 import location
@@ -799,7 +799,7 @@ async def main(page: Page):
             logger.info("=== RUTA: / (Pantalla principal) ===")
             if len(cards) >= 1:
                 logger.info(f"Mostrant {len(cards)} cards")
-                selected_llocs.offset = transform.Offset(0,0)
+                selected_llocs.offset = Offset(0,0)
                 cards[0].scale = 1
                 cards[0].opacity = 1
                 botons.opacity = 1
@@ -1942,7 +1942,7 @@ Categories: {categories_list} this is to check all the categories, now it's the 
     page.on_view_pop = view_pop
     
     async def seguent(e):
-        cards[0].offset = transform.Offset(-4, 0)  
+        cards[0].offset = Offset(-4, 0)  
         page.update()
         await asyncio.sleep(0.15)  
         cards.remove(cards[0])
@@ -1960,7 +1960,7 @@ Categories: {categories_list} this is to check all the categories, now it's the 
         saved_cards_images.append(images_request[index_photo_stack][0]) if images_request[index_photo_stack] != [] else saved_cards_images.append(images_request[index_photo_stack])
         saved_cards = await page.client_storage.set_async("saved_cards", saved_cards)
         saved_cards_images = await page.client_storage.set_async("saved_cards_images", saved_cards_images)
-        cards[0].offset = transform.Offset(4, 0)  
+        cards[0].offset = Offset(4, 0)  
         page.update()
         await asyncio.sleep(0.15)  
         cards.remove(cards[0])
@@ -1970,11 +1970,11 @@ Categories: {categories_list} this is to check all the categories, now it's the 
 
     async def mes_info(e):
         #Animació en general per fer desapareixer tot 
-        cards[0].animate_scale = animation.Animation(550)
+        cards[0].animate_scale = Animation(550)
         cards[0].scale = 2
         cards[0].opacity = 0.1
-        botons.animate_opacity = animation.Animation(550)
-        Tags_amunt.animate_opacity = animation.Animation(550)
+        botons.animate_opacity = Animation(550)
+        Tags_amunt.animate_opacity = Animation(550)
         botons.opacity = 0.12
         Tags_amunt.opacity = 0.12
         page.update()
@@ -2391,10 +2391,10 @@ Categories: {categories_list} this is to check all the categories, now it's the 
                 page.overlay.append(gl)
             page.go('/')
             await asyncio.sleep(0.001)
-            selected_llocs.offset = transform.Offset(0, -0.25)
+            selected_llocs.offset = Offset(0, -0.25)
             page.update()
             await asyncio.sleep(0.14)
-            selected_llocs.offset = transform.Offset(0,0)
+            selected_llocs.offset = Offset(0,0)
             
             
         elif index == 0: #Favorits
@@ -2421,8 +2421,8 @@ Categories: {categories_list} this is to check all the categories, now it's the 
         page.update()
     
     selected_favorits =Icon(name=Icons.FAVORITE_ROUNDED, color="#E78895", animate_size=200)
-    selected_llocs =Icon(name=Icons.LOCATION_PIN, color=Colors.BLACK, animate_offset=140, offset=transform.Offset(0,0)) 
-    selected_configuracio = Icon(name=Icons.SETTINGS_ROUNDED, color=Colors.BLACK, rotate=transform.Rotate(0, alignment=alignment.center), animate_rotation=animation.Animation(duration=1000, curve="bounceOut"))
+    selected_llocs =Icon(name=Icons.LOCATION_PIN, color=Colors.BLACK, animate_offset=140, offset=Offset(0,0)) 
+    selected_configuracio = Icon(name=Icons.SETTINGS_ROUNDED, color=Colors.BLACK, rotate=Rotate(0, alignment=alignment.center), animate_rotation=Animation(duration=1000, curve="bounceOut"))
     
     page.navigation_bar=NavigationBar(
         bgcolor = "#6fa4a6",
@@ -2835,10 +2835,10 @@ Categories: {categories_list} this is to check all the categories, now it's the 
                                 border_radius=15, 
                                 width = page.width,
                                 height = page.height * 0.8,
-                                animate_offset=animation.Animation(500),
-                                animate_opacity = animation.Animation(600),
+                                animate_offset=Animation(500),
+                                animate_opacity = Animation(600),
                                 scale=0,
-                                animate_scale=animation.Animation(340, "easeOutSine"),
+                                animate_scale=Animation(340, "easeOutSine"),
                                 content=Column(
                                     horizontal_alignment="center",
                                     controls=[
