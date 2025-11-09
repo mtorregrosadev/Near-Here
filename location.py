@@ -4,6 +4,10 @@ async def handle_permission(gl, AlertDialog, page, Text, TextButton,MainAxisAlig
     if str(status) == "GeolocatorPermissionStatus.WHILE_IN_USE" or str(status) == "GeolocatorPermissionStatus.ALWAYS":
         pass
     else:
+        try:
+            await gl.request_permission_async()
+        except Exception as e:
+            pass
         def handle_click(e):
             gl.open_app_settings_async()
         async def handle_check(e):
