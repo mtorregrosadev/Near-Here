@@ -1,6 +1,6 @@
 [project]
 name = "Near_Here"
-version = "0.6.1"
+version = "1.0.0"
 description = "Aplicació de geolocalització per a la detecció de llocs propers"
 readme = "README.md"
 requires-python = ">=3.12"
@@ -27,10 +27,6 @@ permissions = ["location"]
 [tool.flet.app]
 entrypoint = "main.py"
 
-[tool.flet.flutter]
-sdk = "3.24.5"
-
 [tool.flet.flutter.dependencies]
 flet_geolocator = "0.1.0"
 flet_lottie = "0.1.0"
-

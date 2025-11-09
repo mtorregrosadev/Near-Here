@@ -7,7 +7,7 @@
 **Discover sustainable places near you with AI**
 
 [![Python](https://img.shields.io/badge/Python-3.8+-blue.svg)](https://www.python.org/downloads/)
-[![Flet](https://img.shields.io/badge/Flet-0.28.3+-green.svg)](https://flet.dev/)
+[![Flet](https://img.shields.io/badge/Flet-0.27.5-green.svg)](https://flet.dev/)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Status](https://img.shields.io/badge/Status-Beta-orange.svg)]()
 
@@ -17,9 +17,9 @@
 
 ## 🎯 About
 
-**Near Here** is a mobile app built with Python and Flet that helps you discover nearby sustainable places using AI. I know it's not the best or most polished project, but it's a first step into programming as part of my High School Research Project 2024-2025.
+**Near Here** is a mobile app built with Python and Flet that helps you discover nearby sustainable places using AI. I know it's not the best or most polished project, but it's a first step into programming as part of my High School Research Project 2024-2025. 
 
-Gràcies a aquest codi he après molt com funciona el sistema de versions de GitHub (i tambè m'he estressat molt), com amb unes nocions de Python i una documentació pots tirar endavant un projecte individual o inclús he comprovat que no es mentida que els programadors ens parem a pensar cada dia en solucions quan alguna cosa no funciona. Molt agrait el que m'ha portat aquest codi i projecte, encara que sembli un codi bàsic i poc optimitzat el procés per arribar-ne fins aquí ha sigut llarg i constant. Tanmateix, com el primer plantejament d'un projecte amb més magnitud que "una simple calculadora" o "una pokedex". 
+Gràcies a aquest codi he après molt com funciona el sistema de versions de GitHub (i també m'he estressat molt), també he après com amb unes nocions de Python i una documentació pots tirar endavant un projecte individual o inclús he comprovat que no és mentida que els programadors ens parem a pensar cada dia en solucions quan alguna cosa no funciona. Molt agraït del que m'ha portat aquest codi i projecte, encara que sembli un codi bàsic i poc optimitzat el procés per arribar-ne fins aquí ha sigut llarg i constant. Tanmateix, com el primer plantejament d'un projecte amb més magnitud que "una simple calculadora" o "una pokedex". 
 
 Also I have to say I don't have Foursquare or Yelp premium, so I don't know if it work as well as it worked when there were more free options in the API. I hope it works!
 
