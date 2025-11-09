@@ -910,7 +910,27 @@ async def main(page: Page):
 
         if page.route == '/configuracio/tema':
             page.add(configuracio)
-            page.views.append(View(bgcolor = "#FFFCF1",controls=[AppBar(title=Text("Tema"), adaptive=True,bgcolor="#AAD7D9")]))
+            
+            working_content = Column([
+                Text("Estic treballant en això! 🚧", text_align="center", weight=FontWeight.W_900, theme_style=TextThemeStyle.TITLE_LARGE, width=page.width, color="#6b9e9f"),
+                Lottie(src="src/working.json"),
+                Divider(),
+                Text("Aquesta funcionalitat encara està en desenvolupament.\n\nEstic treballant per oferir-te aquesta opció aviat!", text_align="center")
+            ], height=page.height*0.55, alignment=MainAxisAlignment.CENTER, horizontal_alignment="center")
+            
+            page.views.append(View(bgcolor = "#FFFCF1",controls=[AppBar(title=Text("Tema"), adaptive=True,bgcolor="#AAD7D9"), SafeArea(content=working_content)]))
+
+        if page.route == '/configuracio/politica_privacitat':
+            page.add(configuracio)
+            
+            working_content = Column([
+                Text("Estic treballant en això! 🚧", text_align="center", weight=FontWeight.W_900, theme_style=TextThemeStyle.TITLE_LARGE, width=page.width, color="#6b9e9f"),
+                Lottie(src="src/working.json"),
+                Divider(),
+                Text("Aquesta funcionalitat encara està en desenvolupament.\n\nEstic treballant per oferir-te aquesta opció aviat!", text_align="center")
+            ], height=page.height*0.55, alignment=MainAxisAlignment.CENTER, horizontal_alignment="center")
+            
+            page.views.append(View(bgcolor = "#FFFCF1",controls=[AppBar(title=Text("Política de privacitat"), adaptive=True,bgcolor="#AAD7D9"), SafeArea(content=working_content)]))
 
         if page.route == '/configuracio/idioma':
 
@@ -2302,6 +2322,8 @@ Categories: {categories_list} this is to check all the categories, now it's the 
         page.go("/configuracio/sobre_app")
     async def ajuda(e):
         page.go("/configuracio/ajuda")
+    async def politica_privacitat(e):
+        page.go("/configuracio/politica_privacitat")
 
     configuracio =Card(color = "#AAD7D9", height=page.height * 0.8, expand=True,
             content=Container(
@@ -2359,7 +2381,7 @@ Categories: {categories_list} this is to check all the categories, now it's the 
                             title=Text("Politica de privacitat", color="black"),
                             selected=True,
                             height=(page.height * 0.8) / 13,
-                            # on_click=hey
+                            on_click=politica_privacitat
                         ),
                         ListTile(
                             leading=Icon(Icons.HELP_OUTLINED, color="black"),
