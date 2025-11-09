@@ -80,20 +80,25 @@ jobs:
         echo "DSN_SENTRY=${{ secrets.SENTRY_DSN }}" >> .env
         echo ".env file created with secrets"
 
-    - name: Create Dependency Override Script
+    - name: Fix pubspec dependency_overrides (shell)
       run: |
-        # Create a script that will add dependency overrides after flet generates the project
-        cat > fix_dependencies.sh << 'SCRIPT_END'
-        #!/bin/bash
-        if [ -f "build/flutter/pubspec.yaml" ]; then
-          echo "Adding dependency overrides to pubspec.yaml..."
-          echo "" >> build/flutter/pubspec.yaml
-          echo "dependency_overrides:" >> build/flutter/pubspec.yaml
-          echo "  webview_flutter_android: 4.2.4" >> build/flutter/pubspec.yaml
-          echo "Dependency overrides added successfully"
+        # remove existing webview_flutter_android lines to avoid duplicates
+        if [ -f build/flutter/pubspec.yaml ]; then
+          sed -i.bak '/^\s*webview_flutter_android\s*:/d' build/flutter/pubspec.yaml || true
+
+          if grep -q '^dependency_overrides:' build/flutter/pubspec.yaml; then
+            if ! grep -q '^\s*webview_flutter_android\s*:' build/flutter/pubspec.yaml; then
+              awk '/^dependency_overrides:/{print;print "  webview_flutter_android: 4.2.4";next}1' build/flutter/pubspec.yaml > build/flutter/pubspec.tmp && mv build/flutter/pubspec.tmp build/flutter/pubspec.yaml
+            fi
+          else
+            printf '\n\ndependency_overrides:\n  webview_flutter_android: 4.2.4\n' >> build/flutter/pubspec.yaml
+          fi
+
+          echo 'patched pubspec.yaml (first 120 lines):'
+          sed -n '1,120p' build/flutter/pubspec.yaml
+        else
+          echo 'build/flutter/pubspec.yaml not found, skipping'
         fi
-        SCRIPT_END
-        chmod +x fix_dependencies.sh
 
     - name: Flet Build IPA
       run: |
@@ -107,7 +112,7 @@ jobs:
         flet build ipa --verbose --build-number=${{ github.event.inputs.BUILD_NUMBER || '1' }} --build-version=${{ github.event.inputs.BUILD_VERSION || '1.0.0' }} || true
         
         # Apply dependency fix
-        ./fix_dependencies.sh
+        python3 fix_dependencies.py
         
         # Retry build with fixed dependencies
         if [ -f "build/flutter/pubspec.yaml" ]; then
