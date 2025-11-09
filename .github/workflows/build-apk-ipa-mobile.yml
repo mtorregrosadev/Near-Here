@@ -1,4 +1,4 @@
-name: All Builds (Linux, macOS, Windows, Android, IPA, APK, AAB)
+name: All Builds (APK, AAB, IPA)
 
 on:
   # Runs on push to any of the below branches
@@ -12,14 +12,33 @@ on:
 
   # Allows you to run this workflow manually from the Actions tab of the repository
   workflow_dispatch:
+    inputs:
+      BUILD_VERSION:
+        description: 'Versió de la construcció (ex: 0.2.0)'
+        required: true
+        default: '0.2.0'
+      BUILD_NUMBER:
+        description: 'Build Number - Número de build (ex: 1)'
+        required: true
+        default: '1'
+      CREATE_RELEASE:
+        description: 'Crear release a GitHub?'
+        required: false
+        default: 'true'
+        type: choice
+        options:
+          - 'true'
+          - 'false'
+
+permissions:
+  contents: write
+  actions: read
 
 env:
   # https://flet.dev/docs/publish#versioning
   PROJECT_NAME: Near_Here
-  BUILD_NUMBER: 0
-  BUILD_VERSION: 0.1.1
-  PYTHON_VERSION: 3.12.2
-  FLUTTER_VERSION: 3.22.2
+  PYTHON_VERSION: 3.12.7
+  FLUTTER_VERSION: 3.24.5
 
 jobs:
   build-aab:
@@ -44,13 +63,19 @@ jobs:
       with:
         flutter-version: ${{ env.FLUTTER_VERSION }}
 
+    - name: Setup Java JDK
+      uses: actions/setup-java@v4.5.0
+      with:
+        distribution: 'temurin'
+        java-version: '21'
+
     - name: Flet Build AAB
       run: |
         flutter config --no-analytics
-        flet build aab -vv --build-number=$BUILD_NUMBER --build-version=$BUILD_VERSION --include-packages flet_geolocator flet_lottie --org com.near_here --project $PROJECT_NAME --product $PROJECT_NAME
+        flet build aab -vv --build-number=${{ github.event.inputs.BUILD_NUMBER || '0' }} --build-version=${{ github.event.inputs.BUILD_VERSION || '0.2.0' }}
 
     - name: Upload AAB Artifact
-      uses: actions/upload-artifact@v4.3.4
+      uses: actions/upload-artifact@v4.4.3
       with:
         name: aab-build-artifact
         path: build/aab
@@ -80,7 +105,7 @@ jobs:
         flutter-version: ${{ env.FLUTTER_VERSION }}
 
     - name: Setup Java JDK
-      uses: actions/setup-java@v4.2.1
+      uses: actions/setup-java@v4.5.0
       with:
         distribution: 'temurin'
         java-version: '21'
@@ -88,10 +113,10 @@ jobs:
     - name: Flet Build APK
       run: |
         flutter config --no-analytics
-        flet build apk -vv --build-number=$BUILD_NUMBER --build-version=$BUILD_VERSION --include-packages flet_geolocator flet_lottie --org com.near_here --project $PROJECT_NAME --no-android-splash --product $PROJECT_NAME
+        flet build apk -vv --build-number=${{ github.event.inputs.BUILD_NUMBER || '0' }} --build-version=${{ github.event.inputs.BUILD_VERSION || '0.2.0' }} --no-android-splash
 
     - name: Upload APK Artifact
-      uses: actions/upload-artifact@v4.3.4
+      uses: actions/upload-artifact@v4.4.3
       with:
         name: apk-build-artifact
         path: build/apk
@@ -123,12 +148,79 @@ jobs:
     - name: Flet Build IPA
       run: |
         flutter config --no-analytics
-        flet build ipa -vv --build-number=$BUILD_NUMBER --build-version=$BUILD_VERSION --include-packages flet_geolocator flet_lottie --org com.near_here --project $PROJECT_NAME --no-ios-splash --product $PROJECT_NAME
+        flet build ipa -vv --build-number=${{ github.event.inputs.BUILD_NUMBER || '0' }} --build-version=${{ github.event.inputs.BUILD_VERSION || '0.2.0' }} --no-ios-splash
 
     - name: Upload IPA Artifact
-      uses: actions/upload-artifact@v4.3.4
+      uses: actions/upload-artifact@v4.4.3
       with:
         name: ipa-build-artifact
         path: build/ipa
         if-no-files-found: warn
         overwrite: false
+
+    - name: Create Payload Directory
+      if: github.event.inputs.CREATE_RELEASE == 'true' || github.event_name == 'push'
+      run: mkdir Payload
+
+    - name: Move Runner.app to Payload
+      if: github.event.inputs.CREATE_RELEASE == 'true' || github.event_name == 'push'
+      run: mv build/ipa/Runner.xcarchive/Products/Applications/Runner.app Payload/
+
+    - name: Package IPA
+      if: github.event.inputs.CREATE_RELEASE == 'true' || github.event_name == 'push'
+      run: zip -r Near_Here-${{ github.event.inputs.BUILD_VERSION || '0.2.0' }}.ipa Payload
+
+  create-release:
+    needs: [build-apk, build-aab, build-ipa]
+    runs-on: ubuntu-latest
+    if: github.event.inputs.CREATE_RELEASE == 'true' || github.event_name == 'push'
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Download APK Artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: apk-build-artifact
+        path: ./apk
+
+    - name: Download AAB Artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: aab-build-artifact
+        path: ./aab
+
+    - name: Download IPA Artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: ipa-build-artifact
+        path: ./ipa
+
+    - name: Create GitHub Release
+      id: create_release
+      uses: softprops/action-gh-release@v2
+      with:
+        tag_name: v${{ github.event.inputs.BUILD_VERSION || '0.2.0' }}
+        name: Release ${{ github.event.inputs.BUILD_VERSION || '0.2.0' }}
+        draft: false
+        prerelease: true
+        body: |
+          ## Near Here v${{ github.event.inputs.BUILD_VERSION || '0.2.0' }}
+          
+          ### Formats disponibles:
+          - **APK**: Per a Android (instal·lació directa)
+          - **AAB**: Per a Google Play Store
+          - **IPA**: Per a iOS (necessita signatura o SideStore)
+          
+          ### Build Information:
+          - Build Number: ${{ github.event.inputs.BUILD_NUMBER || '0' }}
+          - Build Version: ${{ github.event.inputs.BUILD_VERSION || '0.2.0' }}
+          - Python: ${{ env.PYTHON_VERSION }}
+          - Flutter: ${{ env.FLUTTER_VERSION }}
+        files: |
+          apk/**/*.apk
+          aab/**/*.aab
+          ipa/**/*.ipa
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
