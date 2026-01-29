@@ -4,3 +4,4 @@ httpx>=0.28.1
 flet_lottie
 flet_geolocator
 python-dotenv==1.0.1
+sentry-sdk==2.30.0
