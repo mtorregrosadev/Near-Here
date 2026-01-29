@@ -1,5 +1,5 @@
 import flet 
-from flet import Page,CircleAvatar,RadioGroup,Radio,PagePlatform,LinearGradient,Alignment,GradientTileMode,Markdown,Dropdown,ListView,TextField,DecorationImage,dropdown,InteractiveViewer,margin,TextButton,Divider,View,border,Slider,BorderRadius,border_radius,Checkbox,RoundedRectangleBorder,TileAffinity,ExpansionTile,AnimatedSwitcherTransition,AppBar,Card,GridView,TextThemeStyle,ListTile, MainAxisAlignment,AnimatedSwitcher,Stack,Column,TextSpan,TextStyle,Paint,AlertDialog,IconButton, StrokeJoin,PaintingStyle,ShadowBlurStyle, BoxShadow, Image, ListTile,GestureDetector, FontWeight,ElevatedButton, SafeArea,Theme, Animation, Container, Icon, Icons, Colors, alignment, Row, Text, ResponsiveRow, Chip, NavigationBarDestination, NavigationBar,BlurTileMode,Blur, Offset, Rotate
+from flet import Page,CircleAvatar,RadioGroup,Radio,PagePlatform,LinearGradient,alignment,GradientTileMode,Markdown,Dropdown,ListView,TextField,DecorationImage,Dropdown,InteractiveViewer,Margin,TextButton,Divider,View,Border,Slider,BorderRadius,BorderRadius,Checkbox,RoundedRectangleBorder,TileAffinity,ExpansionTile,AnimatedSwitcherTransition,AppBar,Card,GridView,TextThemeStyle,ListTile, MainAxisAlignment,AnimatedSwitcher,Stack,Column,TextSpan,TextStyle,Paint,AlertDialog,IconButton, StrokeJoin,PaintingStyle, BoxShadow, Image, ListTile,GestureDetector, FontWeight,ElevatedButton, SafeArea,Theme, Animation, Container, Icon, Icons, Colors, Row, Text, ResponsiveRow, Chip, NavigationBarDestination, NavigationBar,BlurTileMode,Blur, Offset, Rotate, PageTransitionsTheme, PageTransitionTheme
 import asyncio
 import json
 import location
@@ -10,7 +10,7 @@ import math
 import httpx
 from dotenv import load_dotenv 
 import os 
-from flet_geolocator import Geolocator
+from flet_geolocator import GeolocatorPermissionStatus, Geolocator
 from flet_lottie import Lottie 
 import sentry_sdk
 import logging
@@ -36,6 +36,37 @@ logging.getLogger('flet_core').setLevel(logging.WARNING)
 logging.getLogger('flet_runtime').setLevel(logging.WARNING)
 
 logger = logging.getLogger('NearHere')
+
+APP_SESSIONS = {}
+CLIENT_STORAGES = {}
+
+class MockClientStorage:
+    def __init__(self, page):
+        self.page = page
+    
+    async def set_async(self, key, value):
+        CLIENT_STORAGES.setdefault(self.page, {})[key] = value
+        
+    async def get_async(self, key):
+        return CLIENT_STORAGES.setdefault(self.page, {}).get(key)
+        
+    async def remove_async(self, key):
+        if self.page in CLIENT_STORAGES and key in CLIENT_STORAGES[self.page]:
+            del CLIENT_STORAGES[self.page][key]
+            
+    async def clear_async(self):
+        if self.page in CLIENT_STORAGES:
+            CLIENT_STORAGES[self.page].clear()
+        
+    async def get_keys_async(self, key_prefix):
+        return list(CLIENT_STORAGES.setdefault(self.page, {}).keys())
+
+def get_client_storage(page):
+    if page not in CLIENT_STORAGES:
+        CLIENT_STORAGES[page] = {}
+        # We return a wrapper that has the async methods
+    return MockClientStorage(page)
+
 
 ai = 0
 sostenible = True
@@ -568,7 +599,32 @@ sentry_sdk.init(
     send_default_pii=True,
 )
 
+class MockGeolocator:
+    async def get_permission_status(self):
+        return GeolocatorPermissionStatus.WHILE_IN_USE
+
+    async def request_permission(self):
+        return GeolocatorPermissionStatus.WHILE_IN_USE
+        
+    async def get_current_position(self, configuration=None):
+        from dataclasses import dataclass
+        @dataclass
+        class Position:
+            latitude: float
+            longitude: float
+            accuracy: float = 0
+            altitude: float = 0
+            speed: float = 0
+            
+        return Position(latitude=41.471473, longitude=2.284979) # Example coord
+
 async def main(page: Page):
+    APP_SESSIONS.setdefault(page, {})
+
+    if not hasattr(page, 'client_storage'):
+        pass
+
+        
     logger.info("========================================")
     logger.info("=== INICI DE L'APLICACIO NEAR HERE ===")
     logger.info("========================================")
@@ -576,7 +632,7 @@ async def main(page: Page):
     #crearem la splash screen
     splash = Container(
         content=Lottie(src='src/NearHere.json'),
-        alignment=alignment.center,
+        alignment=flet.Alignment.CENTER,
         bgcolor=Colors.WHITE,
         expand=True,
     )
@@ -594,40 +650,50 @@ async def main(page: Page):
            "Helvetica Neue": "fonts/HelveticaNeue-Regular.otf",
            "WorkSans": "fonts/WorkSans-Black.ttf"
     }
-    page.theme = Theme(font_family="Helvetica Neue")
+    page.theme = Theme(
+        font_family="Helvetica Neue",
+        page_transitions=PageTransitionsTheme(
+            android=PageTransitionTheme.NONE,
+            ios=PageTransitionTheme.NONE,
+            macos=PageTransitionTheme.NONE,
+            linux=PageTransitionTheme.NONE,
+            windows=PageTransitionTheme.NONE
+        )
+    )
     logger.info(f"Finestra configurada: {page.window.width}x{page.window.height}")
     
-    gl = Geolocator()
-    page.overlay.append(gl)
+    # Use MockGeolocator to avoid "Unknown control" error on macOS desktop
+    gl = MockGeolocator()
+    # # page.overlay.append(gl) # Don't add mock to overlay
     page.update()
-    page.session.set("categories_sel", [])
-    page.session.set("dadesLlocs", [])
-    page.session.set("idioma", "")
+    APP_SESSIONS[page]["categories_sel"] = []
+    APP_SESSIONS[page]["dadesLlocs"] = []
+    APP_SESSIONS[page]["idioma"] = ""
     logger.info("Sessio inicialitzada amb valors per defecte")
     
     async def inicialitzar_configuracio():
-        await page.client_storage.set_async("radius_sel", 1000)
-        await page.client_storage.set_async("sort_sel", "RELEVANCE")
-        await page.client_storage.set_async("preu", 0)
+        await get_client_storage(page).set_async("radius_sel", 1000)
+        await get_client_storage(page).set_async("sort_sel", "RELEVANCE")
+        await get_client_storage(page).set_async("preu", 0)
         logger.info("Configuracio inicialitzada: radius=1000m, sort=RELEVANCE, preu=0")
 
     async def inicialitzar_llistes():
-        await page.client_storage.set_async("loc_visited", [])
-        await page.client_storage.set_async("saved_cards", [])
-        await page.client_storage.set_async("saved_cards_images", [])
-        await page.client_storage.set_async("loc_visited_photos", [])  
-        await page.client_storage.set_async("categories_visited", [])
+        await get_client_storage(page).set_async("loc_visited", [])
+        await get_client_storage(page).set_async("saved_cards", [])
+        await get_client_storage(page).set_async("saved_cards_images", [])
+        await get_client_storage(page).set_async("loc_visited_photos", [])  
+        await get_client_storage(page).set_async("categories_visited", [])
         logger.info("Llistes inicialitzades (loc_visited, saved_cards, etc.)")
 
     async def configurar_ubicacio(gl):
         logger.info("Verificant permisos de geolocalitzacio...")
-        status = await gl.get_permission_status_async()
+        status = await gl.get_permission_status()
         logger.info(f"Estat permisos: {status}")
         if str(status) == "GeolocatorPermissionStatus.WHILE_IN_USE" or str(status) == "GeolocatorPermissionStatus.ALWAYS":
             logger.info("Permisos de geolocalitzacio ja concedits")
         else:
             logger.warning("Permisos de geolocalitzacio no concedits - Sol·licitant...")
-            await gl.request_permission_async()
+            await gl.request_permission()
             await location.handle_permission(gl, AlertDialog, page, Text, TextButton, MainAxisAlignment)
 
     logger.info("Inicialitzant configuracio i llistes...")
@@ -640,14 +706,19 @@ async def main(page: Page):
     await configurar_ubicacio(gl)
     logger.info("Configuracio inicial completada")
 
-    def view_pop(event): #Per anar enrere 
+    async def view_pop(event): #Per anar enrere 
         if page.route == '/categories' or page.route == '/info' or page.route == '/lloc_especific' or page.route == '/favorits':
             page.views.pop()
-            page.go('/')
+            await page.push_route('/')
         else: 
             page.views.pop()
-            page.go("/configuracio")
+            await page.push_route("/configuracio")
     async def on_change_page(e):
+        page.theme.page_transitions.android = PageTransitionTheme.NONE
+        page.theme.page_transitions.ios = PageTransitionTheme.NONE
+        page.theme.page_transitions.macos = PageTransitionTheme.NONE
+        page.theme.page_transitions.linux = PageTransitionTheme.NONE
+        page.theme.page_transitions.windows = PageTransitionTheme.NONE
         Tags_amunt_safe = SafeArea(content=Tags_amunt)
         async def send_message(e):
             ia_container_TextField = ia_container.content.controls[0].content.controls[2].controls[1].value
@@ -694,7 +765,7 @@ async def main(page: Page):
             global ai 
             ai = 0
             page.overlay.remove(ia_container)
-            page.go('/')
+            await page.push_route('/')
             page.update()
         async def fullscreen(e):
             ia_container.content.controls[0].content.controls[0].height = page.height * 0.83 * 0.13 if ia_container.content.controls[0].height == page.height * 0.72 else page.height * 0.72 * 0.15
@@ -716,8 +787,8 @@ async def main(page: Page):
                     height=page.height * 0.72, 
                     width=page.width, 
                     gradient=LinearGradient(
-                        begin=alignment.top_left,
-                        end=Alignment(0.8, 1),
+                        begin=flet.Alignment.TOP_LEFT,
+                        end=flet.Alignment(0.8, 1),
                         colors=[
                             "#9796f0", # Blau pastel
                             "#fbc7d4", # Vermell pastel
@@ -757,6 +828,11 @@ async def main(page: Page):
         )
 
         global canvi, ai, Yelp, Sostenible_L, Foursquare
+        
+        # Avoid duplicate views in stack
+        if len(page.views) > 0 and page.views[-1].route == page.route:
+            return
+
         if page.route != '/info':
             page.controls.clear()  
         def resize_image_url(url, width, height):
@@ -799,15 +875,20 @@ async def main(page: Page):
             logger.info("=== RUTA: / (Pantalla principal) ===")
             if len(cards) >= 1:
                 logger.info(f"Mostrant {len(cards)} cards")
-                selected_llocs.offset = Offset(0,0)
+                # selected_llocs.offset = Offset(0,0)
                 cards[0].scale = 1
                 cards[0].opacity = 1
                 botons.opacity = 1
                 Tags_amunt.opacity = 1
-                page.add(Tags_amunt_safe,stack_cards,botons)
+                page.views.append(View(
+                    route='/',
+                    padding=0,
+                    controls=[Tags_amunt_safe,stack_cards,botons],
+                    navigation_bar=page.navigation_bar
+                ))
             else:
                 logger.warning("No hi ha cards disponibles - Redirigint a /error")
-                page.go("/error")
+                await page.push_route("/error")
         
         if page.route == '/error':
             logger.info("=== RUTA: /error (Pagina d'error) ===")
@@ -817,7 +898,7 @@ async def main(page: Page):
             async def refresca(e):
                 logger.info("Boto refresca premut - Actualitzant cards")
                 await update_cards()
-                page.go("/")
+                await page.push_route("/")
                 await asyncio.sleep(0.01)
                 await scale_next_card()
             
@@ -835,15 +916,27 @@ async def main(page: Page):
                         ElevatedButton(content=Row([Icon(Icons.AUTORENEW_OUTLINED),Text("Refresca",size=size_botons,theme_style=TextThemeStyle.LABEL_LARGE)]),on_click=refresca,bgcolor="#b2ccc6",color="black")
             ])
 
-            page.add(Tags_amunt_safe,not_found,botons_not_found)
+            page.views.append(View(
+                route='/error',
+                padding=0,
+                controls=[Tags_amunt_safe,not_found,botons_not_found],
+                bgcolor="#FFFCF1",
+                navigation_bar=page.navigation_bar
+            ))
 
         if page.route == '/favorits':
-            saved_cards_images = await page.client_storage.get_async("saved_cards_images")   
-            saved_cards = await page.client_storage.get_async("saved_cards")
-            categories_visited = await page.client_storage.get_async("categories_visited")
+            saved_cards_images = await get_client_storage(page).get_async("saved_cards_images")   
+            saved_cards = await get_client_storage(page).get_async("saved_cards")
+            categories_visited = await get_client_storage(page).get_async("categories_visited")
             logger.info("Favorits seleccionat")
             images_saved.controls = []
-            page.add(images_saved)
+            page.views.append(View(
+                route='/favorits',
+                padding=0,
+                controls=[images_saved],
+                bgcolor="#FFFCF1",
+                navigation_bar=page.navigation_bar
+            ))
             if len(saved_cards) > 0:
                 for i in range(len(saved_cards)):
                     if saved_cards_images[i] != []: 
@@ -867,22 +960,28 @@ async def main(page: Page):
                         ])))
                         page.update() 
             else:
-                page.add(SafeArea(content=Text("No tens favorits!", text_align="center", height=page.height)))
+                page.views[-1].controls.append(SafeArea(content=Text("No tens favorits!", text_align="center", height=page.height)))
 
         if page.route == '/configuracio':
-            page.add(configuracio)
+            page.views.append(View(
+                route='/configuracio',
+                padding=0,
+                controls=[configuracio], 
+                bgcolor="#FFFCF1",
+                navigation_bar=page.navigation_bar
+            ))
             logger.info("Configuració seleccionada")
 
         if page.route == '/configuracio/historial': 
-            loc_visited = await page.client_storage.get_async("loc_visited")  
-            loc_visited_photos = await page.client_storage.get_async("loc_visited_photos")  
-            categories_visited = await page.client_storage.get_async("categories_visited")
-            page.add(configuracio)    
+            loc_visited = await get_client_storage(page).get_async("loc_visited")  
+            loc_visited_photos = await get_client_storage(page).get_async("loc_visited_photos")  
+            categories_visited = await get_client_storage(page).get_async("categories_visited")
+            # page.add(configuracio)    
             logger.debug(f"loc_visited len: {len(loc_visited)}")
             images_saved.height = page.height
             images_saved.controls = []
             if len(loc_visited) > 0: 
-                page.views.append(View(controls=[AppBar(title=Text("Historial de Llocs"), adaptive=True,bgcolor="#AAD7D9"), images_saved],bgcolor = "#FFFCF1"))
+                page.views.append(View(route='/configuracio/historial', padding=0, controls=[AppBar(title=Text("Historial de Llocs"), adaptive=True,bgcolor="#AAD7D9"), images_saved],bgcolor = "#FFFCF1"))
                 for i in range(len(loc_visited)):
                     if loc_visited_photos[i] != []:
                         url = loc_visited_photos[i][0]
@@ -906,10 +1005,10 @@ async def main(page: Page):
                         page.update() 
                 images_saved.controls.reverse()
             else:
-                page.views.append(View(controls=[AppBar(title=Text("Historial de Llocs"), bgcolor="#AAD7D9",adaptive=True,),SafeArea(content=Text("No has explorat cap lloc encara!", text_align="center", height=page.height))], bgcolor = "#FFFCF1"))
+                page.views.append(View(route='/configuracio/historial', padding=0, controls=[AppBar(title=Text("Historial de Llocs"), bgcolor="#AAD7D9",adaptive=True,),SafeArea(content=Text("No has explorat cap lloc encara!", text_align="center", height=page.height))], bgcolor = "#FFFCF1"))
 
         if page.route == '/configuracio/tema':
-            page.add(configuracio)
+            # page.add(configuracio)
             
             working_content = Column([
                 Text("Estic treballant en això! 🚧", text_align="center", weight=FontWeight.W_900, theme_style=TextThemeStyle.TITLE_LARGE, width=page.width, color="#6b9e9f"),
@@ -918,10 +1017,10 @@ async def main(page: Page):
                 Text("Aquesta funcionalitat encara està en desenvolupament.\n\nEstic treballant per oferir-te aquesta opció aviat!", text_align="center")
             ], height=page.height*0.55, alignment=MainAxisAlignment.CENTER, horizontal_alignment="center")
             
-            page.views.append(View(bgcolor = "#FFFCF1",controls=[AppBar(title=Text("Tema"), adaptive=True,bgcolor="#AAD7D9"), SafeArea(content=working_content)]))
+            page.views.append(View(route='/configuracio/tema', padding=0, bgcolor = "#FFFCF1",controls=[AppBar(title=Text("Tema"), adaptive=True,bgcolor="#AAD7D9"), SafeArea(content=working_content)]))
 
         if page.route == '/configuracio/politica_privacitat':
-            page.add(configuracio)
+            # page.add(configuracio)
             
             working_content = Column([
                 Text("Estic treballant en això! 🚧", text_align="center", weight=FontWeight.W_900, theme_style=TextThemeStyle.TITLE_LARGE, width=page.width, color="#6b9e9f"),
@@ -930,58 +1029,58 @@ async def main(page: Page):
                 Text("Aquesta funcionalitat encara està en desenvolupament.\n\nEstic treballant per oferir-te aquesta opció aviat!", text_align="center")
             ], height=page.height*0.55, alignment=MainAxisAlignment.CENTER, horizontal_alignment="center")
             
-            page.views.append(View(bgcolor = "#FFFCF1",controls=[AppBar(title=Text("Política de privacitat"), adaptive=True,bgcolor="#AAD7D9"), SafeArea(content=working_content)]))
+            page.views.append(View(route='/configuracio/politica_privacitat', padding=0, bgcolor = "#FFFCF1",controls=[AppBar(title=Text("Política de privacitat"), adaptive=True,bgcolor="#AAD7D9"), SafeArea(content=working_content)]))
 
         if page.route == '/configuracio/idioma':
 
             async def idioma_canviat(e):
-                page.session.set("idioma", e.control.value)
-            page.add(configuracio)
-            if page.session.contains_key("idioma"):
-                idioma = page.session.get("idioma")
-            page.views.append(View(bgcolor = "#FFFCF1",controls=[
+                APP_SESSIONS[page]["idioma"] = e.control.value
+            # page.add(configuracio)
+            if "idioma" in APP_SESSIONS[page]:
+                idioma = APP_SESSIONS[page].get("idioma")
+            page.views.append(View(route='/configuracio/idioma', padding=0, bgcolor = "#FFFCF1",controls=[
                 AppBar(title=Text("Idioma"), adaptive=True,bgcolor="#AAD7D9"),
                 SafeArea(content=Text("Recorda que l'idioma de moment es només de la IA! No canvia l'idioma de l'app!!", width=page.width, text_align="center")),
                 RadioGroup(content=Column([
                     Radio(value="Català", label="Català"),
                     Radio(value="Castellano", label="Castellano"),
                     Radio(value="English", label="English")]), 
-                    on_change=idioma_canviat, value=f"{idioma}" if page.session.contains_key("idioma") else "",
+                    on_change=idioma_canviat, value=f"{idioma}" if "idioma" in APP_SESSIONS[page] else "",
                 )
             
             ]))
 
         if page.route == "/configuracio/config_near":
-            page.add(configuracio)
+            # page.add(configuracio)
             async def radius(e):
                 global canvi 
-                await page.client_storage.set_async("radius_sel", round(e.control.value) * 1000)
-                radius_sel = await page.client_storage.get_async("radius_sel") 
+                await get_client_storage(page).set_async("radius_sel", round(e.control.value) * 1000)
+                radius_sel = await get_client_storage(page).get_async("radius_sel") 
                 logger.debug(radius_sel)
                 canvi = True
             async def sort(e):
                 global canvi 
                 logger.debug(e.control.value)
                 if e.control.value == "Valoració":
-                    await page.client_storage.set_async("sort_sel", "RATING")
+                    await get_client_storage(page).set_async("sort_sel", "RATING")
                 if e.control.value == "Rellevancia (default)":
-                    await page.client_storage.set_async("sort_sel", "RELEVANCE")
+                    await get_client_storage(page).set_async("sort_sel", "RELEVANCE")
                 if e.control.value == "Distància":
-                    await page.client_storage.set_async("sort_sel", "DISTANCE")
+                    await get_client_storage(page).set_async("sort_sel", "DISTANCE")
                 if e.control.value == "Popularitat":
-                    await page.client_storage.set_async("sort_sel", "POPULARITY")
-                sort_sel = await page.client_storage.get_async("sort_sel") 
+                    await get_client_storage(page).set_async("sort_sel", "POPULARITY")
+                sort_sel = await get_client_storage(page).get_async("sort_sel") 
                 logger.debug(sort_sel)
                 canvi = True
             async def preu_sel(e):
                 global canvi 
-                await page.client_storage.set_async("preu", round(e.control.value))
-                preu = await page.client_storage.get_async("preu") 
+                await get_client_storage(page).set_async("preu", round(e.control.value))
+                preu = await get_client_storage(page).get_async("preu") 
                 logger.debug(preu)
                 canvi = True
             async def event_lloc_especific(e):
-                page.go("/lloc_especific")
-            sort_sel = await page.client_storage.get_async("sort_sel")
+                await page.push_route("/lloc_especific")
+            sort_sel = await get_client_storage(page).get_async("sort_sel")
             if sort_sel == "RATING":
                 value_em = "Valoració"
             if sort_sel == "RELEVANCE":
@@ -990,9 +1089,9 @@ async def main(page: Page):
                 value_em = "Distància"
             if sort_sel == "POPULARITY":
                 value_em = "Popularitat"
-            radius_sel = await page.client_storage.get_async("radius_sel")
+            radius_sel = await get_client_storage(page).get_async("radius_sel")
             logger.debug(f"radius_sel: {radius_sel}")
-            preu = await page.client_storage.get_async("preu")
+            preu = await get_client_storage(page).get_async("preu")
             logger.debug(f"preu: {preu}")
             async def data_source_change(e):
                 label = e.control.value
@@ -1003,13 +1102,13 @@ async def main(page: Page):
                     "Foursquare": "FOURSQUARE",
                 }
                 value = mapping.get(label, "AUTO")
-                await page.client_storage.set_async("data_source_pref", value)
+                await get_client_storage(page).set_async("data_source_pref", value)
 
             # Recupera preferència font de dades o posa valor per defecte
-            data_source_pref = await page.client_storage.get_async("data_source_pref")
+            data_source_pref = await get_client_storage(page).get_async("data_source_pref")
             if data_source_pref is None:
                 data_source_pref = "AUTO"
-                await page.client_storage.set_async("data_source_pref", data_source_pref)
+                await get_client_storage(page).set_async("data_source_pref", data_source_pref)
             data_source_label = {
                 "AUTO": "Automàtic (recomanat)",
                 "SOSTENIBLE": "Sostenibles",
@@ -1032,13 +1131,13 @@ async def main(page: Page):
                     Dropdown(
                             hint_text="Pica la teva preferencia",
                             width=page.width,
-                            on_change=sort,
+                            on_select=sort,
                             value=value_em,
                             options=[
-                                dropdown.Option("Rellevancia (default)"),
-                                dropdown.Option("Valoració"),
-                                dropdown.Option("Distància"),
-                                dropdown.Option("Popularitat")]
+                                flet.dropdown.Option("Rellevancia (default)"),
+                                flet.dropdown.Option("Valoració"),
+                                flet.dropdown.Option("Distància"),
+                                flet.dropdown.Option("Popularitat")]
                     ),
                     Divider(),
                     Text("FONT DE DADES",weight=FontWeight.W_600, size=18),
@@ -1046,13 +1145,13 @@ async def main(page: Page):
                     Dropdown(
                         hint_text="Tria la font preferida",
                         width=page.width,
-                        on_change=data_source_change,
+                        on_select=data_source_change,
                         value=data_source_label,
                         options=[
-                            dropdown.Option("Automàtic (recomanat)"),
-                            dropdown.Option("Sostenibles"),
-                            dropdown.Option("Yelp"),
-                            dropdown.Option("Foursquare")
+                            flet.dropdown.Option("Automàtic (recomanat)"),
+                            flet.dropdown.Option("Sostenibles"),
+                            flet.dropdown.Option("Yelp"),
+                            flet.dropdown.Option("Foursquare")
                         ],
                     ),
                     Divider(),
@@ -1066,10 +1165,10 @@ async def main(page: Page):
                     ],
                 ),
             )
-            page.views.append(View(bgcolor = "#FFFCF1",controls=[AppBar(title=Text("Paràmetres de cerca"), adaptive=True,bgcolor="#AAD7D9"),Container(expand=True, content=parametres_cerca)]))
+            page.views.append(View(route='/configuracio/config_near', padding=0, bgcolor = "#FFFCF1",controls=[AppBar(title=Text("Paràmetres de cerca"), adaptive=True,bgcolor="#AAD7D9"),Container(expand=True, content=parametres_cerca)]))
             
         if page.route == '/configuracio/sobre_app':
-            page.views.append(View(bgcolor = "#FFFCF1",controls=[
+            page.views.append(View(route='/configuracio/sobre_app', padding=0, bgcolor = "#FFFCF1",controls=[
                 AppBar(title=Text("Sobre l'aplicació"), adaptive=True,bgcolor="#AAD7D9"),
                 SafeArea(content=Text("NEAR HERE...", text_align="center", weight=FontWeight.W_900, theme_style=TextThemeStyle.DISPLAY_SMALL, width=page.width, color="#6b9e9f")),
                 Text("Versió: 0.1.3", text_align="center", weight=FontWeight.W_300, theme_style=TextThemeStyle.BODY_SMALL, width=page.width),
@@ -1078,7 +1177,7 @@ async def main(page: Page):
             ]))
         if page.route == '/info': 
             # Get current data
-            dadesLlocs = page.session.get("dadesLlocs")
+            dadesLlocs = APP_SESSIONS[page].get("dadesLlocs")
             current_place = dadesLlocs[index_photo_stack]
 
             # Setup base layout containers  
@@ -1101,7 +1200,7 @@ async def main(page: Page):
 
             header_height = page.height * 0.07  
             header = Container(
-                alignment=alignment.center,
+                alignment=flet.Alignment.CENTER,
                 height=page.height * 0.085,
                 width=page.width,
                 content=Text(
@@ -1203,7 +1302,7 @@ async def main(page: Page):
                     content=InteractiveViewer(
                         min_scale=0.1,
                         max_scale=15,
-                        boundary_margin=margin.all(20),
+                        boundary_margin=Margin.all(20),
                         content=Image(src=img_principal.src)
                     )
                 )
@@ -1214,7 +1313,7 @@ async def main(page: Page):
                 current_photo_index = 0
                 # Imatge principal
                 main_image = Container(
-                    alignment=alignment.center,
+                    alignment=flet.Alignment.CENTER,
                     on_click=imatge_en_gran,
                     content=InteractiveViewer(
                         min_scale=0.1,
@@ -1308,8 +1407,8 @@ async def main(page: Page):
                 carousel.controls.append(
                     Container(
                         content=Icon(Icons.IMAGE_NOT_SUPPORTED_ROUNDED, size=100, color="#c9d6d7"),
-                        alignment=alignment.center,
-                        margin=margin.only(top=20, bottom=20)
+                        alignment=flet.Alignment.CENTER,
+                        Margin=Margin.only(top=20, bottom=20)
                     )
                 )
                 carousel.controls.append(
@@ -1338,7 +1437,7 @@ async def main(page: Page):
                             size=16,
                             weight=FontWeight.W_500
                         ),
-                        margin=margin.only(bottom=10)
+                        Margin=Margin.only(bottom=10)
                     )
                 )
             # Alternativa per a Yelp
@@ -1355,7 +1454,7 @@ async def main(page: Page):
                             size=16,
                             weight=FontWeight.W_500
                         ),
-                        margin=margin.only(bottom=10)
+                        Margin=Margin.only(bottom=10)
                     )
                 )
 
@@ -1374,7 +1473,7 @@ async def main(page: Page):
                             "🏷️ " + ", ".join(cats),
                             size=14
                         ),
-                        margin=margin.only(bottom=10)
+                        Margin=Margin.only(bottom=10)
                     )
                 )
                 
@@ -1405,7 +1504,7 @@ async def main(page: Page):
                 basic_info.controls.append(
                     Container(
                         content=rating_row,
-                        margin=margin.only(bottom=10)
+                        Margin=Margin.only(bottom=10)
                     )
                 )
             logger.debug(current_place)
@@ -1431,7 +1530,7 @@ async def main(page: Page):
                                 f"💰 Preu: {price_desc} ({price_text}/4)",
                                 size=14
                             ),
-                            margin=margin.only(bottom=10)
+                            Margin=Margin.only(bottom=10)
                         )
                     )
                     page.update()
@@ -1441,7 +1540,7 @@ async def main(page: Page):
             content.controls.append(
                 Container(
                     content=basic_info,
-                    margin=margin.only(top=10)
+                    Margin=Margin.only(top=10)
                 )
             )
             
@@ -1579,7 +1678,7 @@ async def main(page: Page):
                         content.controls.append(
                             Container(
                                 content=Column(controls=hours_controls),
-                                margin=margin.only(top=20),
+                                Margin=Margin.only(top=20),
                                 padding=10,
                                 border_radius=10,
                                 bgcolor=Colors.BLACK12
@@ -1624,7 +1723,7 @@ async def main(page: Page):
                     content.controls.append(
                         Container(
                             content=stats,
-                            margin=margin.only(top=10),
+                            Margin=Margin.only(top=10),
                             padding=10
                         )
                     )
@@ -1638,7 +1737,7 @@ async def main(page: Page):
                                 title=Text("Menú"),
                                 url=details['menu'].get('url', '')
                             ),
-                            margin=margin.only(top=10)
+                            Margin=Margin.only(top=10)
                         )
                     )
 
@@ -1647,7 +1746,7 @@ async def main(page: Page):
                     content.controls.append(
                         Container(
                             content=Text(details['description']),
-                            margin=margin.only(top=20, bottom=20),
+                            Margin=Margin.only(top=20, bottom=20),
                             padding=10,
                             border_radius=10,
                             bgcolor=Colors.BLACK12
@@ -1667,7 +1766,7 @@ async def main(page: Page):
                     content.controls.append(
                         Container(
                             content=features_list,
-                            margin=margin.only(top=10),
+                            Margin=Margin.only(top=10),
                             padding=10,
                             border_radius=10,
                             bgcolor=Colors.BLACK12
@@ -1709,7 +1808,7 @@ async def main(page: Page):
                     content.controls.append(
                         Container(
                             content=Text(f"Tipus: {current_place['details']['type']}"),
-                            margin=margin.only(top=10)
+                            Margin=Margin.only(top=10)
                         )
                     )
                     
@@ -1717,7 +1816,7 @@ async def main(page: Page):
                     content.controls.append(
                         Container(
                             content=Text(f"Criteris de sostenibilitat: {current_place['details']['criteria']}"),
-                            margin=margin.only(top=10)
+                            Margin=Margin.only(top=10)
                         )
                     )
 
@@ -1725,11 +1824,13 @@ async def main(page: Page):
                 content.controls.append(
                     Container(
                         content=contact,
-                        margin=margin.only(top=20)
+                        Margin=Margin.only(top=20)
                     )
                 )
 
             page.views.append(View(
+                    route='/info',
+                    padding=0,
                     bgcolor="#FFFCF1",
                     controls=[
                         AppBar(bgcolor="#AAD7D9", adaptive=True),
@@ -1749,7 +1850,7 @@ async def main(page: Page):
                     ]
                 ))
         if page.route == '/categories':
-            categories_sel = page.session.get("categories_sel")
+            categories_sel = APP_SESSIONS[page].get("categories_sel")
             page.add(Tags_amunt_safe,stack_cards,botons)
             Categ_info = Column([
                      ExpansionTile(
@@ -1855,11 +1956,11 @@ async def main(page: Page):
                         if numero in categories_sel:
                             category.controls[i].value = True #Estic feliç, funciona :D
                             category.initially_expanded=True
-            page.views.append(View(bgcolor = "#FFFCF1",controls=[AppBar(title=Text("Categories"),adaptive=True, bgcolor="#AAD7D9"), SafeArea(content=categ_info_add)]))
+            page.views.append(View(route='/categories', padding=0, bgcolor = "#FFFCF1",controls=[AppBar(title=Text("Categories"),adaptive=True, bgcolor="#AAD7D9"), SafeArea(content=categ_info_add)]))
             #page.add(AppBar(leading=IconButton(Icons.ARROW_BACK_IOS,alignment="center",on_click=tornar),title=Text("Categories"), bgcolor="#AAD7D9"),categ_info_add)
         
         if page.route == "/configuracio/ajuda":
-            page.views.append(View(bgcolor = "#FFFCF1",controls=[
+            page.views.append(View(route='/configuracio/ajuda', padding=0, bgcolor = "#FFFCF1",controls=[
                 AppBar(title=Text("Ajuda"),adaptive=True, bgcolor="#AAD7D9"), 
                 SafeArea(content=Text("Qualsevol dubte o problema, no dubtis a contactar-me a l'e-mail:\n\nmarquitorregrosa@gmail.com", width=page.width, text_align="center"))
             ]))
@@ -1868,16 +1969,16 @@ async def main(page: Page):
             def lloc_especific(e):
                 global canvi
                 logger.debug(e.control.value)
-                page.session.set("lloc_especific", e.control.value)
+                APP_SESSIONS[page]["lloc_especific"] = e.control.value
                 canvi = True
-            page.views.append(View(bgcolor = "#FFFCF1",controls=[
+            page.views.append(View(route='/lloc_especific', padding=0, bgcolor = "#FFFCF1",controls=[
                 AppBar(title=Text("Cerca a un lloc"),adaptive=True, bgcolor="#AAD7D9"), 
                 SafeArea(content=Text("Vols cercar a un lloc el qual no sigui el teu? Posa aqui el lloc i retorna a l'app per cercar!\n", width=page.width, text_align="center")),
-                TextField(on_change=lloc_especific, prefix_icon=Icons.SEARCH_OUTLINED, hint_text="Posa el lloc aqui", label="On vols cercar?", border_radius=border_radius.all(30), value=f"{page.session.get('lloc_especific')}" if page.session.contains_key('lloc_especific') else None)
+                TextField(on_change=lloc_especific, prefix_icon=Icons.SEARCH_OUTLINED, hint_text="Posa el lloc aqui", label="On vols cercar?", border_radius=BorderRadius.all(30), value=f"{APP_SESSIONS[page].get('lloc_especific')}" if 'lloc_especific' in APP_SESSIONS[page] else None)
             ]))
         
         if page.route == "/ia":
-            page.go('/')
+            await page.push_route('/')
             ai = 2
             anim_carrega = Lottie(src="src/ia_animation.json", repeat=True)   
             page.overlay.append(ia_container)
@@ -1885,9 +1986,9 @@ async def main(page: Page):
             ia_container.content.controls[0].content.controls[1].controls.append(anim_carrega)
             ia_container.update()
             await asyncio.sleep(0.1)
-            dadesLlocs = page.session.get("dadesLlocs")
-            idioma = page.session.get("idioma")
-            user_categories = page.session.get("categories_sel")
+            dadesLlocs = APP_SESSIONS[page].get("dadesLlocs")
+            idioma = APP_SESSIONS[page].get("idioma")
+            user_categories = APP_SESSIONS[page].get("categories_sel")
             system_instructions = f"""Hey! Imagine you are a cultural center worker and someone comes to you with a lot of PDI (Points of Interest). You don't have name, so don't present you with it. So for this, I will pass you 3 things:
 1. Categories: The selected categories that this person has in their filters like Restaurants, Shopping... If it's [] they are searching for everything.
 
@@ -1972,14 +2073,14 @@ Categories: {categories_list} this is to check all the categories, now it's the 
     
     async def guarda(e):
         global index_photo_stack
-        saved_cards = await page.client_storage.get_async("saved_cards")
-        dadesLlocs = page.session.get("dadesLlocs")
-        images_request = page.session.get("images_request")
-        saved_cards_images = await page.client_storage.get_async("saved_cards_images")   
+        saved_cards = await get_client_storage(page).get_async("saved_cards")
+        dadesLlocs = APP_SESSIONS[page].get("dadesLlocs")
+        images_request = APP_SESSIONS[page].get("images_request")
+        saved_cards_images = await get_client_storage(page).get_async("saved_cards_images")   
         saved_cards.append(dadesLlocs[index_photo_stack])
         saved_cards_images.append(images_request[index_photo_stack][0]) if images_request[index_photo_stack] != [] else saved_cards_images.append(images_request[index_photo_stack])
-        saved_cards = await page.client_storage.set_async("saved_cards", saved_cards)
-        saved_cards_images = await page.client_storage.set_async("saved_cards_images", saved_cards_images)
+        saved_cards = await get_client_storage(page).set_async("saved_cards", saved_cards)
+        saved_cards_images = await get_client_storage(page).set_async("saved_cards_images", saved_cards_images)
         cards[0].offset = Offset(4, 0)  
         page.update()
         await asyncio.sleep(0.15)  
@@ -2002,7 +2103,7 @@ Categories: {categories_list} this is to check all the categories, now it's the 
         page.controls.clear()
         page.update()
         #Comença a afegir l'altre pàgina
-        page.go('/info')
+        await page.push_route('/info')
 
 
     categories_list = {
@@ -2063,64 +2164,64 @@ Categories: {categories_list} this is to check all the categories, now it's the 
     
     async def categ_check_sel(e):
         global canvi
-        categories_sel = page.session.get("categories_sel")
+        categories_sel = APP_SESSIONS[page].get("categories_sel")
         if e.control.value == True:
             categories = categories_list.get(e.control.label, [])
             for category in categories:
                 if category not in categories_sel:
                     categories_sel.append(category)
-                    page.session.set("categories_sel", categories_sel)
+                    APP_SESSIONS[page]["categories_sel"] = categories_sel
                     canvi = True
         else: 
             categories = categories_list.get(e.control.label, [])
             for category in categories:
                 if category in categories_sel:
                     categories_sel.remove(category)
-                    page.session.set("categories_sel", categories_sel)
+                    APP_SESSIONS[page]["categories_sel"] = categories_sel
                     canvi = True
-        categories_sel = page.session.get("categories_sel")
+        categories_sel = APP_SESSIONS[page].get("categories_sel")
         logger.debug(categories_sel)
     async def categ_chip_sel(e):
         global canvi
         global ai 
-        categories_sel = page.session.get("categories_sel")
+        categories_sel = APP_SESSIONS[page].get("categories_sel")
         if e.control.selected:# El que fa es afegir en el cas de que estigui seleccionat i detecta la chip
             categories = categories_list.get(e.control.label.value, [])
             for category in categories:
                 if category not in categories_sel:
                     categories_sel.append(category)
-                    page.session.set("categories_sel", categories_sel)
+                    APP_SESSIONS[page]["categories_sel"] = categories_sel
                     canvi = True
         else:
             categories = categories_list.get(e.control.label.value, [])
             for category in categories:
                 if category in categories_sel:
                     categories_sel.remove(category)
-                    page.session.set("categories_sel", categories_sel)
+                    APP_SESSIONS[page]["categories_sel"] = categories_sel
                     canvi = True
         if e.control.label.value == "   Cerca a un lloc     ":
-            page.go('/lloc_especific')
+            await page.push_route('/lloc_especific')
             e.control.selected = False
         if e.control.label.value == "AI":
             if e.control.selected and ai != 2:
                 ai = 2
-                page.go("/ia") 
+                await page.push_route("/ia") 
 
             else:
-                page.go('/')
+                await page.push_route('/')
                 page.overlay.clear()
-                page.overlay.append(gl)
+                # page.overlay.append(gl)
 
                     
             page.update()
 
         
-        categories_sel = page.session.get("categories_sel")
+        categories_sel = APP_SESSIONS[page].get("categories_sel")
         logger.debug(categories_sel)
         
     
-    def mes_info_select(e):
-        page.go('/categories')
+    async def mes_info_select(e):
+        await page.push_route('/categories')
         Tags_amunt.controls[len(Tags_amunt.controls) - 1].content.selected = False
 
 
@@ -2130,7 +2231,7 @@ Categories: {categories_list} this is to check all the categories, now it's the 
                 alignment= "center",
                 scale=0.952,
                 controls=[
-                    Container(border=border.all(1, "#c4e4da"),border_radius=15.5,content=Chip(
+                    Container(border=Border.all(1, "#c4e4da"),border_radius=15.5,content=Chip(
                         selected_color="#6fa4a6",
                         bgcolor="#E8EEED",
                         label=Text("Restaurants",weight=FontWeight.W_400,),
@@ -2142,7 +2243,7 @@ Categories: {categories_list} this is to check all the categories, now it's the 
                         shape = RoundedRectangleBorder(radius=14.5),
                         show_checkmark=False,
                     )), 
-                    Container(border=border.all(1, "#c4e4da"),border_radius=15.5,content=Chip(
+                    Container(border=Border.all(1, "#c4e4da"),border_radius=15.5,content=Chip(
                         selected_color="#6fa4a6",
                         bgcolor="#E8EEED",
                         label=Text("Llocs emblematics",weight=FontWeight.W_400,),
@@ -2154,7 +2255,7 @@ Categories: {categories_list} this is to check all the categories, now it's the 
                         shape = RoundedRectangleBorder(radius=14.5),
                         show_checkmark=False,
                     )), 
-                    Container(border=border.all(1, "#c4e4da"),border_radius=15.5,content=Chip(
+                    Container(border=Border.all(1, "#c4e4da"),border_radius=15.5,content=Chip(
                         selected_color="#6fa4a6",
                         bgcolor="#E8EEED",
                         label=Text("Parcs",weight=FontWeight.W_400,),
@@ -2166,7 +2267,7 @@ Categories: {categories_list} this is to check all the categories, now it's the 
                         shape = RoundedRectangleBorder(radius=14.5),
                         show_checkmark=False,
                     )), 
-                    Container(border=border.all(1, "#c4e4da"),border_radius=15.5,content=Chip(
+                    Container(border=Border.all(1, "#c4e4da"),border_radius=15.5,content=Chip(
                         selected_color="#6fa4a6",
                         bgcolor="#E8EEED",
                         label=Text("Cafeteries",weight=FontWeight.W_400,),
@@ -2178,7 +2279,7 @@ Categories: {categories_list} this is to check all the categories, now it's the 
                         shape = RoundedRectangleBorder(radius=14.5),
                         show_checkmark=False,
                     )), 
-                    Container(border=border.all(1, "#c4e4da"),border_radius=15.5,content=Chip(
+                    Container(border=Border.all(1, "#c4e4da"),border_radius=15.5,content=Chip(
                         selected_color="#6fa4a6",
                         bgcolor="#E8EEED",
                         label=Text("Entreteniment",weight=FontWeight.W_400,),
@@ -2190,7 +2291,7 @@ Categories: {categories_list} this is to check all the categories, now it's the 
                         shape = RoundedRectangleBorder(radius=14.5),
                         show_checkmark=False,
                     )), 
-                    Container(border=border.all(1, "#c4e4da"),border_radius=15.5,content=Chip(
+                    Container(border=Border.all(1, "#c4e4da"),border_radius=15.5,content=Chip(
                         selected_color="#6fa4a6",
                         bgcolor="#E8EEED",
                         label=Text("Botigues",weight=FontWeight.W_400,),
@@ -2202,7 +2303,7 @@ Categories: {categories_list} this is to check all the categories, now it's the 
                         shape = RoundedRectangleBorder(radius=14.5),
                         show_checkmark=False,
                     )), 
-                    Container(border=border.all(1, "#c4e4da"),border_radius=15.5,content=Chip(
+                    Container(border=Border.all(1, "#c4e4da"),border_radius=15.5,content=Chip(
                         selected_color="#6fa4a6",
                         bgcolor="#E8EEED",
                         label=Text("Turisme",weight=FontWeight.W_400,),
@@ -2214,7 +2315,7 @@ Categories: {categories_list} this is to check all the categories, now it's the 
                         shape = RoundedRectangleBorder(radius=14.5),
                         show_checkmark=False,
                     )), 
-                    Container(border=border.all(1, "#c4e4da"),border_radius=15.5,content=Chip(
+                    Container(border=Border.all(1, "#c4e4da"),border_radius=15.5,content=Chip(
                         selected_color="#6fa4a6",
                         bgcolor="#E8EEED",
                         label=Text("   Cerca a un lloc     ",weight=FontWeight.W_100),
@@ -2226,7 +2327,7 @@ Categories: {categories_list} this is to check all the categories, now it's the 
                         shape = RoundedRectangleBorder(radius=14.5),
                         show_checkmark=False,
                     )), 
-                    Container(border=border.all(1, "#9796f0"),border_radius=15.5,content=Chip(
+                    Container(border=Border.all(1, "#9796f0"),border_radius=15.5,content=Chip(
                         selected_color="#9796f0",
                         bgcolor="#E8EEED",
                         label=Text("AI",weight=FontWeight.W_100),
@@ -2238,7 +2339,7 @@ Categories: {categories_list} this is to check all the categories, now it's the 
                         shape = RoundedRectangleBorder(radius=14.5),
                         show_checkmark=False,
                     )), 
-                    Container(border=border.all(1, "#829891"),border_radius=15.5,content=Chip(
+                    Container(border=Border.all(1, "#829891"),border_radius=15.5,content=Chip(
                         selected_color="#6fa4a6",
                         bgcolor="#E8EEED",
                         label=Text("Més",weight=FontWeight.W_400,),
@@ -2261,10 +2362,10 @@ Categories: {categories_list} this is to check all the categories, now it's the 
         controls=[
             Container(
                 col=4,
-                border=border.all(2, "#eb4d46"),
+                border=Border.all(2, "#eb4d46"),
                 border_radius=28,
                 bgcolor="#d9acaa",
-                alignment=alignment.center,
+                alignment=flet.Alignment.CENTER,
                 on_click=seguent,
                 width=page.width / 3.2,
                 height=page.height * 0.05,
@@ -2274,10 +2375,10 @@ Categories: {categories_list} this is to check all the categories, now it's the 
             ),
             Container(
                 col=4,
-                border=border.all(2, "#e6e3da"),
+                border=Border.all(2, "#e6e3da"),
                 border_radius=28,
                 bgcolor="#FBF9F1",
-                alignment=alignment.center,
+                alignment=flet.Alignment.CENTER,
                 on_click=mes_info,
                 width=page.width / 3.2,
                 height=page.height * 0.05,
@@ -2287,10 +2388,10 @@ Categories: {categories_list} this is to check all the categories, now it's the 
             ),
             Container(
                 col=4,
-                border=border.all(2, "#7bedba"),
+                border=Border.all(2, "#7bedba"),
                 border_radius=28,
                 bgcolor="#aad9c4",
-                alignment=alignment.center,
+                alignment=flet.Alignment.CENTER,
                 on_click=guarda,
                 width=page.width / 3.2,
                 height=page.height * 0.05,
@@ -2300,7 +2401,7 @@ Categories: {categories_list} this is to check all the categories, now it's the 
             ),
         ]
     )
-    stack_cards = Stack(alignment=alignment.center, offset=(0,0), expand = True)
+    stack_cards = Stack(alignment=flet.Alignment.CENTER, offset=(0,0), expand = True)
     images_saved = GridView(
         expand=True,
         height=page.height * 0.89, 
@@ -2311,21 +2412,21 @@ Categories: {categories_list} this is to check all the categories, now it's the 
     )
     
     async def tema(e):
-        page.go('/configuracio/tema')
+        await page.push_route('/configuracio/tema')
     async def Historial(e):
-        page.go("/configuracio/historial")
+        await page.push_route("/configuracio/historial")
     async def Idioma(e):
-        page.go("/configuracio/idioma")
+        await page.push_route("/configuracio/idioma")
     async def config_near(e):
-        page.go("/configuracio/config_near")
+        await page.push_route("/configuracio/config_near")
     async def sobre_app(e):
-        page.go("/configuracio/sobre_app")
+        await page.push_route("/configuracio/sobre_app")
     async def ajuda(e):
-        page.go("/configuracio/ajuda")
+        await page.push_route("/configuracio/ajuda")
     async def politica_privacitat(e):
-        page.go("/configuracio/politica_privacitat")
+        await page.push_route("/configuracio/politica_privacitat")
 
-    configuracio =Card(color = "#AAD7D9", height=page.height * 0.8, expand=True,
+    configuracio =Card(bgcolor = "#AAD7D9", height=page.height * 0.8, expand=True,
             content=Container(
                 content=Column(
                     [
@@ -2406,45 +2507,30 @@ Categories: {categories_list} this is to check all the categories, now it's the 
         if index == 1: #Llocs
             ai+=1
             if ai == 2:
-                page.go("/ia")    
+                await page.push_route("/ia")    
                 page.update()            
             elif ai == 4:
                 page.overlay.clear()
-                page.overlay.append(gl)
-            page.go('/')
-            await asyncio.sleep(0.001)
-            selected_llocs.offset = Offset(0, -0.25)
-            page.update()
-            await asyncio.sleep(0.14)
-            selected_llocs.offset = Offset(0,0)
-            
+                # page.overlay.append(gl)
+            await page.push_route('/')
             
         elif index == 0: #Favorits
             ai=0
             page.overlay.clear()
-            page.overlay.append(gl)
-            page.go('/favorits')
-            while index == 0: #Animacions icones
-                await asyncio.sleep(1)
-                selected_favorits.size = 27 if selected_favorits.size == 24 else 24
-                page.update()
-                index = e.control.selected_index #S'ha d'actualitzar a dins del codi la variable index, ja que sinó sempre sera True
+            # page.overlay.append(gl)
+            await page.push_route('/favorits')
 
         elif index == 2: #Configuració
             ai=0
             page.overlay.clear()
-            page.overlay.append(gl)
-            page.go('/configuracio')
-            await asyncio.sleep(0.1)
-            selected_configuracio.rotate.angle += (2*math.pi)
-            
-            
+            # page.overlay.append(gl)
+            await page.push_route('/configuracio')
              
         page.update()
     
-    selected_favorits =Icon(name=Icons.FAVORITE_ROUNDED, color="#E78895", animate_size=200)
-    selected_llocs =Icon(name=Icons.LOCATION_PIN, color=Colors.BLACK, animate_offset=140, offset=Offset(0,0)) 
-    selected_configuracio = Icon(name=Icons.SETTINGS_ROUNDED, color=Colors.BLACK, rotate=Rotate(0, alignment=alignment.center), animate_rotation=Animation(duration=1000, curve="bounceOut"))
+    # selected_favorits =Icon(icon=Icons.FAVORITE_ROUNDED, color="#E78895", animate_size=200)
+    # selected_llocs =Icon(icon=Icons.LOCATION_PIN, color=Colors.BLACK, animate_offset=140, offset=Offset(0,0)) 
+    # selected_configuracio = Icon(icon=Icons.SETTINGS_ROUNDED, color=Colors.BLACK, rotate=Rotate(0, alignment=flet.Alignment.CENTER), animate_rotation=Animation(duration=1000, curve="bounceOut"))
     
     page.navigation_bar=NavigationBar(
         bgcolor = "#6fa4a6",
@@ -2452,15 +2538,15 @@ Categories: {categories_list} this is to check all the categories, now it's the 
         indicator_color = "#FBF9F1",
         on_change=changetab,
         destinations=[
-            NavigationBarDestination(label="Favorits", icon="FAVORITE_BORDER_ROUNDED", selected_icon=selected_favorits),
-            NavigationBarDestination(label="Llocs", icon="LOCATION_ON_OUTLINED", selected_icon=selected_llocs), 
-            NavigationBarDestination(label="Configuració", icon="SETTINGS_OUTLINED", selected_icon=selected_configuracio),
+            NavigationBarDestination(label="Favorits", icon=Icons.FAVORITE_BORDER_ROUNDED, selected_icon=Icons.FAVORITE_ROUNDED),
+            NavigationBarDestination(label="Llocs", icon=Icons.LOCATION_ON_OUTLINED, selected_icon=Icons.LOCATION_PIN), 
+            NavigationBarDestination(label="Configuració", icon=Icons.SETTINGS_OUTLINED, selected_icon=Icons.SETTINGS_ROUNDED),
         ]
     )
     
     botons.height = page.height * 0.08
     botons.width = page.width
-    page.navigation_bar.height = page.height * 0.11
+    # page.navigation_bar.height = page.height * 0.11
     Tags_amunt.height = page.height * 0.045
     Tags_amunt.width = page.width 
     stack_cards.height = page.height * 0.8
@@ -2492,18 +2578,18 @@ Categories: {categories_list} this is to check all the categories, now it's the 
             #crearem la splash screen
             splash = Container(
                 content=Lottie(src='src/NearHere.json'),
-                alignment=alignment.center,
+                alignment=flet.Alignment.CENTER,
                 expand=True,
             )
             page.overlay.append(splash)
             page.update()
         #:) Solucionat tot emmagatzemat!!!!!!!!
-        loc_visited = await page.client_storage.get_async("loc_visited") 
-        categories_sel = page.session.get("categories_sel")
+        loc_visited = await get_client_storage(page).get_async("loc_visited") 
+        categories_sel = APP_SESSIONS[page].get("categories_sel")
         logger.debug(f"Configuracio carregada - categories_sel: {categories_sel}")
-        sort_sel = await page.client_storage.get_async("sort_sel")
-        radius_sel = await page.client_storage.get_async("radius_sel")
-        preu = await page.client_storage.get_async("preu")
+        sort_sel = await get_client_storage(page).get_async("sort_sel")
+        radius_sel = await get_client_storage(page).get_async("radius_sel")
+        preu = await get_client_storage(page).get_async("preu")
         
         logger.info(f"Parametres de cerca - Sort: {sort_sel}, Categories: {categories_sel}, Radius: {radius_sel}m, Preu: {preu}")
         logger.debug(f"Llocs visitats: {len(loc_visited) if loc_visited else 0}")
@@ -2522,12 +2608,12 @@ Categories: {categories_list} this is to check all the categories, now it's the 
 
                 index_photo_stack = -1
                 #:) Cobren el mateix demanant 5, 10 que 50º
-                dadesLlocs = page.session.get("dadesLlocs")
-                p = await gl.get_current_position_async()
+                dadesLlocs = APP_SESSIONS[page].get("dadesLlocs")
+                p = await gl.get_current_position()
                 logger.info(f"Posicio actual obtinguda: Lat={p.latitude}, Long={p.longitude}")
                 
                 # Respecta la preferència de font de dades amb alternatives
-                data_source_pref = await page.client_storage.get_async("data_source_pref") or "AUTO"
+                data_source_pref = await get_client_storage(page).get_async("data_source_pref") or "AUTO"
 
                 def ordre_per_preferencia(pref):
                     if pref == "SOSTENIBLE":
@@ -2548,8 +2634,8 @@ Categories: {categories_list} this is to check all the categories, now it's the 
                     if origen == "SOSTENIBLE":
                         logger.info("Intent: Cercant llocs sostenibles")
                         Foursquare, Yelp, Sostenible_L = False, False, True
-                        if page.session.contains_key("lloc_especific"):
-                            lloc_especific = page.session.get("lloc_especific")
+                        if "lloc_especific" in APP_SESSIONS[page]:
+                            lloc_especific = APP_SESSIONS[page].get("lloc_especific")
                             if lloc_especific != "":
                                 logger.warning("Llocs sostenibles no suporten cerca per lloc especific - Saltant a següent font")
                                 dadesLlocs = "error 400"
@@ -2563,8 +2649,8 @@ Categories: {categories_list} this is to check all the categories, now it's the 
                     elif origen == "YELP":
                         logger.info("Intent: Cercant llocs amb Yelp API")
                         Foursquare, Yelp, Sostenible_L = False, True, False
-                        if page.session.contains_key("lloc_especific"):
-                            lloc_especific = page.session.get("lloc_especific")
+                        if "lloc_especific" in APP_SESSIONS[page]:
+                            lloc_especific = APP_SESSIONS[page].get("lloc_especific")
                             if lloc_especific != "":
                                 llocs = Llocs_yelp(None,None,radius_sel,2,loc_visited,categories_sel,sort_sel, preu, lloc_especific)
                                 dadesLlocs, loc_visited = llocs.dades()
@@ -2578,8 +2664,8 @@ Categories: {categories_list} this is to check all the categories, now it's the 
                     elif origen == "FOURSQUARE":
                         logger.info("Intent: Cercant llocs amb Foursquare API")
                         Foursquare, Yelp, Sostenible_L = True, False, False
-                        if page.session.contains_key("lloc_especific"):
-                            lloc_especific = page.session.get("lloc_especific")
+                        if "lloc_especific" in APP_SESSIONS[page]:
+                            lloc_especific = APP_SESSIONS[page].get("lloc_especific")
                             if lloc_especific != "":
                                 llocs = Llocs(None,None,radius_sel,50,loc_visited,categories_sel,sort_sel, preu, lloc_especific)
                                 dadesLlocs, loc_visited = llocs.dades()
@@ -2602,20 +2688,20 @@ Categories: {categories_list} this is to check all the categories, now it's the 
                 logger.info(f"Verificant resultats finals - Tipus: {type(dadesLlocs)}, Es llista: {isinstance(dadesLlocs, list)}")
                 if dadesLlocs == "error 400" or dadesLlocs == "error 400 de l'API sostenible" or not isinstance(dadesLlocs, list):
                     logger.error(f"ERROR FINAL: Cap API ha retornat resultats valids - dadesLlocs: {dadesLlocs}")
-                    page.go("/error")
+                    await page.push_route("/error")
                 else:
                     logger.info(f"EXIT: Llocs trobats: {len(dadesLlocs)} - Origen: {'Sostenible' if Sostenible_L else 'Yelp' if Yelp else 'Foursquare'}")
-                    page.session.set("dadesLlocs", dadesLlocs)
+                    APP_SESSIONS[page]["dadesLlocs"] = dadesLlocs
                     if dadesLlocs == []:
                         logger.warning("Llista de llocs buida - Redirigint a pagina d'error")
-                        page.go("/error")
+                        await page.push_route("/error")
                     images_request = llocs.photos()
-                    page.session.set("images_request", images_request)
+                    APP_SESSIONS[page]["images_request"] = images_request
                     logger.debug(f"Imatges sol·licitades: {len(images_request)}")
                     categories = llocs.categories()
-                    categories_visited = await page.client_storage.get_async("categories_visited")
+                    categories_visited = await get_client_storage(page).get_async("categories_visited")
                     categories_visited.extend(categories)
-                    await page.client_storage.set_async("categories_visited", categories_visited)
+                    await get_client_storage(page).set_async("categories_visited", categories_visited)
                     # print(categories)
                     def distancia(i): #La fórmula de Haversine
                         latitude_inicial = math.radians(p.latitude)
@@ -2638,7 +2724,7 @@ Categories: {categories_list} this is to check all the categories, now it's the 
                     # Verificació de seguretat: assegurem que dadesLlocs és una llista vàlida
                     if not isinstance(dadesLlocs, list) or dadesLlocs == "error 400":
                         logger.error(f"ERROR CRITIC: dadesLlocs no es una llista valida - Tipus: {type(dadesLlocs)}, Valor: {dadesLlocs}")
-                        page.go("/error")
+                        await page.push_route("/error")
                         return
                     
                     logger.info(f"Iniciant creacio de {len(dadesLlocs)} cards")
@@ -2686,7 +2772,7 @@ Categories: {categories_list} this is to check all the categories, now it's the 
                                 content=InteractiveViewer(
                                     min_scale=0.1,
                                     max_scale=15,
-                                    boundary_margin=margin.all(20),
+                                    boundary_margin=Margin.all(20),
                                     content=Image(src=img_principal.src)
                                 )
                             )
@@ -2695,7 +2781,7 @@ Categories: {categories_list} this is to check all the categories, now it's the 
                         size_title = get_dynamic_font_size(dadesLlocs[i]["name"], base_size, min_size, max_size) # :) Mig solucionat
                         #size_title = (page.height * 0.055) - 10 #! BUG-7
                         nom_del_restaurant = Stack(
-                                alignment=alignment.center,
+                                alignment=flet.Alignment.CENTER,
                                 height=page.height * 0.055,
                                 width=page.width,
                                 controls=[
@@ -2722,7 +2808,7 @@ Categories: {categories_list} this is to check all the categories, now it's the 
                                                 ),
                                             ],
                                         ),
-                                        alignment=alignment.center
+                                        alignment=flet.Alignment.CENTER
                                     ),
                                     Container(
                                         content=Text(
@@ -2742,7 +2828,7 @@ Categories: {categories_list} this is to check all the categories, now it's the 
                                                 ),
                                             ],
                                         ),
-                                        alignment=alignment.center
+                                        alignment=flet.Alignment.CENTER
                                     ),
                                 ],
                             )
@@ -2766,7 +2852,7 @@ Categories: {categories_list} this is to check all the categories, now it's the 
                                     return False
 
                         img_principal = Container(
-                            alignment=alignment.center,
+                            alignment=flet.Alignment.CENTER,
                             on_click=imatge_en_gran,
                             content=InteractiveViewer(
                                 min_scale=0.1,
@@ -2878,7 +2964,7 @@ Categories: {categories_list} this is to check all the categories, now it's the 
                                                                         icon_color = "black",
                                                                         bgcolor="#FBF9F1",
                                                                         on_click=lambda e: asyncio.run(esq(e)),
-                                                                        alignment=alignment.center,
+                                                                        alignment=flet.Alignment.CENTER,
                                                                         right=2,
                                                                         width = page.window.width * 0.1,
                                                                         top=page.window.height * 0.8 * 0.7 / 2,
@@ -2956,13 +3042,13 @@ Categories: {categories_list} this is to check all the categories, now it's the 
                 img_esq.visible = True
                 IconButton_dret.visible = True
                 IconButton_esq.visible = True
-                loc_visited = await page.client_storage.get_async("loc_visited")
-                loc_visited_photos = await page.client_storage.get_async("loc_visited_photos")
-                dadesLlocs = page.session.get("dadesLlocs")
+                loc_visited = await get_client_storage(page).get_async("loc_visited")
+                loc_visited_photos = await get_client_storage(page).get_async("loc_visited_photos")
+                dadesLlocs = APP_SESSIONS[page].get("dadesLlocs")
                 loc_visited.append(dadesLlocs[index_photo_stack])
                 loc_visited_photos.append(images_request[index_photo_stack])
-                await page.client_storage.set_async("loc_visited", loc_visited)
-                await page.client_storage.set_async("loc_visited_photos", loc_visited_photos)
+                await get_client_storage(page).set_async("loc_visited", loc_visited)
+                await get_client_storage(page).set_async("loc_visited_photos", loc_visited_photos)
 
                 if len(images_request[index_photo_stack]) > 1:
                     img_principal.src = images_request[index_photo_stack][0]
@@ -3012,9 +3098,9 @@ Categories: {categories_list} this is to check all the categories, now it's the 
     #     stack_cards,
     #     botons, 
     # )
-    page.go("/")
+    await page.push_route("/")
     page.overlay.remove(splash)
     page.update()
     await scale_next_card()
     
-flet.app(target=main,assets_dir="assets")
+flet.run(main, assets_dir="assets")

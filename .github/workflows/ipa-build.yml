@@ -80,25 +80,17 @@ jobs:
         echo "DSN_SENTRY=${{ secrets.SENTRY_DSN }}" >> .env
         echo ".env file created with secrets"
 
-    - name: Fix pubspec dependency_overrides (shell)
+    - name: Configure packaging ignore rules
       run: |
-        # remove existing webview_flutter_android lines to avoid duplicates
-        if [ -f build/flutter/pubspec.yaml ]; then
-          sed -i.bak '/^\s*webview_flutter_android\s*:/d' build/flutter/pubspec.yaml || true
-
-          if grep -q '^dependency_overrides:' build/flutter/pubspec.yaml; then
-            if ! grep -q '^\s*webview_flutter_android\s*:' build/flutter/pubspec.yaml; then
-              awk '/^dependency_overrides:/{print;print "  webview_flutter_android: 4.2.4";next}1' build/flutter/pubspec.yaml > build/flutter/pubspec.tmp && mv build/flutter/pubspec.tmp build/flutter/pubspec.yaml
-            fi
-          else
-            printf '\n\ndependency_overrides:\n  webview_flutter_android: 4.2.4\n' >> build/flutter/pubspec.yaml
-          fi
-
-          echo 'patched pubspec.yaml (first 120 lines):'
-          sed -n '1,120p' build/flutter/pubspec.yaml
-        else
-          echo 'build/flutter/pubspec.yaml not found, skipping'
-        fi
+        # Create a specific ignore file for Flet packaging
+        # This overrides .gitignore and ensures .env IS included in the build
+        echo "build/" > .fletignore
+        echo "__pycache__/" >> .fletignore
+        echo ".git/" >> .fletignore
+        echo ".venv/" >> .fletignore
+        echo ".github/" >> .fletignore
+        echo "*.pyc" >> .fletignore
+        echo ".DS_Store" >> .fletignore
 
     - name: Flet Build IPA
       run: |
@@ -108,20 +100,8 @@ jobs:
         export YELP_API_KEY="${{ secrets.YELP_API_KEY }}"
         export DSN_SENTRY="${{ secrets.SENTRY_DSN }}"
         
-        # Run flet build - will fail on compilation but generate project structure
-        flet build ipa --verbose --build-number=${{ github.event.inputs.BUILD_NUMBER || '1' }} --build-version=${{ github.event.inputs.BUILD_VERSION || '1.0.0' }} || true
-        
-        # Apply dependency fix
-        python3 fix_dependencies.py
-        
-        # Retry build with fixed dependencies
-        if [ -f "build/flutter/pubspec.yaml" ]; then
-          cd build/flutter
-          /Users/runner/flutter/3.27.4/bin/flutter pub get
-          /Users/runner/flutter/3.27.4/bin/flutter build ipa --no-version-check --suppress-analytics --no-codesign --build-number=${{ github.event.inputs.BUILD_NUMBER || '1' }} --build-name=${{ github.event.inputs.BUILD_VERSION || '1.0.0' }}
-        else
-          echo "Build succeeded on first try"
-        fi
+        # Run flet build with environment variables available
+        flet build ipa --verbose --build-number=${{ github.event.inputs.BUILD_NUMBER || '1' }} --build-version=${{ github.event.inputs.BUILD_VERSION || '1.0.0' }}
 
     - name: Create Payload Directory
       if: success()
