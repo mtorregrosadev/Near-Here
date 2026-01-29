@@ -32,7 +32,7 @@ env:
   PYTHON_VERSION: 3.12.8
 
   # flet-cli version to install for `flet build`
-  FLET_CLI_VERSION: 0.27.5
+  FLET_CLI_VERSION: 0.80.4
 
   # Ensures Python uses UTF-8 encoding by default
   PYTHONUTF8: 1
@@ -64,7 +64,11 @@ jobs:
     - name: Install Flutter
       uses: subosito/flutter-action@v2
       with:
-        flutter-version: '3.24.5'
+        flutter-version: '3.24.5' # Flet 0.23+ supports newer flutter. Checking error message...
+        # Error said: Flutter SDK 3.38.7 is required (which seems weird for stable channel, likely dev/beta or a misidentifiction by Flet, OR Flet 0.80.x really wants a very new engine)
+        # However, typically matching stable flutter is best.
+        # Let's try removing version pinning to let it pick "stable" or match what flet wants if we can find flets reqs.
+        channel: 'stable'
 
     - name: Configure Flutter
       run: flutter config --no-analytics
@@ -80,6 +84,18 @@ jobs:
         echo "DSN_SENTRY=${{ secrets.SENTRY_DSN }}" >> .env
         echo ".env file created with secrets"
 
+    - name: Configure packaging ignore rules
+      run: |
+        # Create a specific ignore file for Flet packaging
+        # This overrides .gitignore and ensures .env IS included in the build
+        echo "build/" > .fletignore
+        echo "__pycache__/" >> .fletignore
+        echo ".git/" >> .fletignore
+        echo ".venv/" >> .fletignore
+        echo ".github/" >> .fletignore
+        echo "*.pyc" >> .fletignore
+        echo ".DS_Store" >> .fletignore
+
     - name: Flet Build IPA
       run: |
         # Export environment variables for build process
@@ -88,11 +104,8 @@ jobs:
         export YELP_API_KEY="${{ secrets.YELP_API_KEY }}"
         export DSN_SENTRY="${{ secrets.SENTRY_DSN }}"
         
-        # Use the pre-installed Flutter instead of downloading a new one
-        export FLUTTER_ROOT=$(which flutter | xargs dirname | xargs dirname)
-        
-        # Run flet build with environment variables available
-        flet build ipa --verbose --build-number=${{ github.event.inputs.BUILD_NUMBER || '1' }} --build-version=${{ github.event.inputs.BUILD_VERSION || '1.0.0' }}
+        # Pipe 'yes' to handle the "Flutter SDK ... is required. Proceed? [y/n]" prompt
+        yes | flet build ipa --verbose --build-number=${{ github.event.inputs.BUILD_NUMBER || '1' }} --build-version=${{ github.event.inputs.BUILD_VERSION || '1.0.0' }}
 
     - name: Create Payload Directory
       if: success()
