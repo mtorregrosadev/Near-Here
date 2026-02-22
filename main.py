@@ -143,7 +143,6 @@ async def main(page: Page):
             accuracy=GeolocatorPositionAccuracy.BEST
         )
     )
-    page.overlay.append(gl)
     ctx.gl = gl
     page.update()
     APP_SESSIONS[page]["categories_sel"] = []

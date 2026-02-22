@@ -28,5 +28,5 @@ permissions = ["location"]
 entrypoint = "main.py"
 
 [tool.flet.flutter.dependencies]
-flet_geolocator = "0.1.0"
-flet_lottie = "0.1.0"
+flet_geolocator = "0.80.4"
+flet_lottie = "0.80.4"
