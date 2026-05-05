@@ -23,7 +23,13 @@ from src.api_handlers import LLocs_sostenibles, Llocs, Llocs_Yelp_info, Llocs_in
 from src.constants import CATEGORIES_LIST, get_system_instructions
 from src.views.about import about_view
 from src.views.info import info_view
+from src.views.search_params import config_near_view
+from src.views.settings import under_construction_view, ajuda_view, idioma_view, lloc_especific_view
 from src.views.error import error_view
+from src.views.favorits import favorits_view
+from src.views.historial import historial_view
+from src.views.categories import categories_view
+from src.views.ia import ia_view_setup
 
 load_dotenv()
 
@@ -355,42 +361,8 @@ async def main(page: Page):
             page.views.append(await error_view(page, size_botons, Tags_amunt_safe, update_cards, scale_next_card, config_near))
 
         if page.route == '/favorits':
-            saved_cards_images = await get_client_storage(page).get_async("saved_cards_images")   
-            saved_cards = await get_client_storage(page).get_async("saved_cards")
-            categories_visited = await get_client_storage(page).get_async("categories_visited")
             logger.info("Favorits seleccionat")
-            images_saved.controls = []
-            page.views.append(View(
-                route='/favorits',
-                padding=0,
-                controls=[images_saved],
-                bgcolor="#FFFCF1",
-                navigation_bar=page.navigation_bar
-            ))
-            if len(saved_cards) > 0:
-                for i in range(len(saved_cards)):
-                    if saved_cards_images[i] != []: 
-                        url = saved_cards_images[i]
-                        if url.startswith("https://fastly.4sqi.net/img/general/"):
-                            new_url = resize_image_url(url, 150, 150)
-                        else:
-                            new_url = url
-                        images_saved.controls.append(
-                            Container(content=Column(spacing=0.5,horizontal_alignment="center", controls=[Image(
-                                src=new_url,
-                                border_radius=10), Text(f"{saved_cards[i]['name']}", text_align="center")
-                        ])))
-                        images_saved.controls.reverse()
-                        page.update()
-                    else:
-                        images_saved.controls.append(
-                            Container(content=Column(spacing=0.5,horizontal_alignment="center", controls=[Image(
-                                src=f"{convertir_url(categories_visited[i][0])}",
-                                border_radius=10), Text(f"{saved_cards[i]['name']}", text_align="center")
-                        ])))
-                        page.update() 
-            else:
-                page.views[-1].controls.append(SafeArea(content=Text("No tens favorits!", text_align="center", height=page.height)))
+            page.views.append(await favorits_view(page, get_client_storage))
 
         if page.route == '/configuracio':
             page.views.append(View(
@@ -403,319 +375,43 @@ async def main(page: Page):
             logger.info("Configuració seleccionada")
 
         if page.route == '/configuracio/historial': 
-            loc_visited = await get_client_storage(page).get_async("loc_visited")  
-            loc_visited_photos = await get_client_storage(page).get_async("loc_visited_photos")  
-            categories_visited = await get_client_storage(page).get_async("categories_visited")
-            # page.add(configuracio)    
-            logger.debug(f"loc_visited len: {len(loc_visited)}")
-            images_saved.height = page.height
-            images_saved.controls = []
-            if len(loc_visited) > 0: 
-                page.views.append(View(route='/configuracio/historial', padding=0, controls=[AppBar(title=Text("Historial de Llocs"), adaptive=True,bgcolor="#AAD7D9"), images_saved],bgcolor = "#FFFCF1"))
-                for i in range(len(loc_visited)):
-                    if loc_visited_photos[i] != []:
-                        url = loc_visited_photos[i][0]
-                        invariant_part = "https://fastly.4sqi.net/img/general/"
-                        if url.startswith(invariant_part):
-                            new_url = resize_image_url(url, 150, 150)
-                        else:
-                            new_url = url
-                        images_saved.controls.append(
-                            Container(content=Column(spacing=0.5,horizontal_alignment="center", controls=[Image(
-                                src=new_url,
-                                border_radius=10), Text(f"{loc_visited[i]['name']}", text_align="center")
-                        ])))
-                        page.update()
-                    else:
-                        images_saved.controls.append(
-                            Container(content=Column(spacing=0.5,horizontal_alignment="center", controls=[Image(
-                                src=f"{convertir_url(categories_visited[i][0])}",
-                                border_radius=10), Text(f"{loc_visited[i]['name']}", text_align="center")
-                        ])))
-                        page.update() 
-                images_saved.controls.reverse()
-            else:
-                page.views.append(View(route='/configuracio/historial', padding=0, controls=[AppBar(title=Text("Historial de Llocs"), bgcolor="#AAD7D9",adaptive=True,),SafeArea(content=Text("No has explorat cap lloc encara!", text_align="center", height=page.height))], bgcolor = "#FFFCF1"))
+            logger.info("Historial seleccionat")
+            page.views.append(await historial_view(page, get_client_storage))
 
         if page.route == '/configuracio/tema':
-            # page.add(configuracio)
-            
-            working_content = Column([
-                Text("Estic treballant en això! 🚧", text_align="center", weight=FontWeight.W_900, theme_style=TextThemeStyle.TITLE_LARGE, width=page.width, color="#6b9e9f"),
-                Lottie(src="src/working.json"),
-                Divider(),
-                Text("Aquesta funcionalitat encara està en desenvolupament.\n\nEstic treballant per oferir-te aquesta opció aviat!", text_align="center")
-            ], height=page.height*0.55, alignment=MainAxisAlignment.CENTER, horizontal_alignment="center")
-            
-            page.views.append(View(route='/configuracio/tema', padding=0, bgcolor = "#FFFCF1",controls=[AppBar(title=Text("Tema"), adaptive=True,bgcolor="#AAD7D9"), SafeArea(content=working_content)]))
+            page.views.append(under_construction_view(page, title="Tema", route='/configuracio/tema'))
 
         if page.route == '/configuracio/politica_privacitat':
-            # page.add(configuracio)
-            
-            working_content = Column([
-                Text("Estic treballant en això! 🚧", text_align="center", weight=FontWeight.W_900, theme_style=TextThemeStyle.TITLE_LARGE, width=page.width, color="#6b9e9f"),
-                Lottie(src="src/working.json"),
-                Divider(),
-                Text("Aquesta funcionalitat encara està en desenvolupament.\n\nEstic treballant per oferir-te aquesta opció aviat!", text_align="center")
-            ], height=page.height*0.55, alignment=MainAxisAlignment.CENTER, horizontal_alignment="center")
-            
-            page.views.append(View(route='/configuracio/politica_privacitat', padding=0, bgcolor = "#FFFCF1",controls=[AppBar(title=Text("Política de privacitat"), adaptive=True,bgcolor="#AAD7D9"), SafeArea(content=working_content)]))
+            page.views.append(under_construction_view(page, title="Política de privacitat", route='/configuracio/politica_privacitat'))
 
         if page.route == '/configuracio/idioma':
-
             async def idioma_canviat(e):
                 APP_SESSIONS[page]["idioma"] = e.control.value
-            # page.add(configuracio)
-            if "idioma" in APP_SESSIONS[page]:
-                idioma = APP_SESSIONS[page].get("idioma")
-            page.views.append(View(route='/configuracio/idioma', padding=0, bgcolor = "#FFFCF1",controls=[
-                AppBar(title=Text("Idioma"), adaptive=True,bgcolor="#AAD7D9"),
-                SafeArea(content=Text("Recorda que l'idioma de moment es només de la IA! No canvia l'idioma de l'app!!", width=page.width, text_align="center")),
-                RadioGroup(content=Column([
-                    Radio(value="Català", label="Català"),
-                    Radio(value="Castellano", label="Castellano"),
-                    Radio(value="English", label="English")]), 
-                    on_change=idioma_canviat, value=f"{idioma}" if "idioma" in APP_SESSIONS[page] else "",
-                )
             
-            ]))
+            page.views.append(idioma_view(page, APP_SESSIONS, idioma_canviat))
 
         if page.route == "/configuracio/config_near":
-            # page.add(configuracio)
-            async def radius(e):
-                global canvi 
-                await get_client_storage(page).set_async("radius_sel", round(e.control.value) * 1000)
-                radius_sel = await get_client_storage(page).get_async("radius_sel") 
-                logger.debug(radius_sel)
-                canvi = True
-            async def sort(e):
-                global canvi 
-                logger.debug(e.control.value)
-                if e.control.value == "Valoració":
-                    await get_client_storage(page).set_async("sort_sel", "RATING")
-                if e.control.value == "Rellevancia (default)":
-                    await get_client_storage(page).set_async("sort_sel", "RELEVANCE")
-                if e.control.value == "Distància":
-                    await get_client_storage(page).set_async("sort_sel", "DISTANCE")
-                if e.control.value == "Popularitat":
-                    await get_client_storage(page).set_async("sort_sel", "POPULARITY")
-                sort_sel = await get_client_storage(page).get_async("sort_sel") 
-                logger.debug(sort_sel)
-                canvi = True
-            async def preu_sel(e):
-                global canvi 
-                await get_client_storage(page).set_async("preu", round(e.control.value))
-                preu = await get_client_storage(page).get_async("preu") 
-                logger.debug(preu)
-                canvi = True
             async def event_lloc_especific(e):
                 await page.push_route("/lloc_especific")
-            sort_sel = await get_client_storage(page).get_async("sort_sel")
-            if sort_sel == "RATING":
-                value_em = "Valoració"
-            if sort_sel == "RELEVANCE":
-                value_em = "Rellevancia (default)"
-            if sort_sel == "DISTANCE":
-                value_em = "Distància"
-            if sort_sel == "POPULARITY":
-                value_em = "Popularitat"
-            radius_sel = await get_client_storage(page).get_async("radius_sel")
-            logger.debug(f"radius_sel: {radius_sel}")
-            preu = await get_client_storage(page).get_async("preu")
-            logger.debug(f"preu: {preu}")
-            async def data_source_change(e):
-                label = e.control.value
-                mapping = {
-                    "Automàtic (recomanat)": "AUTO",
-                    "Sostenibles": "SOSTENIBLE",
-                    "Yelp": "YELP",
-                    "Foursquare": "FOURSQUARE",
-                }
-                value = mapping.get(label, "AUTO")
-                await get_client_storage(page).set_async("data_source_pref", value)
-
-            # Recupera preferència font de dades o posa valor per defecte
-            data_source_pref = await get_client_storage(page).get_async("data_source_pref")
-            if data_source_pref is None:
-                data_source_pref = "AUTO"
-                await get_client_storage(page).set_async("data_source_pref", data_source_pref)
-            data_source_label = {
-                "AUTO": "Automàtic (recomanat)",
-                "SOSTENIBLE": "Sostenibles",
-                "YELP": "Yelp",
-                "FOURSQUARE": "Foursquare",
-            }.get(data_source_pref, "Automàtic (recomanat)")
-
-            parametres_cerca = Container(
-                expand=True,
-                content=ListView(
-                    expand=True,
-                    controls=[
-                    Divider(),
-                    Text("RADI, DISTÀNCIA",weight=FontWeight.W_600, size=18),
-                    Text("Configura la distància màxima la qual vols que cerqui l'algorisme!",weight=FontWeight.W_300),
-                    Slider(min=1, max=10, divisions=10, label="{value} Km", value=int(radius_sel/1000), on_change_end=radius,active_color="#7A9A9C", inactive_color="#c9d6d7"),
-                    Divider(), 
-                    Text("RELLEVÀNCIA, ORDRE",weight=FontWeight.W_600, size=18),
-                    Text("Quins llocs t'apareixeran primer?",weight=FontWeight.W_300),
-                    Dropdown(
-                            hint_text="Pica la teva preferencia",
-                            width=page.width,
-                            on_select=sort,
-                            value=value_em,
-                            options=[
-                                flet.dropdown.Option("Rellevancia (default)"),
-                                flet.dropdown.Option("Valoració"),
-                                flet.dropdown.Option("Distància"),
-                                flet.dropdown.Option("Popularitat")]
-                    ),
-                    Divider(),
-                    Text("FONT DE DADES",weight=FontWeight.W_600, size=18),
-                    Text("Selecciona la font de dades preferida. Mantindrem els canvis i farem servir altres fonts si cal.",weight=FontWeight.W_300),
-                    Dropdown(
-                        hint_text="Tria la font preferida",
-                        width=page.width,
-                        on_select=data_source_change,
-                        value=data_source_label,
-                        options=[
-                            flet.dropdown.Option("Automàtic (recomanat)"),
-                            flet.dropdown.Option("Sostenibles"),
-                            flet.dropdown.Option("Yelp"),
-                            flet.dropdown.Option("Foursquare")
-                        ],
-                    ),
-                    Divider(),
-                    Text("PREU",weight=FontWeight.W_600, size=18),
-                    Text("Configura el preu màxim que vols pagar de l'1 al 4! 1 (barat), 4 (car). Si selecciones 0, no hi haura filtre i sortiran tots",weight=FontWeight.W_300),
-                    Slider(min=0, max=4, divisions=4, label="{value}", on_change_end=preu_sel,active_color="#7A9A9C", inactive_color="#c9d6d7", value=preu),
-                    Divider(),
-                    Text("Lloc específic",weight=FontWeight.W_600, size=18),
-                    Text("Vols cercar a un lloc el qual no sigui el teu? Fes click per seleccionar-lo!",weight=FontWeight.W_300), 
-                    ElevatedButton("Cercar a...", on_click=event_lloc_especific, width=page.width, bgcolor="#c9d6d7", color="black")
-                    ],
-                ),
-            )
-            page.views.append(View(route='/configuracio/config_near', padding=0, bgcolor = "#FFFCF1",controls=[AppBar(title=Text("Paràmetres de cerca"), adaptive=True,bgcolor="#AAD7D9"),Container(expand=True, content=parametres_cerca)]))
+                
+            page.views.append(await config_near_view(page, APP_SESSIONS, get_client_storage, event_lloc_especific))
             
+            # Recuperem la variable canvi en el cas que algun valor hagi estat modificat al fitxer (desat al diccionari de la sessio temporal)
+            if APP_SESSIONS[page].get("canvi"):
+                global canvi
+                canvi = True
+                APP_SESSIONS[page]["canvi"] = False
+
         if page.route == '/configuracio/sobre_app':
             page.views.append(about_view(page))
         if page.route == '/info': 
             page.views.append(info_view(page))
         if page.route == '/categories':
-            categories_sel = APP_SESSIONS[page].get("categories_sel")
             page.add(Tags_amunt_safe,stack_cards,botons)
-            Categ_info = Column([
-                     ExpansionTile(
-                            title=Text("Menjar",weight=FontWeight.W_600),
-                            subtitle=Text("Restaurants, bars, cafeteries, etc.",weight=FontWeight.W_300),
-                            affinity=TileAffinity.LEADING,
-                            collapsed_text_color=Colors.BLACK,
-                            text_color=Colors.BLACK,
-                            controls=[
-                                Checkbox(label="General Menjar 🍽️", adaptive=True, on_change=categ_check_sel),
-                                Checkbox(label="Panaderia 🥖", adaptive=True, on_change=categ_check_sel),
-                                Checkbox(label="Bar🍹", adaptive=True, on_change=categ_check_sel),
-                                Checkbox(label="Cafeteria ☕", adaptive=True, on_change=categ_check_sel),
-                                Checkbox(label="Creperia 🥞", adaptive=True, on_change=categ_check_sel),
-                                Checkbox(label="Botiga de postres 🥞", adaptive=True, on_change=categ_check_sel),
-                                Checkbox(label="Restaurants 🍴", adaptive=True, on_change=categ_check_sel),
-                                Checkbox(label="Restaurants 'Gluten-Free' ❌", adaptive=True, on_change=categ_check_sel),
-                            ],
-                    ),
-                     ExpansionTile(
-                            title=Text("Espais naturals",weight=FontWeight.W_600),
-                            subtitle=Text("Parcs, muntanyes, platges, llacs, etc.",weight=FontWeight.W_300),
-                            affinity=TileAffinity.LEADING, 
-                            collapsed_text_color=Colors.BLACK,
-                            text_color=Colors.BLACK,
-                            controls=[
-                                Checkbox(label="General espais naturals 🏔️", adaptive=True, on_change=categ_check_sel),
-                                Checkbox(label="Platja 🏖️", adaptive=True, on_change=categ_check_sel),
-                                Checkbox(label="Monument 🏛️", adaptive=True, on_change=categ_check_sel),
-                                Checkbox(label="Parcs 🛝🌲", adaptive=True, on_change=categ_check_sel),
-                            ],
-                    ),
-                     ExpansionTile(
-                            title=Text("Botigues",weight=FontWeight.W_600),
-                            subtitle=Text("Botigues de roba, llibreries, centres comercials, etc.",weight=FontWeight.W_300),
-                            affinity=TileAffinity.LEADING,
-                            collapsed_text_color=Colors.BLACK,
-                            text_color=Colors.BLACK,
-                            controls=[
-                                Checkbox(label="General Botigues 🛍️", adaptive=True, on_change=categ_check_sel),
-                                Checkbox(label="Roba i moda 👜", adaptive=True, on_change=categ_check_sel),
-                                Checkbox(label="Centres comercials 🛒", adaptive=True, on_change=categ_check_sel),
-                                Checkbox(label="Llibreries 📚", adaptive=True, on_change=categ_check_sel),
-                                Checkbox(label="De conveniència 🏪", adaptive=True, on_change=categ_check_sel),
-                                Checkbox(label="Vintage i de segona mà 🛍️", adaptive=True, on_change=categ_check_sel),
-                                Checkbox(label="Flors i jardins 💐", adaptive=True, on_change=categ_check_sel),
-                                Checkbox(label="Joguines 🧸", adaptive=True, on_change=categ_check_sel),
-                                Checkbox(label="Menjar 🛒🍴", adaptive=True, on_change=categ_check_sel),
-                            ],
-                    ),
-                     ExpansionTile(
-                            title=Text("Entreteniment", weight=FontWeight.W_600),
-                            subtitle=Text("Inclou parcs d'atraccions, aquaris, arcades, galeries d'art, etc.", weight=FontWeight.W_300),
-                            affinity=TileAffinity.LEADING,
-                            collapsed_text_color=Colors.BLACK,
-                            text_color=Colors.BLACK,
-                            controls=[
-                                Checkbox(label="General Entreteniment 🍿",adaptive=True, on_change=categ_check_sel),
-                                Checkbox(label="Museus 🖼️",adaptive=True, on_change=categ_check_sel),                                
-                                Checkbox(label="Karaoke 🎤",adaptive=True, on_change=categ_check_sel),
-                                Checkbox(label="Escape Room 🚪",adaptive=True, on_change=categ_check_sel),
-                                Checkbox(label="Bolera 🎳", adaptive=True, on_change=categ_check_sel),
-                                Checkbox(label="Cinema 🎥", adaptive=True, on_change=categ_check_sel),
-                                Checkbox(label="Parc d'atraccions 🎡🎢", adaptive=True, on_change=categ_check_sel),
-                            ],
-                    ),
-                     ExpansionTile(
-                            title=Text("Viatges",weight=FontWeight.W_600),
-                            subtitle=Text("Hotels, aeroports, estacions de tren, etc.",weight=FontWeight.W_300),
-                            affinity=TileAffinity.LEADING,
-                            collapsed_text_color=Colors.BLACK,
-                            text_color=Colors.BLACK,
-                            controls=[
-                                Checkbox(label="General viatges 🛩️",adaptive=True, on_change=categ_check_sel),
-                                Checkbox(label="Lloguer bicis 🚲",adaptive=True, on_change=categ_check_sel),                                
-                                Checkbox(label="Lloguer de barques 🚣🚣‍♀️",adaptive=True, on_change=categ_check_sel),
-                                Checkbox(label="Allotjament 🛌",adaptive=True, on_change=categ_check_sel),
-                                Checkbox(label="Parking 🅿️", adaptive=True, on_change=categ_check_sel),
-                                Checkbox(label="Àrea de descans ⌛", adaptive=True, on_change=categ_check_sel),
-                                Checkbox(label="Agència de viatges 🧳", adaptive=True, on_change=categ_check_sel),
-                            ],
-                    )
-                    ])
-            categ_info_add = Column(scroll="adaptive", height=page.height * 0.85,horizontal_alignment="center", controls=[Categ_info,ExpansionTile(
-                            title=Text("Turisme",weight=FontWeight.W_600),
-                            subtitle=Text("Que puc veure aqui?",weight=FontWeight.W_300),
-                            affinity=TileAffinity.LEADING,
-                            collapsed_text_color=Colors.BLACK,
-                            text_color=Colors.BLACK,
-                            controls=[
-                                Text("Quan fas click al apartat de turisme, l'algorisme et detecta els millors llocs per visitar a prop teu! 🧳🛩️🛌"),
-                                Text("Ideal per viatges :)"),
-                                Checkbox(label="Turisme 🧳🛩️🛌",adaptive=True, on_change=categ_check_sel, label_position="center"),
-                            ],
-                    ),
-                    ElevatedButton("Tornar", bgcolor="#7cb7b9", color="black", on_click=view_pop)])
-            
-            for category in Categ_info.controls: #El que fa això es comprovar un a un si són a dins de categories_sel agafant el CATEGORIES_LIST i agafant només el número.
-                for i in range(len(category.controls)):
-                    if category.controls[i].label in CATEGORIES_LIST:
-                     numeros_categ = CATEGORIES_LIST[category.controls[i].label]
-                     for numero in numeros_categ:
-                        if numero in categories_sel:
-                            category.controls[i].value = True #Estic feliç, funciona :D
-                            category.initially_expanded=True
-            page.views.append(View(route='/categories', padding=0, bgcolor = "#FFFCF1",controls=[AppBar(title=Text("Categories"),adaptive=True, bgcolor="#AAD7D9"), SafeArea(content=categ_info_add)]))
-            #page.add(AppBar(leading=IconButton(Icons.ARROW_BACK_IOS,alignment="center",on_click=tornar),title=Text("Categories"), bgcolor="#AAD7D9"),categ_info_add)
+            page.views.append(categories_view(page, APP_SESSIONS, view_pop, categ_check_sel))
         
         if page.route == "/configuracio/ajuda":
-            page.views.append(View(route='/configuracio/ajuda', padding=0, bgcolor = "#FFFCF1",controls=[
-                AppBar(title=Text("Ajuda"),adaptive=True, bgcolor="#AAD7D9"), 
-                SafeArea(content=Text("Qualsevol dubte o problema, no dubtis a contactar-me a l'e-mail:\n\nmarquitorregrosa@gmail.com", width=page.width, text_align="center"))
-            ]))
+            page.views.append(ajuda_view(page))
         
         if page.route == "/lloc_especific":
             def lloc_especific(e):
@@ -723,44 +419,13 @@ async def main(page: Page):
                 logger.debug(e.control.value)
                 APP_SESSIONS[page]["lloc_especific"] = e.control.value
                 canvi = True
-            page.views.append(View(route='/lloc_especific', padding=0, bgcolor = "#FFFCF1",controls=[
-                AppBar(title=Text("Cerca a un lloc"),adaptive=True, bgcolor="#AAD7D9"), 
-                SafeArea(content=Text("Vols cercar a un lloc el qual no sigui el teu? Posa aqui el lloc i retorna a l'app per cercar!\n", width=page.width, text_align="center")),
-                TextField(on_change=lloc_especific, prefix_icon=Icons.SEARCH_OUTLINED, hint_text="Posa el lloc aqui", label="On vols cercar?", border_radius=BorderRadius.all(30), value=f"{APP_SESSIONS[page].get('lloc_especific')}" if 'lloc_especific' in APP_SESSIONS[page] else None)
-            ]))
+                
+            page.views.append(lloc_especific_view(page, APP_SESSIONS, lloc_especific))
         
         if page.route == "/ia":
-            await page.push_route('/')
+            global ai
             ai = 2
-            anim_carrega = Lottie(src="src/ia_animation.json", repeat=True)   
-            page.overlay.append(ia_container)
-            page.update()
-            ia_container.content.controls[0].content.controls[1].controls.append(anim_carrega)
-            ia_container.update()
-            await asyncio.sleep(0.1)
-            dadesLlocs = APP_SESSIONS[page].get("dadesLlocs")
-            idioma = APP_SESSIONS[page].get("idioma")
-            user_categories = APP_SESSIONS[page].get("categories_sel")
-            system_instructions = get_system_instructions(dadesLlocs, idioma, user_categories)
-            google_api_key = os.getenv("GOOGLE_API_KEY")
-            
-            if not google_api_key:
-                raise ValueError("GOOGLE_API_KEY environment variable is not set or is empty.")
-            
-            api = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={google_api_key}"
-            headers = {
-                'Content-Type': 'application/json',
-            }
-            history = [{"role": "user", "parts": [{"text": f"Iniciant..."}]}]
-            data = {
-                "system_instruction": {
-                    "parts": {
-                        "text": system_instructions
-                    }
-                },
-                "contents": history
-            }    
-            await first_message()
+            await ia_view_setup(page, APP_SESSIONS, ia_container, first_message)
         
         page.update()
     
